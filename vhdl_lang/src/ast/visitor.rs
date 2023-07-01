@@ -461,12 +461,6 @@ pub fn test_walker() {
     walk(&tree, &LiteralVisitor {});
 }
 
-macro_rules! as_node {
-    ($vec:expr) => {
-        $vec.iter().map(|f| f as &dyn ASTNode).collect()
-    };
-}
-
 impl<T: ASTNode> ASTNode for Box<T> {
     fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
         Continue
@@ -600,7 +594,7 @@ impl ASTNode for DesignFile {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(self.design_units)
+        vec![&self.design_units]
     }
 }
 
@@ -663,7 +657,7 @@ impl ASTNode for ContextReference {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(&self.name_list)
+        vec![&self.name_list]
     }
 }
 
@@ -673,7 +667,7 @@ impl ASTNode for LibraryClause {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(&self.name_list)
+        vec![&self.name_list]
     }
 }
 
@@ -683,7 +677,7 @@ impl ASTNode for UseClause {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(self.name_list)
+        vec![&self.name_list]
     }
 }
 
@@ -811,7 +805,7 @@ impl ASTNode for VUnitBindingIndication {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(&self.vunit_list)
+        vec![&self.vunit_list]
     }
 }
 
@@ -856,7 +850,7 @@ impl ASTNode for InstantiationList {
 
     fn children(&self) -> Vec<&dyn ASTNode> {
         match self {
-            InstantiationList::Labels(idents) => as_node!(idents),
+            InstantiationList::Labels(idents) => vec![idents],
             InstantiationList::Others => vec![],
             InstantiationList::All => vec![],
         }
@@ -1072,7 +1066,7 @@ impl ASTNode for Target {
     fn children(&self) -> Vec<&dyn ASTNode> {
         match self {
             Target::Name(name) => vec![name],
-            Target::Aggregate(aggr) => as_node!(aggr),
+            Target::Aggregate(aggr) => vec![aggr],
         }
     }
 }
@@ -1130,7 +1124,7 @@ impl ASTNode for Waveform {
 
     fn children(&self) -> Vec<&dyn ASTNode> {
         match self {
-            Waveform::Elements(elements) => as_node!(elements),
+            Waveform::Elements(elements) => vec![elements],
             Waveform::Unaffected => vec![],
         }
     }
@@ -1304,7 +1298,7 @@ impl ASTNode for ResolutionIndication {
         match self {
             ResolutionIndication::FunctionName(name) => vec![name],
             ResolutionIndication::ArrayElement(name) => vec![name],
-            ResolutionIndication::Record(record) => as_node!(record),
+            ResolutionIndication::Record(record) => vec![record],
             ResolutionIndication::Unresolved => vec![],
         }
     }
@@ -1329,7 +1323,7 @@ impl ASTNode for SubtypeConstraint {
         match self {
             SubtypeConstraint::Range(range) => vec![range],
             SubtypeConstraint::Array(ranges, constraint) => vec![ranges, constraint],
-            SubtypeConstraint::Record(constraints) => as_node!(constraints),
+            SubtypeConstraint::Record(constraints) => vec![constraints],
         }
     }
 }
@@ -1385,7 +1379,7 @@ impl ASTNode for TypeDefinition {
             TypeDefinition::Numeric(range) => vec![range],
             TypeDefinition::Physical(decl) => vec![decl],
             TypeDefinition::Array(indices, indication) => vec![indices, indication],
-            TypeDefinition::Record(record) => as_node!(record),
+            TypeDefinition::Record(record) => vec![record],
             TypeDefinition::Access(subtype) => vec![subtype],
             TypeDefinition::Incomplete(reference) => vec![reference],
             TypeDefinition::File(type_mark) => vec![type_mark],
@@ -1412,7 +1406,7 @@ impl ASTNode for ProtectedTypeBody {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(&self.decl)
+        vec![&self.decl]
     }
 }
 
@@ -1422,7 +1416,7 @@ impl ASTNode for ProtectedTypeDeclaration {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        as_node!(&self.items)
+        vec![&self.items]
     }
 }
 
@@ -1582,7 +1576,7 @@ impl ASTNode for InterfacePackageGenericMapAspect {
 
     fn children(&self) -> Vec<&dyn ASTNode> {
         match self {
-            InterfacePackageGenericMapAspect::Map(map) => as_node!(map),
+            InterfacePackageGenericMapAspect::Map(map) => vec![map],
             InterfacePackageGenericMapAspect::Box => vec![],
             InterfacePackageGenericMapAspect::Default => vec![],
         }
@@ -1867,7 +1861,7 @@ impl ASTNode for SensitivityList {
 
     fn children(&self) -> Vec<&dyn ASTNode> {
         match self {
-            SensitivityList::Names(names) => as_node!(names),
+            SensitivityList::Names(names) => vec![names],
             SensitivityList::All => vec![],
         }
     }
@@ -1898,7 +1892,7 @@ impl ASTNode for Expression {
         match self {
             Expression::Binary(_, lhs, rhs) => vec![lhs, rhs],
             Expression::Unary(_, expr) => vec![expr],
-            Expression::Aggregate(elements) => as_node!(elements),
+            Expression::Aggregate(elements) => vec![elements],
             Expression::Qualified(qual) => vec![qual],
             Expression::Name(name) => vec![name],
             Expression::Literal(lit) => vec![lit],
