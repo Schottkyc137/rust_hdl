@@ -26,6 +26,8 @@ pub enum SearchState {
     NotFinished,
 }
 
+use crate::ast::visitor::VisitorResult::Continue;
+use crate::ast::visitor::{ASTNode, Visitor, VisitorResult};
 pub use SearchResult::*;
 pub use SearchState::*;
 
