@@ -406,7 +406,9 @@ pub trait Visitor {
     fn visit_design_file(&self, _node: &DesignFile) -> VisitorResult {
         Continue
     }
-    fn visit_reference(&self, _node: &Reference) -> VisitorResult {Continue}
+    fn visit_reference(&self, _node: &Reference) -> VisitorResult {
+        Continue
+    }
     fn visit_item_with_pos(&self, _pos: &SrcPos, _node: &dyn ASTNode) -> VisitorResult {
         Continue
     }
@@ -1536,11 +1538,7 @@ impl ASTNode for InterfaceObjectDeclaration {
     }
 
     fn children(&self) -> Vec<&dyn ASTNode> {
-        vec![
-            &self.ident,
-            &self.subtype_indication,
-            &self.expression,
-        ]
+        vec![&self.ident, &self.subtype_indication, &self.expression]
     }
 }
 
