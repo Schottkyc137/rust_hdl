@@ -397,9 +397,6 @@ pub trait Visitor {
     fn visit_any_secondary_unit(&self, _node: &AnySecondaryUnit) -> VisitorResult {
         Continue
     }
-    fn visit_context_clause(&self, _node: &ContextClause) -> VisitorResult {
-        Continue
-    }
     fn visit_any_design_unit(&self, _node: &AnyDesignUnit) -> VisitorResult {
         Continue
     }
