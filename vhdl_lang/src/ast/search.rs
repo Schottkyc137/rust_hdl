@@ -1381,17 +1381,16 @@ impl<'a, T: Fn(EntRef<'a>) -> bool> FindEnt<'a, T> {
     }
 }
 
-impl<'a, T: Fn(EntRef<'a>) -> bool> Searcher for FindEnt<'a, T> {
-    fn search_decl(&mut self, decl: FoundDeclaration) -> SearchState {
-        if let Some(id) = decl.ent_id() {
+impl<'a, T: Fn(EntRef<'a>) -> bool> Visitor for FindEnt<'a, T> {
+    fn visit_item_with_decl(&mut self, decl: &Option<EntityId>, _node: &dyn ASTNode) -> VisitorResult {
+        if let Some(id) = *decl {
             let ent = self.root.get_ent(id);
             if (self.cond)(ent) {
                 self.result = Some(ent);
-                return SearchState::Finished(SearchResult::Found);
+                return Stop
             }
         }
-
-        SearchState::NotFinished
+        Continue
     }
 }
 

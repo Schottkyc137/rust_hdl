@@ -445,12 +445,12 @@ pub fn test_walker() {
     let tree = Literal::AbstractLiteral(AbstractLiteral::Integer(43));
     struct LiteralVisitor {}
     impl Visitor for LiteralVisitor {
-        fn visit_abstract_literal(&self, node: &AbstractLiteral) -> VisitorResult {
+        fn visit_abstract_literal(&mut self, node: &AbstractLiteral) -> VisitorResult {
             println!("Visited abstract literal {:?}", node);
             Continue
         }
 
-        fn visit_literal(&self, node: &Literal) -> VisitorResult {
+        fn visit_literal(&mut self, node: &Literal) -> VisitorResult {
             println!("Visited literal {:?}", node);
             Continue
         }

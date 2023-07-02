@@ -393,7 +393,7 @@ impl DesignRoot {
             || decl.kind().is_deferred_constant()
         {
             let mut searcher = FindEnt::new(self, |ent| ent.is_declared_by(decl));
-            let _ = self.search(&mut searcher);
+            self.walk(&mut searcher);
 
             Some(searcher.result.unwrap_or(decl))
         } else {
