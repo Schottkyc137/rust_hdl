@@ -10,409 +10,409 @@ pub enum VisitorResult {
 }
 
 pub trait Visitor {
-    fn visit_attribute_name(&self, _node: &AttributeName) -> VisitorResult {
+    fn visit_attribute_name(&mut self, _node: &AttributeName) -> VisitorResult {
         Continue
     }
-    fn visit_attribute_designator(&self, _node: &AttributeDesignator) -> VisitorResult {
+    fn visit_attribute_designator(&mut self, _node: &AttributeDesignator) -> VisitorResult {
         Continue
     }
-    fn visit_external_path(&self, _node: &ExternalPath) -> VisitorResult {
+    fn visit_external_path(&mut self, _node: &ExternalPath) -> VisitorResult {
         Continue
     }
-    fn visit_external_name(&self, _node: &ExternalName) -> VisitorResult {
+    fn visit_external_name(&mut self, _node: &ExternalName) -> VisitorResult {
         Continue
     }
-    fn visit_name(&self, _node: &Name) -> VisitorResult {
+    fn visit_name(&mut self, _node: &Name) -> VisitorResult {
         Continue
     }
-    fn visit_selected_name(&self, _node: &SelectedName) -> VisitorResult {
+    fn visit_selected_name(&mut self, _node: &SelectedName) -> VisitorResult {
         Continue
     }
-    fn visit_call_or_indexed(&self, _node: &CallOrIndexed) -> VisitorResult {
+    fn visit_call_or_indexed(&mut self, _node: &CallOrIndexed) -> VisitorResult {
         Continue
     }
-    fn visit_choice(&self, _node: &Choice) -> VisitorResult {
+    fn visit_choice(&mut self, _node: &Choice) -> VisitorResult {
         Continue
     }
-    fn visit_element_association(&self, _node: &ElementAssociation) -> VisitorResult {
+    fn visit_element_association(&mut self, _node: &ElementAssociation) -> VisitorResult {
         Continue
     }
-    fn visit_actual_part(&self, _node: &ActualPart) -> VisitorResult {
+    fn visit_actual_part(&mut self, _node: &ActualPart) -> VisitorResult {
         Continue
     }
-    fn visit_association_element(&self, _node: &AssociationElement) -> VisitorResult {
+    fn visit_association_element(&mut self, _node: &AssociationElement) -> VisitorResult {
         Continue
     }
-    fn visit_abstract_literal(&self, _node: &AbstractLiteral) -> VisitorResult {
+    fn visit_abstract_literal(&mut self, _node: &AbstractLiteral) -> VisitorResult {
         Continue
     }
-    fn visit_bit_string(&self, _node: &BitString) -> VisitorResult {
+    fn visit_bit_string(&mut self, _node: &BitString) -> VisitorResult {
         Continue
     }
-    fn visit_physical_literal(&self, _node: &PhysicalLiteral) -> VisitorResult {
+    fn visit_physical_literal(&mut self, _node: &PhysicalLiteral) -> VisitorResult {
         Continue
     }
-    fn visit_literal(&self, _node: &Literal) -> VisitorResult {
+    fn visit_literal(&mut self, _node: &Literal) -> VisitorResult {
         Continue
     }
-    fn visit_allocator(&self, _node: &Allocator) -> VisitorResult {
+    fn visit_allocator(&mut self, _node: &Allocator) -> VisitorResult {
         Continue
     }
-    fn visit_qualified_expression(&self, _node: &QualifiedExpression) -> VisitorResult {
+    fn visit_qualified_expression(&mut self, _node: &QualifiedExpression) -> VisitorResult {
         Continue
     }
-    fn visit_expression(&self, _node: &Expression) -> VisitorResult {
+    fn visit_expression(&mut self, _node: &Expression) -> VisitorResult {
         Continue
     }
-    fn visit_ident(&self, _node: &Ident) -> VisitorResult {
+    fn visit_ident(&mut self, _node: &Ident) -> VisitorResult {
         Continue
     }
-    fn visit_discrete_range(&self, _node: &DiscreteRange) -> VisitorResult {
+    fn visit_discrete_range(&mut self, _node: &DiscreteRange) -> VisitorResult {
         Continue
     }
-    fn visit_range_constraint(&self, _node: &RangeConstraint) -> VisitorResult {
+    fn visit_range_constraint(&mut self, _node: &RangeConstraint) -> VisitorResult {
         Continue
     }
-    fn visit_range(&self, _node: &Range) -> VisitorResult {
+    fn visit_range(&mut self, _node: &Range) -> VisitorResult {
         Continue
     }
-    fn visit_element_constraint(&self, _node: &ElementConstraint) -> VisitorResult {
+    fn visit_element_constraint(&mut self, _node: &ElementConstraint) -> VisitorResult {
         Continue
     }
-    fn visit_subtype_constraint(&self, _node: &SubtypeConstraint) -> VisitorResult {
+    fn visit_subtype_constraint(&mut self, _node: &SubtypeConstraint) -> VisitorResult {
         Continue
     }
-    fn visit_record_element_resolution(&self, _node: &RecordElementResolution) -> VisitorResult {
+    fn visit_record_element_resolution(&mut self, _node: &RecordElementResolution) -> VisitorResult {
         Continue
     }
-    fn visit_resolution_indication(&self, _node: &ResolutionIndication) -> VisitorResult {
+    fn visit_resolution_indication(&mut self, _node: &ResolutionIndication) -> VisitorResult {
         Continue
     }
-    fn visit_type_mark(&self, _node: &TypeMark) -> VisitorResult {
+    fn visit_type_mark(&mut self, _node: &TypeMark) -> VisitorResult {
         Continue
     }
-    fn visit_subtype_indication(&self, _node: &SubtypeIndication) -> VisitorResult {
+    fn visit_subtype_indication(&mut self, _node: &SubtypeIndication) -> VisitorResult {
         Continue
     }
-    fn visit_array_index(&self, _node: &ArrayIndex) -> VisitorResult {
+    fn visit_array_index(&mut self, _node: &ArrayIndex) -> VisitorResult {
         Continue
     }
-    fn visit_element_declaration(&self, _node: &ElementDeclaration) -> VisitorResult {
+    fn visit_element_declaration(&mut self, _node: &ElementDeclaration) -> VisitorResult {
         Continue
     }
     fn visit_protected_type_declarative_item(
-        &self,
+        &mut self,
         _node: &ProtectedTypeDeclarativeItem,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_designator(&self, _node: &Designator) -> VisitorResult {
+    fn visit_designator(&mut self, _node: &Designator) -> VisitorResult {
         Continue
     }
-    fn visit_alias_declaration(&self, _node: &AliasDeclaration) -> VisitorResult {
+    fn visit_alias_declaration(&mut self, _node: &AliasDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_attribute_declaration(&self, _node: &AttributeDeclaration) -> VisitorResult {
+    fn visit_attribute_declaration(&mut self, _node: &AttributeDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_entity_tag(&self, _node: &EntityTag) -> VisitorResult {
+    fn visit_entity_tag(&mut self, _node: &EntityTag) -> VisitorResult {
         Continue
     }
-    fn visit_entity_name(&self, _node: &EntityName) -> VisitorResult {
+    fn visit_entity_name(&mut self, _node: &EntityName) -> VisitorResult {
         Continue
     }
-    fn visit_attribute_specification(&self, _node: &AttributeSpecification) -> VisitorResult {
+    fn visit_attribute_specification(&mut self, _node: &AttributeSpecification) -> VisitorResult {
         Continue
     }
-    fn visit_attribute(&self, _node: &Attribute) -> VisitorResult {
+    fn visit_attribute(&mut self, _node: &Attribute) -> VisitorResult {
         Continue
     }
-    fn visit_protected_type_declaration(&self, _node: &ProtectedTypeDeclaration) -> VisitorResult {
+    fn visit_protected_type_declaration(&mut self, _node: &ProtectedTypeDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_protected_type_body(&self, _node: &ProtectedTypeBody) -> VisitorResult {
+    fn visit_protected_type_body(&mut self, _node: &ProtectedTypeBody) -> VisitorResult {
         Continue
     }
-    fn visit_physical_type_declaration(&self, _node: &PhysicalTypeDeclaration) -> VisitorResult {
+    fn visit_physical_type_declaration(&mut self, _node: &PhysicalTypeDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_enumeration_literal(&self, _node: &EnumerationLiteral) -> VisitorResult {
+    fn visit_enumeration_literal(&mut self, _node: &EnumerationLiteral) -> VisitorResult {
         Continue
     }
-    fn visit_type_definition(&self, _node: &TypeDefinition) -> VisitorResult {
+    fn visit_type_definition(&mut self, _node: &TypeDefinition) -> VisitorResult {
         Continue
     }
-    fn visit_type_declaration(&self, _node: &TypeDeclaration) -> VisitorResult {
+    fn visit_type_declaration(&mut self, _node: &TypeDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_object_declaration(&self, _node: &ObjectDeclaration) -> VisitorResult {
+    fn visit_object_declaration(&mut self, _node: &ObjectDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_file_declaration(&self, _node: &FileDeclaration) -> VisitorResult {
+    fn visit_file_declaration(&mut self, _node: &FileDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_subprogram_designator(&self, _node: &SubprogramDesignator) -> VisitorResult {
+    fn visit_subprogram_designator(&mut self, _node: &SubprogramDesignator) -> VisitorResult {
         Continue
     }
-    fn visit_procedure_specification(&self, _node: &ProcedureSpecification) -> VisitorResult {
+    fn visit_procedure_specification(&mut self, _node: &ProcedureSpecification) -> VisitorResult {
         Continue
     }
-    fn visit_function_specification(&self, _node: &FunctionSpecification) -> VisitorResult {
+    fn visit_function_specification(&mut self, _node: &FunctionSpecification) -> VisitorResult {
         Continue
     }
-    fn visit_subprogram_body(&self, _node: &SubprogramBody) -> VisitorResult {
+    fn visit_subprogram_body(&mut self, _node: &SubprogramBody) -> VisitorResult {
         Continue
     }
-    fn visit_signature(&self, _node: &Signature) -> VisitorResult {
+    fn visit_signature(&mut self, _node: &Signature) -> VisitorResult {
         Continue
     }
-    fn visit_subprogram_declaration(&self, _node: &SubprogramDeclaration) -> VisitorResult {
+    fn visit_subprogram_declaration(&mut self, _node: &SubprogramDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_interface_file_declaration(&self, _node: &InterfaceFileDeclaration) -> VisitorResult {
+    fn visit_interface_file_declaration(&mut self, _node: &InterfaceFileDeclaration) -> VisitorResult {
         Continue
     }
     fn visit_interface_object_declaration(
-        &self,
+        &mut self,
         _node: &InterfaceObjectDeclaration,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_subprogram_default(&self, _node: &SubprogramDefault) -> VisitorResult {
+    fn visit_subprogram_default(&mut self, _node: &SubprogramDefault) -> VisitorResult {
         Continue
     }
     fn visit_interface_package_generic_map_aspect(
-        &self,
+        &mut self,
         _node: &InterfacePackageGenericMapAspect,
     ) -> VisitorResult {
         Continue
     }
     fn visit_interface_package_declaration(
-        &self,
+        &mut self,
         _node: &InterfacePackageDeclaration,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_interface_declaration(&self, _node: &InterfaceDeclaration) -> VisitorResult {
+    fn visit_interface_declaration(&mut self, _node: &InterfaceDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_port_clause(&self, _node: &PortClause) -> VisitorResult {
+    fn visit_port_clause(&mut self, _node: &PortClause) -> VisitorResult {
         Continue
     }
-    fn visit_component_declaration(&self, _node: &ComponentDeclaration) -> VisitorResult {
+    fn visit_component_declaration(&mut self, _node: &ComponentDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_declaration(&self, _node: &Declaration) -> VisitorResult {
+    fn visit_declaration(&mut self, _node: &Declaration) -> VisitorResult {
         Continue
     }
-    fn visit_wait_statement(&self, _node: &WaitStatement) -> VisitorResult {
+    fn visit_wait_statement(&mut self, _node: &WaitStatement) -> VisitorResult {
         Continue
     }
-    fn visit_assert_statement(&self, _node: &AssertStatement) -> VisitorResult {
+    fn visit_assert_statement(&mut self, _node: &AssertStatement) -> VisitorResult {
         Continue
     }
-    fn visit_report_statement(&self, _node: &ReportStatement) -> VisitorResult {
+    fn visit_report_statement(&mut self, _node: &ReportStatement) -> VisitorResult {
         Continue
     }
-    fn visit_target(&self, _node: &Target) -> VisitorResult {
+    fn visit_target(&mut self, _node: &Target) -> VisitorResult {
         Continue
     }
-    fn visit_waveform_element(&self, _node: &WaveformElement) -> VisitorResult {
+    fn visit_waveform_element(&mut self, _node: &WaveformElement) -> VisitorResult {
         Continue
     }
-    fn visit_waveform(&self, _node: &Waveform) -> VisitorResult {
+    fn visit_waveform(&mut self, _node: &Waveform) -> VisitorResult {
         Continue
     }
-    fn visit_delay_mechanism(&self, _node: &DelayMechanism) -> VisitorResult {
+    fn visit_delay_mechanism(&mut self, _node: &DelayMechanism) -> VisitorResult {
         Continue
     }
-    fn visit_signal_assignment(&self, _node: &SignalAssignment) -> VisitorResult {
+    fn visit_signal_assignment(&mut self, _node: &SignalAssignment) -> VisitorResult {
         Continue
     }
-    fn visit_signal_force_assignment(&self, _node: &SignalForceAssignment) -> VisitorResult {
+    fn visit_signal_force_assignment(&mut self, _node: &SignalForceAssignment) -> VisitorResult {
         Continue
     }
-    fn visit_signal_release_assignment(&self, _node: &SignalReleaseAssignment) -> VisitorResult {
+    fn visit_signal_release_assignment(&mut self, _node: &SignalReleaseAssignment) -> VisitorResult {
         Continue
     }
-    fn visit_variable_assignment(&self, _node: &VariableAssignment) -> VisitorResult {
+    fn visit_variable_assignment(&mut self, _node: &VariableAssignment) -> VisitorResult {
         Continue
     }
-    fn visit_if_statement(&self, _node: &IfStatement) -> VisitorResult {
+    fn visit_if_statement(&mut self, _node: &IfStatement) -> VisitorResult {
         Continue
     }
-    fn visit_case_statement(&self, _node: &CaseStatement) -> VisitorResult {
+    fn visit_case_statement(&mut self, _node: &CaseStatement) -> VisitorResult {
         Continue
     }
-    fn visit_iteration_scheme(&self, _node: &IterationScheme) -> VisitorResult {
+    fn visit_iteration_scheme(&mut self, _node: &IterationScheme) -> VisitorResult {
         Continue
     }
-    fn visit_loop_statement(&self, _node: &LoopStatement) -> VisitorResult {
+    fn visit_loop_statement(&mut self, _node: &LoopStatement) -> VisitorResult {
         Continue
     }
-    fn visit_next_statement(&self, _node: &NextStatement) -> VisitorResult {
+    fn visit_next_statement(&mut self, _node: &NextStatement) -> VisitorResult {
         Continue
     }
-    fn visit_exit_statement(&self, _node: &ExitStatement) -> VisitorResult {
+    fn visit_exit_statement(&mut self, _node: &ExitStatement) -> VisitorResult {
         Continue
     }
-    fn visit_return_statement(&self, _node: &ReturnStatement) -> VisitorResult {
+    fn visit_return_statement(&mut self, _node: &ReturnStatement) -> VisitorResult {
         Continue
     }
-    fn visit_sequential_statement(&self, _node: &SequentialStatement) -> VisitorResult {
+    fn visit_sequential_statement(&mut self, _node: &SequentialStatement) -> VisitorResult {
         Continue
     }
     fn visit_labeled_sequential_statement(
-        &self,
+        &mut self,
         _node: &LabeledSequentialStatement,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_block_statement(&self, _node: &BlockStatement) -> VisitorResult {
+    fn visit_block_statement(&mut self, _node: &BlockStatement) -> VisitorResult {
         Continue
     }
-    fn visit_block_header(&self, _node: &BlockHeader) -> VisitorResult {
+    fn visit_block_header(&mut self, _node: &BlockHeader) -> VisitorResult {
         Continue
     }
-    fn visit_sensitivity_list(&self, _node: &SensitivityList) -> VisitorResult {
+    fn visit_sensitivity_list(&mut self, _node: &SensitivityList) -> VisitorResult {
         Continue
     }
-    fn visit_process_statement(&self, _node: &ProcessStatement) -> VisitorResult {
+    fn visit_process_statement(&mut self, _node: &ProcessStatement) -> VisitorResult {
         Continue
     }
-    fn visit_concurrent_procedure_call(&self, _node: &ConcurrentProcedureCall) -> VisitorResult {
+    fn visit_concurrent_procedure_call(&mut self, _node: &ConcurrentProcedureCall) -> VisitorResult {
         Continue
     }
     fn visit_concurrent_assert_statement(
-        &self,
+        &mut self,
         _node: &ConcurrentAssertStatement,
     ) -> VisitorResult {
         Continue
     }
     fn visit_concurrent_signal_assignment(
-        &self,
+        &mut self,
         _node: &ConcurrentSignalAssignment,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_instantiated_unit(&self, _node: &InstantiatedUnit) -> VisitorResult {
+    fn visit_instantiated_unit(&mut self, _node: &InstantiatedUnit) -> VisitorResult {
         Continue
     }
-    fn visit_instantiation_statement(&self, _node: &InstantiationStatement) -> VisitorResult {
+    fn visit_instantiation_statement(&mut self, _node: &InstantiationStatement) -> VisitorResult {
         Continue
     }
-    fn visit_generate_body(&self, _node: &GenerateBody) -> VisitorResult {
+    fn visit_generate_body(&mut self, _node: &GenerateBody) -> VisitorResult {
         Continue
     }
-    fn visit_for_generate_statement(&self, _node: &ForGenerateStatement) -> VisitorResult {
+    fn visit_for_generate_statement(&mut self, _node: &ForGenerateStatement) -> VisitorResult {
         Continue
     }
-    fn visit_if_generate_statement(&self, _node: &IfGenerateStatement) -> VisitorResult {
+    fn visit_if_generate_statement(&mut self, _node: &IfGenerateStatement) -> VisitorResult {
         Continue
     }
-    fn visit_case_generate_statement(&self, _node: &CaseGenerateStatement) -> VisitorResult {
+    fn visit_case_generate_statement(&mut self, _node: &CaseGenerateStatement) -> VisitorResult {
         Continue
     }
-    fn visit_concurrent_statement(&self, _node: &ConcurrentStatement) -> VisitorResult {
+    fn visit_concurrent_statement(&mut self, _node: &ConcurrentStatement) -> VisitorResult {
         Continue
     }
     fn visit_labeled_concurrent_statement(
-        &self,
+        &mut self,
         _node: &LabeledConcurrentStatement,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_library_clause(&self, _node: &LibraryClause) -> VisitorResult {
+    fn visit_library_clause(&mut self, _node: &LibraryClause) -> VisitorResult {
         Continue
     }
-    fn visit_use_clause(&self, _node: &UseClause) -> VisitorResult {
+    fn visit_use_clause(&mut self, _node: &UseClause) -> VisitorResult {
         Continue
     }
-    fn visit_context_reference(&self, _node: &ContextReference) -> VisitorResult {
+    fn visit_context_reference(&mut self, _node: &ContextReference) -> VisitorResult {
         Continue
     }
-    fn visit_context_item(&self, _node: &ContextItem) -> VisitorResult {
+    fn visit_context_item(&mut self, _node: &ContextItem) -> VisitorResult {
         Continue
     }
-    fn visit_context_declaration(&self, _node: &ContextDeclaration) -> VisitorResult {
+    fn visit_context_declaration(&mut self, _node: &ContextDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_package_instantiation(&self, _node: &PackageInstantiation) -> VisitorResult {
+    fn visit_package_instantiation(&mut self, _node: &PackageInstantiation) -> VisitorResult {
         Continue
     }
-    fn visit_instantiation_list(&self, _node: &InstantiationList) -> VisitorResult {
+    fn visit_instantiation_list(&mut self, _node: &InstantiationList) -> VisitorResult {
         Continue
     }
-    fn visit_entity_aspect(&self, _node: &EntityAspect) -> VisitorResult {
+    fn visit_entity_aspect(&mut self, _node: &EntityAspect) -> VisitorResult {
         Continue
     }
-    fn visit_binding_indication(&self, _node: &BindingIndication) -> VisitorResult {
+    fn visit_binding_indication(&mut self, _node: &BindingIndication) -> VisitorResult {
         Continue
     }
-    fn visit_component_specification(&self, _node: &ComponentSpecification) -> VisitorResult {
+    fn visit_component_specification(&mut self, _node: &ComponentSpecification) -> VisitorResult {
         Continue
     }
-    fn visit_v_unit_binding_indication(&self, _node: &VUnitBindingIndication) -> VisitorResult {
+    fn visit_v_unit_binding_indication(&mut self, _node: &VUnitBindingIndication) -> VisitorResult {
         Continue
     }
     fn visit_configuration_specification(
-        &self,
+        &mut self,
         _node: &ConfigurationSpecification,
     ) -> VisitorResult {
         Continue
     }
     fn visit_configuration_declarative_item(
-        &self,
+        &mut self,
         _node: &ConfigurationDeclarativeItem,
     ) -> VisitorResult {
         Continue
     }
-    fn visit_component_configuration(&self, _node: &ComponentConfiguration) -> VisitorResult {
+    fn visit_component_configuration(&mut self, _node: &ComponentConfiguration) -> VisitorResult {
         Continue
     }
-    fn visit_configuration_item(&self, _node: &ConfigurationItem) -> VisitorResult {
+    fn visit_configuration_item(&mut self, _node: &ConfigurationItem) -> VisitorResult {
         Continue
     }
-    fn visit_block_configuration(&self, _node: &BlockConfiguration) -> VisitorResult {
+    fn visit_block_configuration(&mut self, _node: &BlockConfiguration) -> VisitorResult {
         Continue
     }
-    fn visit_configuration_declaration(&self, _node: &ConfigurationDeclaration) -> VisitorResult {
+    fn visit_configuration_declaration(&mut self, _node: &ConfigurationDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_entity_declaration(&self, _node: &EntityDeclaration) -> VisitorResult {
+    fn visit_entity_declaration(&mut self, _node: &EntityDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_architecture_body(&self, _node: &ArchitectureBody) -> VisitorResult {
+    fn visit_architecture_body(&mut self, _node: &ArchitectureBody) -> VisitorResult {
         Continue
     }
-    fn visit_package_declaration(&self, _node: &PackageDeclaration) -> VisitorResult {
+    fn visit_package_declaration(&mut self, _node: &PackageDeclaration) -> VisitorResult {
         Continue
     }
-    fn visit_package_body(&self, _node: &PackageBody) -> VisitorResult {
+    fn visit_package_body(&mut self, _node: &PackageBody) -> VisitorResult {
         Continue
     }
-    fn visit_any_primary_unit(&self, _node: &AnyPrimaryUnit) -> VisitorResult {
+    fn visit_any_primary_unit(&mut self, _node: &AnyPrimaryUnit) -> VisitorResult {
         Continue
     }
-    fn visit_any_secondary_unit(&self, _node: &AnySecondaryUnit) -> VisitorResult {
+    fn visit_any_secondary_unit(&mut self, _node: &AnySecondaryUnit) -> VisitorResult {
         Continue
     }
-    fn visit_any_design_unit(&self, _node: &AnyDesignUnit) -> VisitorResult {
+    fn visit_any_design_unit(&mut self, _node: &AnyDesignUnit) -> VisitorResult {
         Continue
     }
-    fn visit_design_file(&self, _node: &DesignFile) -> VisitorResult {
+    fn visit_design_file(&mut self, _node: &DesignFile) -> VisitorResult {
         Continue
     }
-    fn visit_reference(&self, _node: &Reference) -> VisitorResult {
+    fn visit_reference(&mut self, _node: &Reference) -> VisitorResult {
         Continue
     }
-    fn visit_item_with_pos(&self, _pos: &SrcPos, _node: &dyn ASTNode) -> VisitorResult {
+    fn visit_item_with_pos(&mut self, _pos: &SrcPos, _node: &dyn ASTNode) -> VisitorResult {
         Continue
     }
-    fn visit_item_with_decl(&self, _decl: &Option<EntityId>, _node: &dyn ASTNode) -> VisitorResult {
+    fn visit_item_with_decl(&mut self, _decl: &Option<EntityId>, _node: &dyn ASTNode) -> VisitorResult {
         Continue
     }
-    fn visit_item_with_reference(&self, _ref: &Reference, _node: &dyn ASTNode) -> VisitorResult {
+    fn visit_item_with_reference(&mut self, _ref: &Reference, _node: &dyn ASTNode) -> VisitorResult {
         Continue
     }
 }
@@ -420,12 +420,12 @@ pub trait Visitor {
 /// An AST Node has two methods it needs to declare:
 /// - A `visit(Visitor)` method.
 pub trait ASTNode {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult;
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult;
 
     fn children(&self) -> Vec<&dyn ASTNode>;
 }
 
-pub fn walk(node: &dyn ASTNode, visitor: &dyn Visitor) {
+pub fn walk(node: &dyn ASTNode, visitor: &mut dyn Visitor) {
     let mut stack: Vec<&dyn ASTNode> = vec![node];
     while !stack.is_empty() {
         let node = stack.pop().unwrap();
@@ -455,11 +455,11 @@ pub fn test_walker() {
             Continue
         }
     }
-    walk(&tree, &LiteralVisitor {});
+    walk(&tree, &mut LiteralVisitor {});
 }
 
 impl<T: ASTNode> ASTNode for Box<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -469,7 +469,7 @@ impl<T: ASTNode> ASTNode for Box<T> {
 }
 
 impl<T: ASTNode> ASTNode for Option<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -482,7 +482,7 @@ impl<T: ASTNode> ASTNode for Option<T> {
 }
 
 impl<T: ASTNode, U: ASTNode> ASTNode for (T, U) {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -492,7 +492,7 @@ impl<T: ASTNode, U: ASTNode> ASTNode for (T, U) {
 }
 
 impl<T: ASTNode> ASTNode for Vec<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -502,7 +502,7 @@ impl<T: ASTNode> ASTNode for Vec<T> {
 }
 
 impl<T: ASTNode> ASTNode for WithPos<T> {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_item_with_pos(&self.pos, &self.item)
     }
 
@@ -512,7 +512,7 @@ impl<T: ASTNode> ASTNode for WithPos<T> {
 }
 
 impl<T: ASTNode> ASTNode for WithDecl<T> {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_item_with_decl(&self.decl, &self.tree)
     }
 
@@ -522,7 +522,7 @@ impl<T: ASTNode> ASTNode for WithDecl<T> {
 }
 
 impl<T: ASTNode> ASTNode for WithRef<T> {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_item_with_reference(&self.reference, &self.item)
     }
 
@@ -532,7 +532,7 @@ impl<T: ASTNode> ASTNode for WithRef<T> {
 }
 
 impl<T: ASTNode> ASTNode for Conditional<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -542,7 +542,7 @@ impl<T: ASTNode> ASTNode for Conditional<T> {
 }
 
 impl<T: ASTNode> ASTNode for Conditionals<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -552,7 +552,7 @@ impl<T: ASTNode> ASTNode for Conditionals<T> {
 }
 
 impl<T: ASTNode> ASTNode for Selection<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -562,7 +562,7 @@ impl<T: ASTNode> ASTNode for Selection<T> {
 }
 
 impl<T: ASTNode> ASTNode for AssignmentRightHand<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -576,7 +576,7 @@ impl<T: ASTNode> ASTNode for AssignmentRightHand<T> {
 }
 
 impl<T: ASTNode> ASTNode for Alternative<T> {
-    fn visit(&self, _visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, _visitor: &mut dyn Visitor) -> VisitorResult {
         Continue
     }
 
@@ -586,7 +586,7 @@ impl<T: ASTNode> ASTNode for Alternative<T> {
 }
 
 impl ASTNode for DesignFile {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_design_file(self)
     }
 
@@ -596,7 +596,7 @@ impl ASTNode for DesignFile {
 }
 
 impl ASTNode for AnyDesignUnit {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_any_design_unit(self)
     }
 
@@ -609,7 +609,7 @@ impl ASTNode for AnyDesignUnit {
 }
 
 impl ASTNode for AnyPrimaryUnit {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_any_primary_unit(self)
     }
 
@@ -625,7 +625,7 @@ impl ASTNode for AnyPrimaryUnit {
 }
 
 impl ASTNode for ContextDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_context_declaration(self)
     }
 
@@ -635,7 +635,7 @@ impl ASTNode for ContextDeclaration {
 }
 
 impl ASTNode for ContextItem {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_context_item(self)
     }
 
@@ -649,7 +649,7 @@ impl ASTNode for ContextItem {
 }
 
 impl ASTNode for ContextReference {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_context_reference(self)
     }
 
@@ -659,7 +659,7 @@ impl ASTNode for ContextReference {
 }
 
 impl ASTNode for LibraryClause {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_library_clause(self)
     }
 
@@ -669,7 +669,7 @@ impl ASTNode for LibraryClause {
 }
 
 impl ASTNode for UseClause {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_use_clause(self)
     }
 
@@ -679,7 +679,7 @@ impl ASTNode for UseClause {
 }
 
 impl ASTNode for Ident {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_ident(self)
     }
 
@@ -689,7 +689,7 @@ impl ASTNode for Ident {
 }
 
 impl ASTNode for PackageInstantiation {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_package_instantiation(self)
     }
 
@@ -704,7 +704,7 @@ impl ASTNode for PackageInstantiation {
 }
 
 impl ASTNode for AssociationElement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_association_element(self)
     }
 
@@ -714,7 +714,7 @@ impl ASTNode for AssociationElement {
 }
 
 impl ASTNode for ActualPart {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_actual_part(self)
     }
 
@@ -727,7 +727,7 @@ impl ASTNode for ActualPart {
 }
 
 impl ASTNode for SelectedName {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_selected_name(self)
     }
 
@@ -740,7 +740,7 @@ impl ASTNode for SelectedName {
 }
 
 impl ASTNode for Designator {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_designator(self)
     }
 
@@ -750,7 +750,7 @@ impl ASTNode for Designator {
 }
 
 impl ASTNode for PackageDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_package_declaration(self)
     }
 
@@ -765,7 +765,7 @@ impl ASTNode for PackageDeclaration {
 }
 
 impl ASTNode for Declaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_declaration(self)
     }
 
@@ -787,7 +787,7 @@ impl ASTNode for Declaration {
 }
 
 impl ASTNode for ConfigurationSpecification {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_configuration_specification(self)
     }
 
@@ -797,7 +797,7 @@ impl ASTNode for ConfigurationSpecification {
 }
 
 impl ASTNode for VUnitBindingIndication {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_v_unit_binding_indication(self)
     }
 
@@ -807,7 +807,7 @@ impl ASTNode for VUnitBindingIndication {
 }
 
 impl ASTNode for BindingIndication {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_binding_indication(self)
     }
 
@@ -817,7 +817,7 @@ impl ASTNode for BindingIndication {
 }
 
 impl ASTNode for EntityAspect {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_entity_aspect(self)
     }
 
@@ -831,7 +831,7 @@ impl ASTNode for EntityAspect {
 }
 
 impl ASTNode for ComponentSpecification {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_component_specification(self)
     }
 
@@ -841,7 +841,7 @@ impl ASTNode for ComponentSpecification {
 }
 
 impl ASTNode for InstantiationList {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_instantiation_list(self)
     }
 
@@ -855,7 +855,7 @@ impl ASTNode for InstantiationList {
 }
 
 impl ASTNode for SubprogramBody {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_subprogram_body(self)
     }
 
@@ -865,7 +865,7 @@ impl ASTNode for SubprogramBody {
 }
 
 impl ASTNode for LabeledSequentialStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_labeled_sequential_statement(self)
     }
 
@@ -875,7 +875,7 @@ impl ASTNode for LabeledSequentialStatement {
 }
 
 impl ASTNode for SubprogramDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_subprogram_declaration(self)
     }
 
@@ -888,7 +888,7 @@ impl ASTNode for SubprogramDeclaration {
 }
 
 impl ASTNode for SequentialStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_sequential_statement(self)
     }
 
@@ -914,7 +914,7 @@ impl ASTNode for SequentialStatement {
 }
 
 impl ASTNode for CaseStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_case_statement(self)
     }
 
@@ -924,7 +924,7 @@ impl ASTNode for CaseStatement {
 }
 
 impl ASTNode for ReturnStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_return_statement(self)
     }
 
@@ -937,7 +937,7 @@ impl ASTNode for ReturnStatement {
 }
 
 impl ASTNode for ExitStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_exit_statement(self)
     }
 
@@ -947,7 +947,7 @@ impl ASTNode for ExitStatement {
 }
 
 impl ASTNode for NextStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_next_statement(self)
     }
 
@@ -957,7 +957,7 @@ impl ASTNode for NextStatement {
 }
 
 impl ASTNode for LoopStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_loop_statement(self)
     }
 
@@ -967,7 +967,7 @@ impl ASTNode for LoopStatement {
 }
 
 impl ASTNode for IterationScheme {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_iteration_scheme(self)
     }
 
@@ -980,7 +980,7 @@ impl ASTNode for IterationScheme {
 }
 
 impl ASTNode for DiscreteRange {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_discrete_range(self)
     }
 
@@ -993,7 +993,7 @@ impl ASTNode for DiscreteRange {
 }
 
 impl ASTNode for TypeMark {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_type_mark(self)
     }
 
@@ -1003,7 +1003,7 @@ impl ASTNode for TypeMark {
 }
 
 impl ASTNode for Range {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_range(self)
     }
 
@@ -1016,7 +1016,7 @@ impl ASTNode for Range {
 }
 
 impl ASTNode for RangeConstraint {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_range_constraint(self)
     }
 
@@ -1026,7 +1026,7 @@ impl ASTNode for RangeConstraint {
 }
 
 impl ASTNode for IfStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_if_statement(self)
     }
 
@@ -1036,7 +1036,7 @@ impl ASTNode for IfStatement {
 }
 
 impl ASTNode for CallOrIndexed {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_call_or_indexed(self)
     }
 
@@ -1046,7 +1046,7 @@ impl ASTNode for CallOrIndexed {
 }
 
 impl ASTNode for SignalReleaseAssignment {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_signal_release_assignment(self)
     }
 
@@ -1056,7 +1056,7 @@ impl ASTNode for SignalReleaseAssignment {
 }
 
 impl ASTNode for Target {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_target(self)
     }
 
@@ -1069,7 +1069,7 @@ impl ASTNode for Target {
 }
 
 impl ASTNode for ElementAssociation {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_element_association(self)
     }
 
@@ -1082,7 +1082,7 @@ impl ASTNode for ElementAssociation {
 }
 
 impl ASTNode for SignalForceAssignment {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_signal_force_assignment(self)
     }
 
@@ -1092,7 +1092,7 @@ impl ASTNode for SignalForceAssignment {
 }
 
 impl ASTNode for SignalAssignment {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_signal_assignment(self)
     }
 
@@ -1102,7 +1102,7 @@ impl ASTNode for SignalAssignment {
 }
 
 impl ASTNode for DelayMechanism {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_delay_mechanism(self)
     }
 
@@ -1115,7 +1115,7 @@ impl ASTNode for DelayMechanism {
 }
 
 impl ASTNode for Waveform {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_waveform(self)
     }
 
@@ -1128,7 +1128,7 @@ impl ASTNode for Waveform {
 }
 
 impl ASTNode for WaveformElement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_waveform_element(self)
     }
 
@@ -1138,7 +1138,7 @@ impl ASTNode for WaveformElement {
 }
 
 impl ASTNode for VariableAssignment {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_variable_assignment(self)
     }
 
@@ -1148,7 +1148,7 @@ impl ASTNode for VariableAssignment {
 }
 
 impl ASTNode for ReportStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_report_statement(self)
     }
 
@@ -1158,7 +1158,7 @@ impl ASTNode for ReportStatement {
 }
 
 impl ASTNode for AssertStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_assert_statement(self)
     }
 
@@ -1168,7 +1168,7 @@ impl ASTNode for AssertStatement {
 }
 
 impl ASTNode for Choice {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_choice(self)
     }
 
@@ -1182,7 +1182,7 @@ impl ASTNode for Choice {
 }
 
 impl ASTNode for WaitStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_wait_statement(self)
     }
 
@@ -1196,7 +1196,7 @@ impl ASTNode for WaitStatement {
 }
 
 impl ASTNode for FunctionSpecification {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_function_specification(self)
     }
 
@@ -1206,7 +1206,7 @@ impl ASTNode for FunctionSpecification {
 }
 
 impl ASTNode for ProcedureSpecification {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_procedure_specification(self)
     }
 
@@ -1216,7 +1216,7 @@ impl ASTNode for ProcedureSpecification {
 }
 
 impl ASTNode for SubprogramDesignator {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_subprogram_designator(self)
     }
 
@@ -1226,7 +1226,7 @@ impl ASTNode for SubprogramDesignator {
 }
 
 impl ASTNode for AliasDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_alias_declaration(self)
     }
 
@@ -1241,7 +1241,7 @@ impl ASTNode for AliasDeclaration {
 }
 
 impl ASTNode for Attribute {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_attribute(self)
     }
 
@@ -1254,7 +1254,7 @@ impl ASTNode for Attribute {
 }
 
 impl ASTNode for SubtypeIndication {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_subtype_indication(self)
     }
 
@@ -1264,7 +1264,7 @@ impl ASTNode for SubtypeIndication {
 }
 
 impl ASTNode for AttributeSpecification {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_attribute_specification(self)
     }
 
@@ -1274,7 +1274,7 @@ impl ASTNode for AttributeSpecification {
 }
 
 impl ASTNode for EntityName {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_entity_name(self)
     }
 
@@ -1287,7 +1287,7 @@ impl ASTNode for EntityName {
 }
 
 impl ASTNode for ResolutionIndication {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_resolution_indication(self)
     }
 
@@ -1302,7 +1302,7 @@ impl ASTNode for ResolutionIndication {
 }
 
 impl ASTNode for RecordElementResolution {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_record_element_resolution(self)
     }
 
@@ -1312,7 +1312,7 @@ impl ASTNode for RecordElementResolution {
 }
 
 impl ASTNode for SubtypeConstraint {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_subtype_constraint(self)
     }
 
@@ -1326,7 +1326,7 @@ impl ASTNode for SubtypeConstraint {
 }
 
 impl ASTNode for ElementConstraint {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_element_constraint(self)
     }
 
@@ -1336,7 +1336,7 @@ impl ASTNode for ElementConstraint {
 }
 
 impl ASTNode for AttributeDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_attribute_declaration(self)
     }
 
@@ -1346,7 +1346,7 @@ impl ASTNode for AttributeDeclaration {
 }
 
 impl ASTNode for ComponentDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_component_declaration(self)
     }
 
@@ -1356,7 +1356,7 @@ impl ASTNode for ComponentDeclaration {
 }
 
 impl ASTNode for TypeDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_type_declaration(self)
     }
 
@@ -1366,7 +1366,7 @@ impl ASTNode for TypeDeclaration {
 }
 
 impl ASTNode for TypeDefinition {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_type_definition(self)
     }
 
@@ -1388,7 +1388,7 @@ impl ASTNode for TypeDefinition {
 }
 
 impl ASTNode for Reference {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_reference(self)
     }
 
@@ -1398,7 +1398,7 @@ impl ASTNode for Reference {
 }
 
 impl ASTNode for ProtectedTypeBody {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_protected_type_body(self)
     }
 
@@ -1408,7 +1408,7 @@ impl ASTNode for ProtectedTypeBody {
 }
 
 impl ASTNode for ProtectedTypeDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_protected_type_declaration(self)
     }
 
@@ -1418,7 +1418,7 @@ impl ASTNode for ProtectedTypeDeclaration {
 }
 
 impl ASTNode for ProtectedTypeDeclarativeItem {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_protected_type_declarative_item(self)
     }
 
@@ -1430,7 +1430,7 @@ impl ASTNode for ProtectedTypeDeclarativeItem {
 }
 
 impl ASTNode for ElementDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_element_declaration(self)
     }
 
@@ -1440,7 +1440,7 @@ impl ASTNode for ElementDeclaration {
 }
 
 impl ASTNode for ArrayIndex {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_array_index(self)
     }
 
@@ -1453,7 +1453,7 @@ impl ASTNode for ArrayIndex {
 }
 
 impl ASTNode for PhysicalTypeDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_physical_type_declaration(self)
     }
 
@@ -1463,7 +1463,7 @@ impl ASTNode for PhysicalTypeDeclaration {
 }
 
 impl ASTNode for PhysicalLiteral {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_physical_literal(self)
     }
 
@@ -1473,7 +1473,7 @@ impl ASTNode for PhysicalLiteral {
 }
 
 impl ASTNode for EnumerationLiteral {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_enumeration_literal(self)
     }
 
@@ -1483,7 +1483,7 @@ impl ASTNode for EnumerationLiteral {
 }
 
 impl ASTNode for FileDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_file_declaration(self)
     }
 
@@ -1498,7 +1498,7 @@ impl ASTNode for FileDeclaration {
 }
 
 impl ASTNode for ObjectDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_object_declaration(self)
     }
 
@@ -1508,7 +1508,7 @@ impl ASTNode for ObjectDeclaration {
 }
 
 impl ASTNode for InterfaceDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_interface_declaration(self)
     }
 
@@ -1524,7 +1524,7 @@ impl ASTNode for InterfaceDeclaration {
 }
 
 impl ASTNode for InterfaceObjectDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_interface_object_declaration(self)
     }
 
@@ -1534,7 +1534,7 @@ impl ASTNode for InterfaceObjectDeclaration {
 }
 
 impl ASTNode for InterfaceFileDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_interface_file_declaration(self)
     }
 
@@ -1544,7 +1544,7 @@ impl ASTNode for InterfaceFileDeclaration {
 }
 
 impl ASTNode for SubprogramDefault {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_subprogram_default(self)
     }
 
@@ -1557,7 +1557,7 @@ impl ASTNode for SubprogramDefault {
 }
 
 impl ASTNode for InterfacePackageDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_interface_package_declaration(self)
     }
 
@@ -1567,7 +1567,7 @@ impl ASTNode for InterfacePackageDeclaration {
 }
 
 impl ASTNode for InterfacePackageGenericMapAspect {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_interface_package_generic_map_aspect(self)
     }
 
@@ -1581,7 +1581,7 @@ impl ASTNode for InterfacePackageGenericMapAspect {
 }
 
 impl ASTNode for ConfigurationDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_configuration_declaration(self)
     }
 
@@ -1598,7 +1598,7 @@ impl ASTNode for ConfigurationDeclaration {
 }
 
 impl ASTNode for ConfigurationDeclarativeItem {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_configuration_declarative_item(self)
     }
 
@@ -1610,7 +1610,7 @@ impl ASTNode for ConfigurationDeclarativeItem {
 }
 
 impl ASTNode for BlockConfiguration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_block_configuration(self)
     }
 
@@ -1620,7 +1620,7 @@ impl ASTNode for BlockConfiguration {
 }
 
 impl ASTNode for ConfigurationItem {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_configuration_item(self)
     }
 
@@ -1633,7 +1633,7 @@ impl ASTNode for ConfigurationItem {
 }
 
 impl ASTNode for ComponentConfiguration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_component_configuration(self)
     }
 
@@ -1648,7 +1648,7 @@ impl ASTNode for ComponentConfiguration {
 }
 
 impl ASTNode for EntityDeclaration {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_entity_declaration(self)
     }
 
@@ -1665,7 +1665,7 @@ impl ASTNode for EntityDeclaration {
 }
 
 impl ASTNode for AnySecondaryUnit {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_any_secondary_unit(self)
     }
 
@@ -1678,7 +1678,7 @@ impl ASTNode for AnySecondaryUnit {
 }
 
 impl ASTNode for LabeledConcurrentStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_labeled_concurrent_statement(self)
     }
 
@@ -1688,7 +1688,7 @@ impl ASTNode for LabeledConcurrentStatement {
 }
 
 impl ASTNode for ConcurrentStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_concurrent_statement(self)
     }
 
@@ -1708,7 +1708,7 @@ impl ASTNode for ConcurrentStatement {
 }
 
 impl ASTNode for CaseGenerateStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_case_generate_statement(self)
     }
 
@@ -1718,7 +1718,7 @@ impl ASTNode for CaseGenerateStatement {
 }
 
 impl ASTNode for IfGenerateStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_if_generate_statement(self)
     }
 
@@ -1728,7 +1728,7 @@ impl ASTNode for IfGenerateStatement {
 }
 
 impl ASTNode for ForGenerateStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_for_generate_statement(self)
     }
 
@@ -1738,7 +1738,7 @@ impl ASTNode for ForGenerateStatement {
 }
 
 impl ASTNode for InstantiationStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_instantiation_statement(self)
     }
 
@@ -1748,7 +1748,7 @@ impl ASTNode for InstantiationStatement {
 }
 
 impl ASTNode for GenerateBody {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_generate_body(self)
     }
 
@@ -1758,7 +1758,7 @@ impl ASTNode for GenerateBody {
 }
 
 impl ASTNode for InstantiatedUnit {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_instantiated_unit(self)
     }
 
@@ -1772,7 +1772,7 @@ impl ASTNode for InstantiatedUnit {
 }
 
 impl ASTNode for ConcurrentSignalAssignment {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_concurrent_signal_assignment(self)
     }
 
@@ -1782,7 +1782,7 @@ impl ASTNode for ConcurrentSignalAssignment {
 }
 
 impl ASTNode for ConcurrentAssertStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_concurrent_assert_statement(self)
     }
 
@@ -1792,7 +1792,7 @@ impl ASTNode for ConcurrentAssertStatement {
 }
 
 impl ASTNode for ProcessStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_process_statement(self)
     }
 
@@ -1802,7 +1802,7 @@ impl ASTNode for ProcessStatement {
 }
 
 impl ASTNode for BlockStatement {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_block_statement(self)
     }
 
@@ -1817,7 +1817,7 @@ impl ASTNode for BlockStatement {
 }
 
 impl ASTNode for BlockHeader {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_block_header(self)
     }
 
@@ -1832,7 +1832,7 @@ impl ASTNode for BlockHeader {
 }
 
 impl ASTNode for ConcurrentProcedureCall {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_concurrent_procedure_call(self)
     }
 
@@ -1842,7 +1842,7 @@ impl ASTNode for ConcurrentProcedureCall {
 }
 
 impl ASTNode for PackageBody {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_package_body(self)
     }
 
@@ -1852,7 +1852,7 @@ impl ASTNode for PackageBody {
 }
 
 impl ASTNode for SensitivityList {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_sensitivity_list(self)
     }
 
@@ -1865,7 +1865,7 @@ impl ASTNode for SensitivityList {
 }
 
 impl ASTNode for ArchitectureBody {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_architecture_body(self)
     }
 
@@ -1881,7 +1881,7 @@ impl ASTNode for ArchitectureBody {
 }
 
 impl ASTNode for Expression {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_expression(self)
     }
 
@@ -1899,7 +1899,7 @@ impl ASTNode for Expression {
 }
 
 impl ASTNode for QualifiedExpression {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_qualified_expression(self)
     }
 
@@ -1909,7 +1909,7 @@ impl ASTNode for QualifiedExpression {
 }
 
 impl ASTNode for Allocator {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_allocator(self)
     }
 
@@ -1922,7 +1922,7 @@ impl ASTNode for Allocator {
 }
 
 impl ASTNode for AttributeDesignator {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_attribute_designator(self)
     }
 
@@ -1932,7 +1932,7 @@ impl ASTNode for AttributeDesignator {
 }
 
 impl ASTNode for Signature {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_signature(self)
     }
 
@@ -1945,7 +1945,7 @@ impl ASTNode for Signature {
 }
 
 impl ASTNode for Name {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_name(self)
     }
 
@@ -1963,7 +1963,7 @@ impl ASTNode for Name {
 }
 
 impl ASTNode for ExternalName {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_external_name(self)
     }
 
@@ -1973,7 +1973,7 @@ impl ASTNode for ExternalName {
 }
 
 impl ASTNode for ExternalPath {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_external_path(self)
     }
 
@@ -1987,7 +1987,7 @@ impl ASTNode for ExternalPath {
 }
 
 impl ASTNode for AttributeName {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_attribute_name(self)
     }
 
@@ -1997,7 +1997,7 @@ impl ASTNode for AttributeName {
 }
 
 impl ASTNode for AbstractLiteral {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_abstract_literal(self)
     }
 
@@ -2007,7 +2007,7 @@ impl ASTNode for AbstractLiteral {
 }
 
 impl ASTNode for Literal {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_literal(self)
     }
 
@@ -2023,7 +2023,7 @@ impl ASTNode for Literal {
 }
 
 impl ASTNode for EntityTag {
-    fn visit(&self, visitor: &dyn Visitor) -> VisitorResult {
+    fn visit(&self, visitor: &mut dyn Visitor) -> VisitorResult {
         visitor.visit_entity_tag(self)
     }
 

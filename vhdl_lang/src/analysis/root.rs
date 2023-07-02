@@ -15,6 +15,7 @@ use super::standard::UniversalTypes;
 use super::visibility::Visibility;
 
 use crate::ast::search::*;
+use crate::ast::visitor::*;
 use crate::ast::*;
 use crate::data::*;
 use crate::syntax::Symbols;
@@ -413,7 +414,7 @@ impl DesignRoot {
                     }
                     // Find all components with same name as entity in the library
                     AnyEntKind::Design(Design::Entity(..)) => {
-                        let mut searcher = FindAllEnt::new(self, |ent| {
+                        let mut visitor = FindAllEnt::new(self, |ent| {
                             matches!(ent.kind(), AnyEntKind::Component(_))
                                 && matches!(
                                     ent.designator(),
@@ -421,8 +422,8 @@ impl DesignRoot {
                                 )
                         });
 
-                        let _ = self.search_library(library_name, &mut searcher);
-                        return searcher.result;
+                        self.walk_library(library_name, &mut visitor);
+                        return visitor.result;
                     }
                     _ => {}
                 }
@@ -448,7 +449,7 @@ impl DesignRoot {
             };
 
             let mut searcher = FormatDeclaration::new(ent);
-            let _ = self.search(&mut searcher);
+            self.walk(&mut searcher);
             searcher.result
         }
     }
@@ -512,7 +513,7 @@ impl DesignRoot {
             if let Some(unit_ids) = library.units_by_source.get(source) {
                 for unit_id in unit_ids {
                     let unit = library.units.get(unit_id.key()).unwrap();
-                    let _ = unit.unit.write().search(&mut searcher);
+                    walk(unit.unit.write().deref(), &mut searcher);
                 }
             }
         }
@@ -573,18 +574,26 @@ impl DesignRoot {
         NotFound
     }
 
-    pub fn search_library(
+    pub fn walk(&self, visitor: &mut impl Visitor) {
+        for library in self.libraries.values() {
+            for unit_id in library.sorted_unit_ids() {
+                let unit = library.units.get(unit_id.key()).unwrap();
+                walk(unit.unit.write().deref(), visitor);
+            }
+        }
+    }
+
+    pub fn walk_library(
         &self,
         library_name: &Symbol,
-        searcher: &mut impl Searcher,
-    ) -> SearchResult {
+        visitor: &mut impl Visitor,
+    ) {
         if let Some(library) = self.libraries.get(library_name) {
             for unit_id in library.sorted_unit_ids() {
                 let unit = library.units.get(unit_id.key()).unwrap();
-                return_if_found!(unit.unit.write().search(searcher));
+                walk(unit.unit.write().deref(), visitor);
             }
         }
-        NotFound
     }
 
     pub fn symbol_utf8(&self, name: &str) -> Symbol {

@@ -26,10 +26,10 @@ pub enum SearchState {
     NotFinished,
 }
 
-use crate::ast::visitor::VisitorResult::Continue;
-use crate::ast::visitor::{ASTNode, Visitor, VisitorResult};
 pub use SearchResult::*;
 pub use SearchState::*;
+use crate::ast::visitor::{ASTNode, Visitor, VisitorResult};
+use crate::ast::visitor::VisitorResult::{Continue, Stop};
 
 impl SearchState {
     fn or_else(self, nested_fun: impl FnOnce() -> SearchResult) -> SearchResult {
@@ -42,38 +42,6 @@ impl SearchState {
     fn or_not_found(self) -> SearchResult {
         self.or_else(|| NotFound)
     }
-}
-
-#[derive(PartialEq, Debug)]
-pub enum FoundDeclaration<'a> {
-    Object(&'a mut ObjectDeclaration),
-    ElementDeclaration(&'a mut ElementDeclaration),
-    EnumerationLiteral(&'a mut Ident, &'a mut WithDecl<WithPos<EnumerationLiteral>>),
-    InterfaceObject(&'a mut InterfaceObjectDeclaration),
-    InterfaceFile(&'a mut InterfaceFileDeclaration),
-    File(&'a mut FileDeclaration),
-    Type(&'a mut TypeDeclaration),
-    InterfaceType(&'a mut WithDecl<Ident>),
-    InterfacePackage(&'a mut InterfacePackageDeclaration),
-    PhysicalTypePrimary(&'a mut WithDecl<Ident>),
-    PhysicalTypeSecondary(&'a mut WithDecl<Ident>, &'a mut PhysicalLiteral),
-    Component(&'a mut ComponentDeclaration),
-    Attribute(&'a mut AttributeDeclaration),
-    Alias(&'a mut AliasDeclaration),
-    Function(&'a mut FunctionSpecification),
-    Procedure(&'a mut ProcedureSpecification),
-    Package(&'a mut PackageDeclaration),
-    PackageBody(&'a mut PackageBody),
-    PackageInstance(&'a mut PackageInstantiation),
-    Configuration(&'a mut ConfigurationDeclaration),
-    Entity(&'a mut EntityDeclaration),
-    Architecture(&'a mut ArchitectureBody),
-    Context(&'a mut ContextDeclaration),
-    ForIndex(&'a mut WithDecl<Ident>, &'a mut DiscreteRange),
-    ForGenerateIndex(Option<&'a Ident>, &'a mut ForGenerateStatement),
-    GenerateBody(&'a mut WithDecl<Ident>),
-    ConcurrentStatement(&'a Ident, &'a mut Reference),
-    SequentialStatement(&'a Ident, &'a mut Reference),
 }
 
 pub trait Searcher {
@@ -1433,6 +1401,51 @@ pub struct FindAllEnt<'a, T: FnMut(EntRef<'a>) -> bool> {
     pub result: Vec<EntRef<'a>>,
 }
 
+#[derive(PartialEq, Debug)]
+pub enum FoundDeclaration<'a> {
+    Object(&'a mut ObjectDeclaration),
+    ElementDeclaration(&'a mut ElementDeclaration),
+    EnumerationLiteral(&'a mut Ident, &'a mut WithDecl<WithPos<EnumerationLiteral>>),
+    InterfaceObject(&'a mut InterfaceObjectDeclaration),
+    InterfaceFile(&'a mut InterfaceFileDeclaration),
+    File(&'a mut FileDeclaration),
+    Type(&'a mut TypeDeclaration),
+    InterfaceType(&'a mut WithDecl<Ident>),
+    InterfacePackage(&'a mut InterfacePackageDeclaration),
+    PhysicalTypePrimary(&'a mut WithDecl<Ident>),
+    PhysicalTypeSecondary(&'a mut WithDecl<Ident>, &'a mut PhysicalLiteral),
+    Component(&'a mut ComponentDeclaration),
+    Attribute(&'a mut AttributeDeclaration),
+    Alias(&'a mut AliasDeclaration),
+    Function(&'a mut FunctionSpecification),
+    Procedure(&'a mut ProcedureSpecification),
+    Package(&'a mut PackageDeclaration),
+    PackageBody(&'a mut PackageBody),
+    PackageInstance(&'a mut PackageInstantiation),
+    Configuration(&'a mut ConfigurationDeclaration),
+    Entity(&'a mut EntityDeclaration),
+    Architecture(&'a mut ArchitectureBody),
+    Context(&'a mut ContextDeclaration),
+    ForIndex(&'a mut WithDecl<Ident>, &'a mut DiscreteRange),
+    ForGenerateIndex(Option<&'a Ident>, &'a mut ForGenerateStatement),
+    GenerateBody(&'a mut WithDecl<Ident>),
+    ConcurrentStatement(&'a Ident, &'a mut Reference),
+    SequentialStatement(&'a Ident, &'a mut Reference),
+}
+
+impl <'a, T: FnMut(EntRef<'a>) -> bool> Visitor for FindAllEnt<'a, T> {
+
+    fn visit_item_with_decl(&mut self, decl: &Option<EntityId>, _node: &dyn ASTNode) -> VisitorResult {
+        if let Some(id) = decl {
+            let ent = self.root.get_ent(*id);
+            if (self.cond)(ent) {
+                self.result.push(ent);
+            }
+        }
+        Continue
+    }
+}
+
 impl<'a, T: FnMut(EntRef<'a>) -> bool> FindAllEnt<'a, T> {
     pub fn new(root: &'a DesignRoot, cond: T) -> FindAllEnt<'a, T> {
         FindAllEnt {
@@ -1440,19 +1453,6 @@ impl<'a, T: FnMut(EntRef<'a>) -> bool> FindAllEnt<'a, T> {
             cond,
             result: Vec::default(),
         }
-    }
-}
-
-impl<'a, T: FnMut(EntRef<'a>) -> bool> Searcher for FindAllEnt<'a, T> {
-    fn search_decl(&mut self, decl: FoundDeclaration) -> SearchState {
-        if let Some(id) = decl.ent_id() {
-            let ent = self.root.get_ent(id);
-            if (self.cond)(ent) {
-                self.result.push(ent);
-            }
-        }
-
-        SearchState::NotFinished
     }
 }
 
@@ -1468,28 +1468,28 @@ impl<'a> FormatDeclaration<'a> {
     }
 }
 
-impl<'a> Searcher for FormatDeclaration<'a> {
-    fn search_decl(&mut self, decl: FoundDeclaration) -> SearchState {
-        let id = if let Some(id) = decl.ent_id() {
-            id
+impl <'a> Visitor for FormatDeclaration<'a> {
+    fn visit_item_with_decl(&mut self, decl: &Option<EntityId>, _node: &dyn ASTNode) -> VisitorResult {
+        let id = if let Some(id) = decl {
+            *id
         } else {
-            return NotFinished;
+            return Continue;
         };
 
         if is_implicit_of(self.ent, id) {
             // Implicit
             self.result = Some(format!(
-                "-- {}\n\n-- Implicitly defined by:\n{}\n",
+                "-- {}\n\n-- Implicitly defined by:\n{:?}\n", // TODO: :?
                 self.ent.describe(),
                 decl,
             ));
-            return Finished(Found);
+            return Stop;
         } else if self.ent.id() == id {
             // Explicit
-            self.result = Some(decl.to_string());
-            return Finished(Found);
+            self.result = Some(format!("{:?}", decl)); // TODO: :?
+            return Stop;
         }
-        NotFinished
+        Continue
     }
 }
 
