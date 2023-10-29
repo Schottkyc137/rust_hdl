@@ -1189,6 +1189,7 @@ impl ASTNode for Declaration {
             Declaration::Use(decl) => vec![decl],
             Declaration::Package(decl) => vec![decl],
             Declaration::Configuration(decl) => vec![decl],
+            Declaration::SubprogramInstantiation(decl) => vec![decl],
         }
     }
 }
@@ -2466,7 +2467,7 @@ impl ASTNode for SubprogramInstantiation {
 
     fn children(&self) -> Vec<&dyn ASTNode> {
         vec![
-            &self.id,
+            &self.ident,
             &self.uninstantiated_name,
             &self.signature,
             &self.map_aspect,

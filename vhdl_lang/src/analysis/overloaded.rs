@@ -414,8 +414,8 @@ impl Diagnostic {
 
 #[cfg(test)]
 mod tests {
-    use crate::analysis::overloaded;
     use super::*;
+    use crate::analysis::overloaded;
     use crate::analysis::tests::TestSetup;
     use crate::data::DiagnosticHandler;
     use crate::syntax::test::check_diagnostics;

@@ -1095,6 +1095,9 @@ impl Search for Declaration {
             Declaration::Package(ref mut package_instance) => {
                 return_if_found!(package_instance.search(ctx, searcher));
             }
+            Declaration::SubprogramInstantiation(ref mut instantiation) => {
+                return_if_found!(instantiation.search(ctx, searcher));
+            }
 
             Declaration::Configuration(_) => {
                 // @TODO
@@ -1364,7 +1367,7 @@ impl Search for SubprogramInstantiation {
         return_if_found!(searcher
             .search_decl(ctx, FoundDeclaration::SubprogramInstance(self))
             .or_not_found());
-        return_if_found!(self.signature.search(ctx, searcher));
+        // @TODO: signature
         self.map_aspect.search(ctx, searcher)
     }
 }
@@ -1717,7 +1720,7 @@ impl<'a> HasEntityId for FoundDeclaration<'a> {
             FoundDeclaration::GenerateBody(value) => value.decl,
             FoundDeclaration::ConcurrentStatement(_, value) => **value,
             FoundDeclaration::SequentialStatement(_, value) => **value,
-            FoundDeclaration::SubprogramInstance(value) => value.id.decl,
+            FoundDeclaration::SubprogramInstance(value) => value.ident.decl,
         }
     }
 }
@@ -1753,7 +1756,7 @@ impl<'a> HasSrcPos for FoundDeclaration<'a> {
             FoundDeclaration::GenerateBody(value) => value.pos(),
             FoundDeclaration::ConcurrentStatement(value, _) => value.pos(),
             FoundDeclaration::SequentialStatement(value, _) => value.pos(),
-            FoundDeclaration::SubprogramInstance(value) => value.id.pos(),
+            FoundDeclaration::SubprogramInstance(value) => value.ident.pos(),
         }
     }
 }

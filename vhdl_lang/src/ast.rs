@@ -676,9 +676,9 @@ pub enum SubprogramKind {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubprogramInstantiation {
     pub kind: SubprogramKind,
-    pub id: WithDecl<Ident>,
-    pub uninstantiated_name: Ident,
-    pub signature: Option<Signature>,
+    pub ident: WithDecl<Ident>,
+    pub uninstantiated_name: WithPos<Name>,
+    pub signature: Option<WithPos<Signature>>,
     pub map_aspect: Option<MapAspect>,
     pub semi: TokenId,
 }
@@ -797,6 +797,7 @@ pub enum Declaration {
     Attribute(Attribute),
     Alias(AliasDeclaration),
     SubprogramDeclaration(SubprogramDeclaration),
+    SubprogramInstantiation(SubprogramInstantiation),
     SubprogramBody(SubprogramBody),
     Use(UseClause),
     Package(PackageInstantiation),

@@ -553,6 +553,9 @@ impl<'a> AnalyzeContext<'a> {
                     scope.add(ent, diagnostics);
                 }
             }
+            Declaration::SubprogramInstantiation(ref mut instance) => {
+                // @TODO
+            }
             Declaration::Configuration(..) => {}
             Declaration::Type(..) => unreachable!("Handled elsewhere"),
         };

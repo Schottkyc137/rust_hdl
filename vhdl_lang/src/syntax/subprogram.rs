@@ -14,6 +14,7 @@ use crate::ast::*;
 use crate::data::*;
 use crate::syntax::concurrent_statement::parse_map_aspect;
 use crate::syntax::interface_declaration::parse_generic_interface_list;
+use crate::syntax::names::parse_name;
 
 pub fn parse_signature(stream: &TokenStream) -> ParseResult<WithPos<Signature>> {
     let left_square = stream.expect_kind(LeftSquare)?;
@@ -99,6 +100,59 @@ pub fn parse_optional_subprogram_header(
         generic_list,
         map_aspect,
     }))
+}
+
+/// Parses the rest of a subprogram instantiation starting from (but not including) the `is` part.
+/// In other words, from the following statement:
+/// ```ebnf
+/// subprogram_instantiation_declaration ::=
+///     kind identifier is new name [ signature ]
+///     [ generic_map_aspect ] ;
+/// ```
+/// Parse only the part after `new ...`
+pub fn parse_subprogram_instantiation(
+    stream: &TokenStream,
+    decl: SubprogramDeclaration,
+    diagnostics: &mut dyn DiagnosticHandler,
+) -> ParseResult<SubprogramInstantiation> {
+    let (decl, kind) = match decl {
+        SubprogramDeclaration::Procedure(proc) => (proc.designator, SubprogramKind::Procedure),
+        SubprogramDeclaration::Function(func) => (func.designator, SubprogramKind::Function),
+    };
+    let decl = match decl.tree.item {
+        SubprogramDesignator::Identifier(id) => WithDecl::new(WithPos::new(id, decl.tree.pos)),
+        SubprogramDesignator::OperatorSymbol(_) => {
+            return Err(Diagnostic::error(
+                decl.tree.pos,
+                "Instantiation statement does not allow operators",
+            ))
+        }
+    };
+    stream.expect_kind(New)?;
+    let uninstantiated_name = parse_name(stream)?;
+    let signature = if stream.next_kind_is(LeftSquare) {
+        Some(parse_signature(stream)?)
+    } else {
+        None
+    };
+    let map_aspect = parse_map_aspect(stream, Generic, diagnostics)?;
+    let semi = stream.expect_kind(SemiColon)?;
+    Ok(SubprogramInstantiation {
+        kind,
+        ident: decl,
+        uninstantiated_name,
+        signature,
+        map_aspect,
+        semi,
+    })
+}
+
+/// Helper enum for the result of `parse_subprogram_declaration_statement`.
+/// The result can either be a specification (i.e. `procedure my_proc [...] is ...`
+/// or an instantiation (i.e. `procedure my_proc is new ...`
+pub enum SubprogramDeclarationStatement {
+    Specification(SubprogramDeclaration),
+    Instantiation(SubprogramInstantiation),
 }
 
 pub fn parse_subprogram_declaration_no_semi(
@@ -217,7 +271,11 @@ pub fn parse_subprogram(
         stream,
         token,
         Is => {
-            Ok(Declaration::SubprogramBody(parse_subprogram_body(stream, specification, diagnostics)?))
+            if stream.next_kind_is(New) {
+                Ok(Declaration::SubprogramInstantiation(parse_subprogram_instantiation(stream, specification, diagnostics)?))
+            } else {
+                Ok(Declaration::SubprogramBody(parse_subprogram_body(stream, specification, diagnostics)?))
+            }
         },
         SemiColon => {
             Ok(Declaration::SubprogramDeclaration(specification))

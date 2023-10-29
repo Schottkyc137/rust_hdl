@@ -1132,7 +1132,7 @@ impl Display for SubprogramInstantiation {
             SubprogramKind::Procedure => write!(f, "procedure ")?,
             SubprogramKind::Function => write!(f, "function ")?,
         };
-        write!(f, "{} is new ", self.id)?;
+        write!(f, "{} is new ", self.ident)?;
         write!(f, "{}", self.uninstantiated_name)?;
         if let Some(sig) = &self.signature {
             write!(f, " {}", sig)?;

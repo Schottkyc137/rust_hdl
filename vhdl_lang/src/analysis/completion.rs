@@ -237,6 +237,7 @@ fn declaration_to_string(decl: &Declaration) -> Option<String> {
         Declaration::SubprogramBody(_) => None,
         Declaration::Use(_) => None,
         Declaration::Package(p) => Some(p.ident.to_string()),
+        Declaration::SubprogramInstantiation(inst) => Some(inst.ident.to_string()),
         Declaration::Configuration(_) => None,
     }
 }
