@@ -7,7 +7,7 @@
 use super::common::ParseResult;
 use super::names::{parse_association_list_no_leftpar, parse_identifier_list, parse_selected_name};
 use super::object_declaration::{parse_file_declaration_no_semi, parse_optional_assignment};
-use super::subprogram::parse_subprogram_declaration_no_semi;
+use super::subprogram::parse_subprogram_specification;
 use super::subtype_indication::parse_subtype_indication;
 use super::tokens::{Kind::*, *};
 /// LRM 6.5 Interface declarations
@@ -234,7 +234,7 @@ fn parse_interface_declaration(
             Ok(vec![InterfaceDeclaration::Type(WithDecl::new(ident))])
         },
         Function | Procedure | Impure | Pure => {
-            let decl = parse_subprogram_declaration_no_semi(stream, diagnostics)?;
+            let decl = parse_subprogram_specification(stream, diagnostics)?;
             let default = parse_subprogram_default(stream)?;
 
             Ok(vec![InterfaceDeclaration::Subprogram(decl, default)])

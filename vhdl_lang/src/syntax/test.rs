@@ -20,7 +20,7 @@ use super::object_declaration::{parse_file_declaration, parse_object_declaration
 use super::range::{parse_discrete_range, parse_range};
 use super::separated_list::{parse_ident_list, parse_name_list};
 use super::sequential_statement::parse_sequential_statement;
-use super::subprogram::{parse_signature, parse_subprogram_declaration_no_semi};
+use super::subprogram::{parse_signature, parse_subprogram_specification};
 use super::subtype_indication::parse_subtype_indication;
 use super::tokens::{Comment, Kind, Symbols, Token, TokenStream, Tokenizer};
 use super::type_declaration::parse_type_declaration;
@@ -573,7 +573,7 @@ impl Code {
     }
 
     pub fn subprogram_decl(&self) -> SubprogramDeclaration {
-        self.parse_ok_no_diagnostics(parse_subprogram_declaration_no_semi)
+        self.parse_ok_no_diagnostics(parse_subprogram_specification)
     }
 
     pub fn subprogram_header(&self) -> Option<SubprogramHeader> {

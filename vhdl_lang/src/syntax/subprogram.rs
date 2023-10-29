@@ -112,22 +112,11 @@ pub fn parse_optional_subprogram_header(
 /// Parse only the part after `new ...`
 pub fn parse_subprogram_instantiation(
     stream: &TokenStream,
-    decl: SubprogramDeclaration,
     diagnostics: &mut dyn DiagnosticHandler,
 ) -> ParseResult<SubprogramInstantiation> {
-    let (decl, kind) = match decl {
-        SubprogramDeclaration::Procedure(proc) => (proc.designator, SubprogramKind::Procedure),
-        SubprogramDeclaration::Function(func) => (func.designator, SubprogramKind::Function),
-    };
-    let decl = match decl.tree.item {
-        SubprogramDesignator::Identifier(id) => WithDecl::new(WithPos::new(id, decl.tree.pos)),
-        SubprogramDesignator::OperatorSymbol(_) => {
-            return Err(Diagnostic::error(
-                decl.tree.pos,
-                "Instantiation statement does not allow operators",
-            ))
-        }
-    };
+    let kind = expect_token!(stream, token, Function => SubprogramKind::Function, Procedure => SubprogramKind::Procedure);
+    let decl = WithDecl::new(stream.expect_ident()?);
+    stream.expect_kind(Is)?;
     stream.expect_kind(New)?;
     let uninstantiated_name = parse_name(stream)?;
     let signature = if stream.next_kind_is(LeftSquare) {
@@ -147,15 +136,24 @@ pub fn parse_subprogram_instantiation(
     })
 }
 
-/// Helper enum for the result of `parse_subprogram_declaration_statement`.
-/// The result can either be a specification (i.e. `procedure my_proc [...] is ...`
-/// or an instantiation (i.e. `procedure my_proc is new ...`
-pub enum SubprogramDeclarationStatement {
-    Specification(SubprogramDeclaration),
-    Instantiation(SubprogramInstantiation),
-}
-
-pub fn parse_subprogram_declaration_no_semi(
+/// Parses a subprogram specification of the form
+/// ```ebnf
+/// subprogram_specification ::= procedure_specification | function_specification
+/// ```
+///
+/// where
+/// ```ebnf
+/// procedure_specification ::= procedure designator
+/// 	subprogram_header
+/// 	[ [ parameter ] ( formal_parameter_list ) ]
+///
+/// function_specification ::=
+/// 	[ pure | impure ] function designator
+/// 	subprogram_header
+/// 	[ [ parameter ] ( formal_parameter_list ) ] return type_mark
+/// ```
+///
+pub fn parse_subprogram_specification(
     stream: &TokenStream,
     diagnostics: &mut dyn DiagnosticHandler,
 ) -> ParseResult<SubprogramDeclaration> {
@@ -218,7 +216,7 @@ pub fn parse_subprogram_declaration(
     stream: &TokenStream,
     diagnostics: &mut dyn DiagnosticHandler,
 ) -> ParseResult<SubprogramDeclaration> {
-    let res = parse_subprogram_declaration_no_semi(stream, diagnostics);
+    let res = parse_subprogram_specification(stream, diagnostics);
     stream.expect_kind(SemiColon)?;
     res
 }
@@ -266,16 +264,28 @@ pub fn parse_subprogram(
     stream: &TokenStream,
     diagnostics: &mut dyn DiagnosticHandler,
 ) -> ParseResult<Declaration> {
-    let specification = parse_subprogram_declaration_no_semi(stream, diagnostics)?;
+    // It is theoretically also possible to parse the specification and then only parse the rest of
+    // the instantiation statement. However, this makes the parsing of the specification more
+    // difficult. For example, a `function specification must end with `return type_mark`
+    // whereas there cannot be a type mark for an instantiation.
+    // There is still some duplication that might get worse when, for instance in a new standard,
+    // the `identifier` might be an operator (this is not foreseen in VHDL-08).
+    // Additionally, this way of doing things makes diagnostics a bit worse (for example
+    // `pure function x is new ...` will return a somewhat cryptic error message while it
+    // should return something like "pure cannot be used together with instantiation"
+    if stream.next_kinds_are(&[Function, Identifier, Is, New])
+        || stream.next_kinds_are(&[Procedure, Identifier, Is, New])
+    {
+        return Ok(Declaration::SubprogramInstantiation(
+            parse_subprogram_instantiation(stream, diagnostics)?,
+        ));
+    }
+    let specification = parse_subprogram_specification(stream, diagnostics)?;
     expect_token!(
         stream,
         token,
         Is => {
-            if stream.next_kind_is(New) {
-                Ok(Declaration::SubprogramInstantiation(parse_subprogram_instantiation(stream, specification, diagnostics)?))
-            } else {
-                Ok(Declaration::SubprogramBody(parse_subprogram_body(stream, specification, diagnostics)?))
-            }
+            Ok(Declaration::SubprogramBody(parse_subprogram_body(stream, specification, diagnostics)?))
         },
         SemiColon => {
             Ok(Declaration::SubprogramDeclaration(specification))
