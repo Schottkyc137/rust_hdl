@@ -60,6 +60,7 @@ pub enum FoundDeclaration<'a> {
     Package(&'a mut PackageDeclaration),
     PackageBody(&'a mut PackageBody),
     PackageInstance(&'a mut PackageInstantiation),
+    SubprogramInstance(&'a mut SubprogramInstantiation),
     Configuration(&'a mut ConfigurationDeclaration),
     Entity(&'a mut EntityDeclaration),
     Architecture(&'a mut ArchitectureBody),
@@ -1358,6 +1359,16 @@ impl Search for MapAspect {
     }
 }
 
+impl Search for SubprogramInstantiation {
+    fn search(&mut self, ctx: &dyn TokenAccess, searcher: &mut impl Searcher) -> SearchResult {
+        return_if_found!(searcher
+            .search_decl(ctx, FoundDeclaration::SubprogramInstance(self))
+            .or_not_found());
+        return_if_found!(self.signature.search(ctx, searcher));
+        self.map_aspect.search(ctx, searcher)
+    }
+}
+
 // Search for reference to declaration/definition at cursor
 pub struct ItemAtCursor {
     source: Source,
@@ -1670,6 +1681,7 @@ impl<'a> FoundDeclaration<'a> {
             FoundDeclaration::GenerateBody(..) => None,
             FoundDeclaration::ConcurrentStatement(..) => None,
             FoundDeclaration::SequentialStatement(..) => None,
+            FoundDeclaration::SubprogramInstance(_) => None,
         }
     }
 }
@@ -1705,6 +1717,7 @@ impl<'a> HasEntityId for FoundDeclaration<'a> {
             FoundDeclaration::GenerateBody(value) => value.decl,
             FoundDeclaration::ConcurrentStatement(_, value) => **value,
             FoundDeclaration::SequentialStatement(_, value) => **value,
+            FoundDeclaration::SubprogramInstance(value) => value.id.decl,
         }
     }
 }
@@ -1740,6 +1753,7 @@ impl<'a> HasSrcPos for FoundDeclaration<'a> {
             FoundDeclaration::GenerateBody(value) => value.pos(),
             FoundDeclaration::ConcurrentStatement(value, _) => value.pos(),
             FoundDeclaration::SequentialStatement(value, _) => value.pos(),
+            FoundDeclaration::SubprogramInstance(value) => value.id.pos(),
         }
     }
 }
@@ -1833,6 +1847,9 @@ impl std::fmt::Display for FoundDeclaration<'_> {
                 write!(f, "{value}")
             }
             FoundDeclaration::SequentialStatement(value, _) => {
+                write!(f, "{value}")
+            }
+            FoundDeclaration::SubprogramInstance(ref value) => {
                 write!(f, "{value}")
             }
         }

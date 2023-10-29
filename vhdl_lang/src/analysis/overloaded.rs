@@ -414,7 +414,7 @@ impl Diagnostic {
 
 #[cfg(test)]
 mod tests {
-
+    use crate::analysis::overloaded;
     use super::*;
     use crate::analysis::tests::TestSetup;
     use crate::data::DiagnosticHandler;
@@ -449,7 +449,7 @@ mod tests {
                 &fcall.pos,
                 &des,
                 &mut fcall.item.parameters,
-                SubprogramKind::Function(ttyp),
+                overloaded::SubprogramKind::Function(ttyp),
                 overloaded.entities().collect(),
                 diagnostics,
             ))

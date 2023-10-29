@@ -317,6 +317,14 @@ pub trait Visitor {
     ) -> VisitorResult {
         Continue
     }
+
+    fn visit_subprogram_instantiation(
+        &mut self,
+        _node: &SubprogramInstantiation,
+        _ctx: &dyn TokenAccess,
+    ) -> VisitorResult {
+        Continue
+    }
     fn visit_signature(&mut self, _node: &Signature, _ctx: &dyn TokenAccess) -> VisitorResult {
         Continue
     }
@@ -2448,5 +2456,20 @@ impl ASTNode for MapAspect {
 
     fn children(&self) -> Vec<&dyn ASTNode> {
         vec![&self.list]
+    }
+}
+
+impl ASTNode for SubprogramInstantiation {
+    fn visit(&self, visitor: &mut dyn Visitor, ctx: &dyn TokenAccess) -> VisitorResult {
+        visitor.visit_subprogram_instantiation(self, ctx)
+    }
+
+    fn children(&self) -> Vec<&dyn ASTNode> {
+        vec![
+            &self.id,
+            &self.uninstantiated_name,
+            &self.signature,
+            &self.map_aspect,
+        ]
     }
 }

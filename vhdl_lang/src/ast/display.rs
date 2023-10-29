@@ -1043,6 +1043,24 @@ impl Display for ConfigurationDeclaration {
     }
 }
 
+impl<T: Display> Display for SeparatedList<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let mut first = true;
+        for assoc in &self.items {
+            if first {
+                write!(f, "\n    {assoc}")?;
+            } else {
+                write!(f, ",\n    {assoc}")?;
+            }
+            first = false;
+        }
+        if !first {
+            write!(f, "\n  )")?;
+        }
+        Ok(())
+    }
+}
+
 impl Display for EntityDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         // Not used: context_clause, decl, statements
@@ -1105,6 +1123,24 @@ impl Display for PackageDeclaration {
         } else {
             write!(f, "package {}", self.ident)
         }
+    }
+}
+
+impl Display for SubprogramInstantiation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self.kind {
+            SubprogramKind::Procedure => write!(f, "procedure ")?,
+            SubprogramKind::Function => write!(f, "function ")?,
+        };
+        write!(f, "{} is new ", self.id)?;
+        write!(f, "{}", self.uninstantiated_name)?;
+        if let Some(sig) = &self.signature {
+            write!(f, " {}", sig)?;
+        }
+        if let Some(assoc_list) = &self.map_aspect {
+            write!(f, "generic map ({})", assoc_list.list)?;
+        }
+        Ok(())
     }
 }
 
@@ -2147,4 +2183,20 @@ end package;",
             },
         );
     }
+
+    /* #[test]
+        fn test_procedure_instantiation_statement() {
+            assert_format_eq(
+                "procedure my_proc is new my_proc generic map (x => x)",
+                "procedure my_proc is new my_proc generic map (\
+        x => x\
+    )",
+                |code| {
+                    assert_matches!(
+                        code.declarative_part().remove(0),
+                        (_, De) => unit
+                    )
+                },
+            );
+        } */
 }

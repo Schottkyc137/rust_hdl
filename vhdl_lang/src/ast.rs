@@ -666,6 +666,23 @@ pub struct FunctionSpecification {
     pub return_type: WithPos<TypeMark>,
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub enum SubprogramKind {
+    Procedure,
+    Function,
+}
+
+/// LRM 4.4 Subprogram bodies
+#[derive(PartialEq, Debug, Clone)]
+pub struct SubprogramInstantiation {
+    pub kind: SubprogramKind,
+    pub id: WithDecl<Ident>,
+    pub uninstantiated_name: Ident,
+    pub signature: Option<Signature>,
+    pub map_aspect: Option<MapAspect>,
+    pub semi: TokenId,
+}
+
 /// LRM 4.3 Subprogram bodies
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubprogramBody {
