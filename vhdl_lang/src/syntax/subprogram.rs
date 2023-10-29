@@ -152,7 +152,6 @@ pub fn parse_subprogram_instantiation(
 /// 	subprogram_header
 /// 	[ [ parameter ] ( formal_parameter_list ) ] return type_mark
 /// ```
-///
 pub fn parse_subprogram_specification(
     stream: &TokenStream,
     diagnostics: &mut dyn DiagnosticHandler,
@@ -849,5 +848,61 @@ end procedure swap;
             code.with_stream_no_diagnostics(parse_subprogram),
             Declaration::SubprogramBody(body)
         );
+    }
+
+    #[test]
+    pub fn parse_subprogram_instantiation_ok() {
+        let code = Code::new("procedure my_proc is new other_proc;");
+        assert_eq!(code.parse_ok_no_diagnostics(parse_subprogram_instantiation), SubprogramInstantiation {
+            kind: SubprogramKind::Procedure,
+            ident: code.s1("my_proc").decl_ident(),
+            uninstantiated_name: code.s1("other_proc").name(),
+            signature: None,
+            map_aspect: None,
+            semi: code.s1(";").token(),
+        });
+
+        let code = Code::new("function my_proc is new other_proc;");
+        assert_eq!(code.parse_ok_no_diagnostics(parse_subprogram_instantiation), SubprogramInstantiation {
+            kind: SubprogramKind::Function,
+            ident: code.s1("my_proc").decl_ident(),
+            uninstantiated_name: code.s1("other_proc").name(),
+            signature: None,
+            map_aspect: None,
+            semi: code.s1(";").token(),
+        });
+
+        let code = Code::new("function my_proc is new other_proc generic map (x => x);");
+        assert_eq!(code.parse_ok_no_diagnostics(parse_subprogram_instantiation), SubprogramInstantiation {
+            kind: SubprogramKind::Function,
+            ident: code.s1("my_proc").decl_ident(),
+            uninstantiated_name: code.s1("other_proc").name(),
+            signature: None,
+            map_aspect: Some(code.s1("generic map (x => x)").generic_map_aspect()),
+            semi: code.s1(";").token(),
+        });
+
+        let code = Code::new("function my_proc is new other_proc [x return y] generic map (x => x);");
+        assert_eq!(code.parse_ok_no_diagnostics(parse_subprogram_instantiation), SubprogramInstantiation {
+            kind: SubprogramKind::Function,
+            ident: code.s1("my_proc").decl_ident(),
+            uninstantiated_name: code.s1("other_proc").name(),
+            signature: Some(code.s1("[x return y]").signature()),
+            map_aspect: Some(code.s1("generic map (x => x)").generic_map_aspect()),
+            semi: code.s1(";").token(),
+        });
+    }
+
+    #[test]
+    fn parse_instantiation_declaration() {
+        let code = Code::new("procedure my_proc is new my_proc;");
+        assert_eq!(code.parse_ok_no_diagnostics(parse_subprogram), Declaration::SubprogramInstantiation(SubprogramInstantiation {
+            kind: SubprogramKind::Procedure,
+            ident: code.s1("my_proc").decl_ident(),
+            uninstantiated_name: code.s("my_proc", 2).name(),
+            signature: None,
+            map_aspect: None,
+            semi: code.s1(";").token(),
+        }));
     }
 }
