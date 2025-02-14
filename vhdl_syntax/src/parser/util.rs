@@ -207,12 +207,27 @@ impl<T: TokenStream> Parser<T> {
         (self.builder.end(), self.diagnostics)
     }
 
+    pub(crate) fn lookahead<const N: usize>(
+        &mut self,
+        kinds: [TokenKind; N],
+    ) -> Result<(TokenKind, usize), (LookaheadError, usize)> {
+        self.lookahead_max_token_index_skip_n(usize::MAX, 0, kinds)
+    }
+
     pub(crate) fn lookahead_max_token_index<const N: usize>(
         &mut self,
         maximum_index: usize,
         kinds: [TokenKind; N],
     ) -> Result<(TokenKind, usize), (LookaheadError, usize)> {
         self.lookahead_max_token_index_skip_n(maximum_index, 0, kinds)
+    }
+
+    pub(crate) fn lookahead_skip_n<const N: usize>(
+        &mut self,
+        skip_n: usize,
+        kinds: [TokenKind; N],
+    ) -> Result<(TokenKind, usize), (LookaheadError, usize)> {
+        self.lookahead_max_token_index_skip_n(usize::MAX, skip_n, kinds)
     }
 
     /// Lookahead in the current token stream until one of the given `TokenKind`s are found.

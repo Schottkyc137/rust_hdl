@@ -15,6 +15,8 @@ pub enum ParserError {
     ExpectingTokens(Box<[TokenKind]>),
     /// An unexpected End-of file was detected
     Eof,
+    /// A lookahead could not find the provided token
+    LookaheadFailed(TokenKind),
 }
 
 #[derive(Debug)]

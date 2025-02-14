@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::diagnostics::{ParserDiagnostic, ParserError};
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
@@ -25,47 +26,38 @@ impl<T: TokenStream> Parser<T> {
         self.end_node();
     }
 
-    pub fn type_definition(&mut self) {
-        match_next_token!(self,
-            Keyword(Kw::Range) => {
-                self.start_node(NumericTypeDefinition);
-                self.range();
-                if self.opt_token(Keyword(Kw::Units)) {
-                    self.primary_unit_declaration();
-                    while self.peek_token().is_some_and(|tok| tok != Keyword(Kw::End)) {
-                        self.secondary_unit_declaration()
-                    }
-                    self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Units)]);
-                    self.opt_identifier();
-                    self.end_node_with_kind(PhysicalTypeDefinition);
-                } else {
-                    self.end_node();
-                }
-            },
-            Keyword(Kw::Access) => {
-                self.start_node(AccessTypeDefinition);
-                self.skip();
-                self.subtype_indication();
-                self.end_node();
-            },
-            Keyword(Kw::Protected) => self.protected_type_definition(),
-            Keyword(Kw::File) => self.file_type_definition(),
-            Keyword(Kw::Array) => self.array_type_definitions(),
-            Keyword(Kw::Record) => self.record_type_definition(),
-            LeftPar => self.enumeration_type_definition()
-        )
-    }
-
-    pub fn enumeration_type_definition(&mut self) {
-        self.start_node(EnumerationTypeDeclaration);
-        self.expect_token(LeftPar);
-        self.separated_list(Parser::enumeration_literal, Comma);
-        self.expect_token(RightPar);
+    pub fn subtype_declaration(&mut self) {
+        self.start_node(SubtypeDeclaration);
+        self.expect_kw(Kw::Subtype);
+        self.identifier();
+        self.expect_kw(Kw::Is);
+        self.subtype_indication();
+        self.expect_token(SemiColon);
         self.end_node();
     }
 
-    pub fn enumeration_literal(&mut self) {
-        self.expect_one_of_tokens([Identifier, CharacterLiteral])
+    pub fn type_definition(&mut self) {
+        let max_index = match self.lookahead([SemiColon]) {
+            Ok((_, idx)) => idx,
+            Err(_) => {
+                // TODO: The type definition is not fully parseable, what to do now?
+                self.diagnostics.push(ParserDiagnostic::new(
+                    self.builder.current_pos(),
+                    ParserError::LookaheadFailed(SemiColon),
+                ));
+                return;
+            }
+        };
+
+        match_next_token!(self,
+            Keyword(Kw::Range) => self.numeric_type_definition_bounded(max_index),
+            Keyword(Kw::Access) => self.access_type_definition(),
+            Keyword(Kw::Protected) => self.protected_type_definition(),
+            Keyword(Kw::File) => self.file_type_definition(),
+            Keyword(Kw::Array) => self.array_type_definition(),
+            Keyword(Kw::Record) => self.record_type_definition(),
+            LeftPar => self.enumeration_type_definition()
+        )
     }
 
     pub fn protected_type_definition(&mut self) {
@@ -79,37 +71,10 @@ impl<T: TokenStream> Parser<T> {
         }
         self.opt_identifier();
         if is_body {
-            self.end_node_with_kind(ProtectedBody);
+            self.end_node_with_kind(ProtectedTypeBody);
         } else {
             self.end_node();
         }
-    }
-
-    pub fn record_type_definition(&mut self) {
-        self.start_node(ProtectedTypeDeclaration);
-        self.expect_kw(Kw::Record);
-        while let Some(tok) = self.peek_token() {
-            match tok {
-                Keyword(Kw::End) => break,
-                _ => self.element_declaration(),
-            }
-        }
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Record)]);
-        self.opt_identifier();
-        self.end_node();
-    }
-
-    pub fn element_declaration(&mut self) {
-        self.start_node(ElementDeclaration);
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.element_subtype_definition();
-        self.expect_token(SemiColon);
-        self.end_node();
-    }
-
-    pub fn element_subtype_definition(&mut self) {
-        self.subtype_indication();
     }
 
     pub fn file_type_definition(&mut self) {
@@ -119,57 +84,170 @@ impl<T: TokenStream> Parser<T> {
         self.end_node();
     }
 
-    pub fn array_type_definitions(&mut self) {
-        self.start_node(UnboundedArrayDefinition);
-        self.expect_kw(Kw::Array);
-        // TODO: bounded vs unbounded array type definition
-        self.expect_token(LeftPar);
-        self.separated_list(Parser::index_subtype_definition, Comma);
-        self.expect_token(RightPar);
-        self.expect_kw(Kw::Of);
+    pub fn access_type_definition(&mut self) {
+        self.start_node(AccessTypeDefinition);
+        self.expect_kw(Kw::Access);
         self.subtype_indication();
         self.end_node();
     }
+}
 
-    pub fn index_subtype_definition(&mut self) {
-        self.start_node(IndexSubtypeDefinition);
-        self.type_mark();
-        self.expect_tokens([Keyword(Kw::Range), BOX]);
-        self.end_node();
+#[cfg(test)]
+mod tests {
+    use crate::parser::test_utils::check;
+    use crate::parser::Parser;
+
+    #[test]
+    fn incomplete_type_declaration() {
+        check(
+            Parser::type_declaration,
+            "type incomplete_type;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'incomplete_type'
+  SemiColon
+",
+        );
     }
 
-    pub fn primary_unit_declaration(&mut self) {
-        self.start_node(PrimaryUnitDeclaration);
-        self.identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    #[test]
+    fn file_type_declaration() {
+        check(
+            Parser::type_declaration,
+            "type IntegerFile is file of integer;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'IntegerFile'
+  Keyword(Is)
+  FileTypeDefinition
+    Keyword(File)
+    Keyword(Of)
+    Name
+      Identifier 'integer'
+  SemiColon
+",
+        );
+
+        check(
+            Parser::type_declaration,
+            "type sl_file is file of ieee.std_logic_1164.std_ulogic;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'sl_file'
+  Keyword(Is)
+  FileTypeDefinition
+    Keyword(File)
+    Keyword(Of)
+    Name
+      Identifier 'ieee'
+      SelectedName
+        Dot
+        Identifier 'std_logic_1164'
+      SelectedName
+        Dot
+        Identifier 'std_ulogic'
+  SemiColon
+",
+        );
     }
 
-    pub fn secondary_unit_declaration(&mut self) {
-        self.start_node(SecondaryUnitDeclaration);
-        self.identifier();
-        self.expect_token(EQ);
-        self.physical_literal();
-        self.expect_token(SemiColon);
-        self.end_node();
+    #[test]
+    fn access_type_definition() {
+        check(
+            Parser::type_declaration,
+            "type str_ptr_t is access string;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'str_ptr_t'
+  Keyword(Is)
+  AccessTypeDefinition
+    Keyword(Access)
+    Identifier 'string'
+  SemiColon
+",
+        );
     }
 
-    pub fn physical_literal(&mut self) {
-        self.opt_token(AbstractLiteral);
-        self.name();
+    #[test]
+    fn protected_type_declaration() {
+        check(
+            Parser::type_declaration,
+            "type p_t is protected end protected;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'p_t'
+  Keyword(Is)
+  ProtectedTypeDeclaration
+    Keyword(Protected)
+    Keyword(End)
+    Keyword(Protected)
+  SemiColon
+",
+        );
+
+        check(
+            Parser::type_declaration,
+            "type p_t is protected end protected p_t;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'p_t'
+  Keyword(Is)
+  ProtectedTypeDeclaration
+    Keyword(Protected)
+    Keyword(End)
+    Keyword(Protected)
+    Identifier 'p_t'
+  SemiColon
+",
+        );
+
+        // TODO: Test protected types with content
     }
 
-    pub fn subtype_declaration(&mut self) {
-        self.start_node(SubtypeDeclaration);
-        self.expect_kw(Kw::Subtype);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.subtype_indication();
-        self.expect_token(SemiColon);
-        self.end_node();
-    }
+    #[test]
+    fn protected_type_body() {
+        check(
+            Parser::type_declaration,
+            "type p_t is protected body end protected body;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'p_t'
+  Keyword(Is)
+  ProtectedTypeBody
+    Keyword(Protected)
+    Keyword(Body)
+    Keyword(End)
+    Keyword(Protected)
+    Keyword(Body)
+  SemiColon
+",
+        );
+        check(
+            Parser::type_declaration,
+            "type p_t is protected body end protected body p_t;",
+            "\
+TypeDeclaration
+  Keyword(Type)
+  Identifier 'p_t'
+  Keyword(Is)
+  ProtectedTypeBody
+    Keyword(Protected)
+    Keyword(Body)
+    Keyword(End)
+    Keyword(Protected)
+    Keyword(Body)
+    Identifier 'p_t'
+  SemiColon
+",
+        );
 
-    pub fn discrete_range(&mut self) {
-        todo!()
+        // TODO: Test protected types with content
     }
 }
