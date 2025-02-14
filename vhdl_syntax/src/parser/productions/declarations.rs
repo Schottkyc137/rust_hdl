@@ -72,22 +72,6 @@ impl<T: TokenStream> Parser<T> {
         todo!()
     }
 
-    pub fn file_declaration(&mut self) {
-        todo!()
-    }
-
-    pub fn variable_declaration(&mut self) {
-        todo!()
-    }
-
-    pub fn constant_declaration(&mut self) {
-        todo!()
-    }
-
-    pub fn signal_declaration(&mut self) {
-        todo!()
-    }
-
     pub fn view_declaration(&mut self) {
         todo!()
     }
