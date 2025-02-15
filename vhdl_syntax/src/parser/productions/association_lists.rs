@@ -10,10 +10,6 @@ use crate::tokens::TokenKind::*;
 use crate::tokens::TokenStream;
 
 impl<T: TokenStream> Parser<T> {
-    pub fn association_element(&mut self) {
-        // TODO
-    }
-
     fn map_aspect(&mut self, kind: Kw) {
         self.expect_tokens([Keyword(kind), Keyword(Kw::Map), LeftPar]);
         self.association_list();

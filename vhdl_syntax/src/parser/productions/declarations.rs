@@ -55,10 +55,6 @@ impl<T: TokenStream> Parser<T> {
         todo!()
     }
 
-    pub(crate) fn attribute(&mut self) {
-        todo!()
-    }
-
     pub fn view_declaration(&mut self) {
         todo!()
     }

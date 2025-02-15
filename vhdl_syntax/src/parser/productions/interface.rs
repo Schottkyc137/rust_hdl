@@ -91,6 +91,7 @@ impl<T: TokenStream> Parser<T> {
     pub fn association_list(&mut self) {
         self.association_list_bounded(usize::MAX);
     }
+
     fn association_list_bounded(&mut self, max_index: usize) {
         self.start_node(AssociationList);
         self.separated_list(

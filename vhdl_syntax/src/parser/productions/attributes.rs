@@ -81,4 +81,59 @@ impl<T: TokenStream> Parser<T> {
     pub fn entity_tag(&mut self) {
         self.expect_one_of_tokens([Identifier, CharacterLiteral, StringLiteral])
     }
+
+    pub(crate) fn attribute(&mut self) {
+        self.start_node(AttributeDeclaration);
+        self.expect_kw(Kw::Attribute);
+        self.identifier();
+        self.expect_token(Colon);
+        self.type_mark();
+        self.expect_token(SemiColon);
+        self.end_node();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::test_utils::*;
+    use crate::parser::Parser;
+
+    #[test]
+    fn parse_simple_attribute_declaration() {
+        check(
+            Parser::attribute,
+            "attribute foo : lib.name;",
+            "\
+AttributeDeclaration
+  Keyword(Attribute)
+  Identifier 'foo'
+  Colon
+  Name
+    Identifier 'lib'
+    SelectedName
+      Dot
+      Identifier 'name'
+  SemiColon",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn parse_simple_attribute_specification() {
+        check(
+            Parser::attribute_specification,
+            "attribute attr_name of foo : signal is 0+1;",
+            "\
+AttributeSpecification
+  Keyword(Attribute)
+  Identifier 'attr_name'
+  Of
+  Identifier 'foo'
+  Colon
+  Keyword(Signal)
+  Keyword(Is)
+  Expression
+    TODO",
+        );
+    }
 }
