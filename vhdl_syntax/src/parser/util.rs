@@ -1,3 +1,4 @@
+use crate::parser::builder::Checkpoint;
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -184,6 +185,14 @@ impl<T: TokenStream> Parser<T> {
         self.builder.end_node()
     }
 
+    pub(crate) fn checkpoint(&mut self) -> Checkpoint {
+        self.builder.checkpoint()
+    }
+
+    pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: NodeKind) {
+        self.builder.start_node_at(checkpoint, kind)
+    }
+
     pub(crate) fn end_node_with_kind(&mut self, kind: NodeKind) {
         self.builder.end_node_with_kind(kind)
     }
@@ -213,6 +222,12 @@ impl<T: TokenStream> Parser<T> {
         kinds: [TokenKind; N],
     ) -> Result<(TokenKind, usize), (LookaheadError, usize)> {
         self.lookahead_max_token_index_skip_n(maximum_index, 0, kinds)
+    }
+
+    pub(crate) fn skip_into_node(&mut self, node: NodeKind) {
+        self.start_node(node);
+        self.skip();
+        self.end_node();
     }
 
     /// Lookahead in the current token stream until one of the given `TokenKind`s are found.

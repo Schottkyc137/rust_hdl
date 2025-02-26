@@ -174,7 +174,7 @@ AssociationList
     RightArrow
     ActualPart
       RawTokens
-        AbstractLiteral
+        AbstractLiteral '1'
   Comma
   AssociationElement
     FormalPart

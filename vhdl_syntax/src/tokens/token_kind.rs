@@ -9,47 +9,47 @@ pub enum TokenKind {
     /// A keyword, such as `entity`, `architecture` or `abs`.
     Keyword(Keyword),
 
-    Plus,
-    Minus,
+    Plus,  // +
+    Minus, // -
 
-    EQ,
-    NE,
-    LT,
-    LTE,
-    GT,
-    GTE,
+    EQ,  // =
+    NE,  // /=
+    LT,  // <
+    LTE, // <=
+    GT,  // >
+    GTE, // >=
 
-    QueEQ,
-    QueNE,
-    QueLT,
-    QueLTE,
-    QueGT,
-    QueGTE,
-    Que,
-    QueQue,
+    QueEQ,  // ?=
+    QueNE,  // ?/=
+    QueLT,  // ?<
+    QueLTE, // ?<=
+    QueGT,  // ?>
+    QueGTE, // ?>=
+    Que,    // ?
+    QueQue, // ??
 
-    Times,
-    Pow,
-    Div,
+    Times, // *
+    Pow,   // **
+    Div,   // /
 
-    Tick,
-    LeftPar,
-    RightPar,
-    LeftSquare,
-    RightSquare,
-    SemiColon,
-    Colon,
-    Bar,
-    Dot,
-    BOX,
-    LtLt,
-    GtGt,
-    Circ,
-    CommAt,
-    Concat,
-    Comma,
-    ColonEq,
-    RightArrow,
+    Tick,        // '
+    LeftPar,     // (
+    RightPar,    // )
+    LeftSquare,  // [
+    RightSquare, // ]
+    SemiColon,   // ;
+    Colon,       // :
+    Bar,         // |
+    Dot,         // .
+    BOX,         // <>
+    LtLt,        // <<
+    GtGt,        // >>
+    Circ,        // ^
+    CommAt,      // @
+    Concat,      // &
+    Comma,       // ,
+    ColonEq,     // :=
+    RightArrow,  // =>
 
     Identifier,
     AbstractLiteral,

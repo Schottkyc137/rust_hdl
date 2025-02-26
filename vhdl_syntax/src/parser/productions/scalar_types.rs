@@ -47,10 +47,10 @@ mod tests {
             "\
 Range
   SimpleExpression
-    AbstractLiteral
+    AbstractLiteral '100'
   Keyword(Downto)
   SimpleExpression
-    AbstractLiteral
+    AbstractLiteral '10'
 ",
         );
 
@@ -60,10 +60,10 @@ Range
             "\
 Range
   SimpleExpression
-    AbstractLiteral
+    AbstractLiteral '0'
   Keyword(To)
   SimpleExpression
-    AbstractLiteral
+    AbstractLiteral '0'
 ",
         );
 

@@ -96,5 +96,10 @@ pub enum NodeKind {
     AssociationList,
     AssociationElement,
     FormalPart,
+    Literal,
+    PhysicalLiteral,
+    UnaryExpression,
+    BinaryExpression,
+    Primary,
     ActualPart, // ...
 }

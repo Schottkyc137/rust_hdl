@@ -78,10 +78,12 @@ pub(crate) struct GreenNodeData {
 }
 
 impl GreenNodeData {
+    #[cfg(test)]
     fn push_child(&mut self, child: GreenChild) {
         self.children.push(child)
     }
 
+    #[cfg(test)]
     pub(crate) fn push_token(&mut self, offset: usize, token: Token) {
         self.push_child(Child::Token((offset, GreenToken::new(token))))
     }
@@ -96,8 +98,8 @@ impl GreenNodeData {
         }
     }
 
-    pub(crate) fn push_node(&mut self, offset: usize, node: GreenNodeData) {
-        self.push_child(Child::Node((offset, GreenNode::new(node))))
+    pub(crate) fn push_children(&mut self, children: impl IntoIterator<Item = GreenChild>) {
+        self.children.extend(children)
     }
 
     pub(crate) fn replace_child(&mut self, index: usize, child: GreenChild) {
@@ -115,10 +117,6 @@ impl GreenNodeData {
         self.children
             .iter()
             .fold(0, |acc, next| acc + next.byte_len())
-    }
-
-    pub(crate) fn set_kind(&mut self, kind: NodeKind) {
-        self.kind = kind
     }
 }
 
@@ -159,7 +157,9 @@ impl GreenNode {
                                 token.kind(),
                                 TokenKind::Identifier
                                     | TokenKind::StringLiteral
+                                    | TokenKind::BitStringLiteral
                                     | TokenKind::CharacterLiteral
+                                    | TokenKind::AbstractLiteral
                             ) {
                                 write!(&mut w, " '{}'", token.text())?;
                             }
