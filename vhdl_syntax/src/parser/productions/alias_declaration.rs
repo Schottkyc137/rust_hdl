@@ -62,12 +62,25 @@ AliasDeclaration
     }
 
     #[test]
-    #[ignore]
     fn parse_alias_with_signature() {
         check(
             Parser::alias_declaration,
             "alias foo is name [return natural];",
-            todo!(),
+            "\
+AliasDeclaration
+  Keyword(Alias)
+  Identifier 'foo'
+  Keyword(Is)
+  Name
+    Identifier 'name'
+  Signature
+    LeftSquare
+    Keyword(Return)
+    Name
+      Identifier 'natural'
+    RightSquare
+  SemiColon
+        ",
         );
     }
 

@@ -101,5 +101,13 @@ pub enum NodeKind {
     UnaryExpression,
     BinaryExpression,
     Primary,
-    ActualPart, // ...
+    ActualPart,
+    WaitStatement,
+    SensitivityClause,
+    ConditionClause,
+    TimeoutClause,
+    AssertStatement,
+    ReportExpression,
+    SeverityExpression,
+    ReportStatement,
 }

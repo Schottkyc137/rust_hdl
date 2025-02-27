@@ -14,6 +14,7 @@ use crate::tokens::TokenStream;
 impl<T: TokenStream> Parser<T> {
     pub fn attribute_specification(&mut self) {
         self.start_node(AttributeSpecification);
+        self.expect_kw(Kw::Attribute);
         self.identifier();
         self.expect_token(Keyword(Kw::Of));
         self.entity_specification();
@@ -38,7 +39,7 @@ impl<T: TokenStream> Parser<T> {
             Keyword(Kw::Others) => self.skip(),
             Identifier, StringLiteral, CharacterLiteral => {
                 self.start_node(DesignatorList);
-                self.separated_list(Parser::designator, Comma);
+                self.separated_list(Parser::entity_designator, Comma);
                 self.end_node();
             }
         );
@@ -118,7 +119,6 @@ AttributeDeclaration
     }
 
     #[test]
-    #[ignore]
     fn parse_simple_attribute_specification() {
         check(
             Parser::attribute_specification,
@@ -127,13 +127,173 @@ AttributeDeclaration
 AttributeSpecification
   Keyword(Attribute)
   Identifier 'attr_name'
-  Of
-  Identifier 'foo'
-  Colon
-  Keyword(Signal)
+  Keyword(Of)
+  EntitySpecification
+    EntityNameList
+      DesignatorList
+        EntityDesignator
+          Identifier 'foo'
+    Colon
+    Keyword(Signal)
   Keyword(Is)
-  Expression
-    TODO",
+  BinaryExpression
+    Literal
+      AbstractLiteral '0'
+    Plus
+    Literal
+      AbstractLiteral '1'
+  SemiColon
+",
+        );
+    }
+
+    #[test]
+    fn simple_attribute_specification_operator_symbol() {
+        check(
+            Parser::attribute_specification,
+            "attribute attr_name of \"**\" : function is 0+1;",
+            "\
+AttributeSpecification
+  Keyword(Attribute)
+  Identifier 'attr_name'
+  Keyword(Of)
+  EntitySpecification
+    EntityNameList
+      DesignatorList
+        EntityDesignator
+          StringLiteral '\"**\"'
+    Colon
+    Keyword(Function)
+  Keyword(Is)
+  BinaryExpression
+    Literal
+      AbstractLiteral '0'
+    Plus
+    Literal
+      AbstractLiteral '1'
+  SemiColon
+",
+        );
+    }
+
+    #[test]
+    fn attribute_specification_list() {
+        check(
+            Parser::attribute_specification,
+            "attribute attr_name of foo, bar : signal is 0+1;",
+            "\
+AttributeSpecification
+  Keyword(Attribute)
+  Identifier 'attr_name'
+  Keyword(Of)
+  EntitySpecification
+    EntityNameList
+      DesignatorList
+        EntityDesignator
+          Identifier 'foo'
+        Comma
+        EntityDesignator
+          Identifier 'bar'
+    Colon
+    Keyword(Signal)
+  Keyword(Is)
+  BinaryExpression
+    Literal
+      AbstractLiteral '0'
+    Plus
+    Literal
+      AbstractLiteral '1'
+  SemiColon
+",
+        );
+    }
+
+    #[test]
+    fn attribute_specification_all() {
+        check(
+            Parser::attribute_specification,
+            "attribute attr_name of all : signal is 0+1;",
+            "\
+AttributeSpecification
+  Keyword(Attribute)
+  Identifier 'attr_name'
+  Keyword(Of)
+  EntitySpecification
+    EntityNameList
+      Keyword(All)
+    Colon
+    Keyword(Signal)
+  Keyword(Is)
+  BinaryExpression
+    Literal
+      AbstractLiteral '0'
+    Plus
+    Literal
+      AbstractLiteral '1'
+  SemiColon
+",
+        );
+    }
+
+    #[test]
+    fn attribute_specification_others() {
+        check(
+            Parser::attribute_specification,
+            "attribute attr_name of others : signal is 0+1;",
+            "\
+AttributeSpecification
+  Keyword(Attribute)
+  Identifier 'attr_name'
+  Keyword(Of)
+  EntitySpecification
+    EntityNameList
+      Keyword(Others)
+    Colon
+    Keyword(Signal)
+  Keyword(Is)
+  BinaryExpression
+    Literal
+      AbstractLiteral '0'
+    Plus
+    Literal
+      AbstractLiteral '1'
+  SemiColon
+",
+        );
+    }
+
+    #[test]
+    fn attribute_specification_with_signature() {
+        check(
+            Parser::attribute_specification,
+            "attribute attr_name of foo[return natural] : function is 0+1;",
+            "\
+AttributeSpecification
+  Keyword(Attribute)
+  Identifier 'attr_name'
+  Keyword(Of)
+  EntitySpecification
+    EntityNameList
+      DesignatorList
+        EntityDesignator
+          Identifier 'foo'
+          Signature
+            LeftSquare
+            Keyword(Return)
+            Name
+              Identifier 'natural'
+            RightSquare
+    Colon
+    Keyword(Function)
+  Keyword(Is)
+  BinaryExpression
+    Literal
+      AbstractLiteral '0'
+    Plus
+    Literal
+      AbstractLiteral '1'
+  SemiColon
+",
         );
     }
 }

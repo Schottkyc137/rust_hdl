@@ -144,57 +144,6 @@ impl<T: TokenStream> Parser<T> {
         self.expect_token(SemiColon);
     }
 
-    pub fn selected_waveforms(&mut self) {
-        self.start_node(SelectedWaveforms);
-        self.separated_list(Parser::selected_waveform, Comma);
-        self.end_node();
-    }
-
-    fn selected_waveform(&mut self) {
-        self.start_node(SelectedWaveform);
-        self.waveform();
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.end_node();
-    }
-
-    pub fn waveform(&mut self) {
-        self.start_node(Waveform);
-        if self.opt_token(Keyword(Kw::Unaffected)) {
-            self.end_node();
-            return;
-        }
-        self.separated_list(Parser::waveform_element, Comma);
-        self.end_node();
-    }
-
-    pub fn waveform_element(&mut self) {
-        self.start_node(WaveformElement);
-        self.expression();
-        if self.opt_token(Keyword(Kw::After)) {
-            self.expression();
-        }
-        self.end_node()
-    }
-
-    fn opt_delay_mechanism(&mut self) {
-        match self.peek_token() {
-            Some(Keyword(Kw::Transport | Kw::Inertial)) => {
-                self.start_node(DelayMechanism);
-                self.skip();
-                self.end_node();
-            }
-            Some(Keyword(Kw::Reject)) => {
-                self.start_node(DelayMechanism);
-                self.skip();
-                self.expression();
-                self.expect_kw(Kw::Inertial);
-                self.end_node();
-            }
-            _ => {}
-        }
-    }
-
     pub fn target(&mut self) {
         self.name()
     }

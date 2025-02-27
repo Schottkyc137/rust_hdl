@@ -54,7 +54,7 @@ macro_rules! match_next_token_consume {
     };
     (@inner $parser:expr, [[ $($($pattern:pat_param),+ => $action:expr),+ ]], [[ $($($pattern_expr:expr),+ => $_action_expr:expr),+ ]]) => {
         match $parser.peek_token() {
-            $(Some($pattern) => {
+            $(Some($($pattern)|+) => {
                 $parser.skip();
                 $action
             }),+
