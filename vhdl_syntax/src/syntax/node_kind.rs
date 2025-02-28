@@ -110,4 +110,7 @@ pub enum NodeKind {
     ReportExpression,
     SeverityExpression,
     ReportStatement,
+    NextStatement,
+    ExitStatement,
+    WhenExpression,
 }
