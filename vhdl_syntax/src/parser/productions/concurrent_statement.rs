@@ -145,6 +145,7 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn target(&mut self) {
+        // TODO: can also be aggregate
         self.name()
     }
 

@@ -232,6 +232,15 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn choices(&mut self) {
-        todo!()
+        self.start_node(Choices);
+        self.separated_list(Parser::choice, Bar);
+        self.end_node();
+    }
+
+    pub fn choice(&mut self) {
+        if self.opt_token(Keyword(Kw::Others)) {
+            return;
+        }
+        self.expression(); // TODO: can also be discrete range
     }
 }

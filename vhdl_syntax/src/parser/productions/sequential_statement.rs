@@ -8,7 +8,8 @@ use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
-use crate::tokens::TokenKind::{Keyword, SemiColon};
+use crate::tokens::Keyword::Is;
+use crate::tokens::TokenKind::*;
 use crate::tokens::TokenStream;
 
 impl<T: TokenStream> Parser<T> {
@@ -25,72 +26,80 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn wait_statement(&mut self) {
-        self.any_sequential_statement(WaitStatement, |parser| {
-            parser.expect_kw(Kw::Wait);
-            if parser.next_is(Keyword(Kw::On)) {
-                parser.start_node(SensitivityClause);
-                parser.skip();
-                parser.name_list();
-                parser.end_node();
-            }
-            if parser.next_is(Keyword(Kw::Until)) {
-                parser.start_node(ConditionClause);
-                parser.skip();
-                parser.expression();
-                parser.end_node();
-            }
-            if parser.next_is(Keyword(Kw::For)) {
-                parser.start_node(TimeoutClause);
-                parser.skip();
-                parser.expression();
-                parser.end_node();
-            }
-        });
+        self.any_sequential_statement(WaitStatement, Parser::wait_statement_inner);
+    }
+
+    fn wait_statement_inner(&mut self) {
+        self.expect_kw(Kw::Wait);
+        if self.next_is(Keyword(Kw::On)) {
+            self.start_node(SensitivityClause);
+            self.skip();
+            self.name_list();
+            self.end_node();
+        }
+        if self.next_is(Keyword(Kw::Until)) {
+            self.start_node(ConditionClause);
+            self.skip();
+            self.expression();
+            self.end_node();
+        }
+        if self.next_is(Keyword(Kw::For)) {
+            self.start_node(TimeoutClause);
+            self.skip();
+            self.expression();
+            self.end_node();
+        }
     }
 
     pub fn assert_statement(&mut self) {
-        self.any_sequential_statement(AssertStatement, |parser| {
-            parser.expect_kw(Kw::Assert);
-            parser.condition();
-            if parser.next_is(Keyword(Kw::Report)) {
-                parser.start_node(ReportExpression);
-                parser.skip();
-                parser.expression();
-                parser.end_node();
-            }
-            if parser.next_is(Keyword(Kw::Severity)) {
-                parser.start_node(SeverityExpression);
-                parser.skip();
-                parser.expression();
-                parser.end_node();
-            }
-        });
+        self.any_sequential_statement(AssertStatement, Parser::assert_statement_inner);
+    }
+
+    fn assert_statement_inner(&mut self) {
+        self.expect_kw(Kw::Assert);
+        self.condition();
+        if self.next_is(Keyword(Kw::Report)) {
+            self.start_node(ReportExpression);
+            self.skip();
+            self.expression();
+            self.end_node();
+        }
+        if self.next_is(Keyword(Kw::Severity)) {
+            self.start_node(SeverityExpression);
+            self.skip();
+            self.expression();
+            self.end_node();
+        }
     }
 
     pub fn report_statement(&mut self) {
-        self.any_sequential_statement(ReportStatement, |parser| {
-            parser.expect_kw(Kw::Report);
-            parser.expression();
-            if parser.next_is(Keyword(Kw::Severity)) {
-                parser.start_node(SeverityExpression);
-                parser.skip();
-                parser.expression();
-                parser.end_node();
-            }
-        });
+        self.any_sequential_statement(ReportStatement, Parser::report_statement_inner);
+    }
+
+    fn report_statement_inner(&mut self) {
+        self.expect_kw(Kw::Report);
+        self.expression();
+        if self.next_is(Keyword(Kw::Severity)) {
+            self.start_node(SeverityExpression);
+            self.skip();
+            self.expression();
+            self.end_node();
+        }
     }
 
     fn next_or_exit_statement(&mut self, kw: crate::tokens::token_kind::Keyword, kind: NodeKind) {
-        self.any_sequential_statement(kind, |parser| {
-            parser.expect_kw(kw);
-            parser.opt_identifier();
-            if parser.next_is(Keyword(Kw::When)) {
-                parser.start_node(WhenExpression);
-                parser.skip();
-                parser.expression();
-                parser.end_node();
-            }
-        });
+        self.any_sequential_statement(kind, |parser| parser.next_or_exit_statement_inner(kw));
+    }
+
+    fn next_or_exit_statement_inner(&mut self, kw: crate::tokens::token_kind::Keyword) {
+        self.expect_kw(kw);
+        self.opt_identifier();
+        if self.next_is(Keyword(Kw::When)) {
+            self.start_node(WhenExpression);
+            self.skip();
+            self.expression();
+            self.end_node();
+        }
     }
 
     pub fn next_statement(&mut self) {
@@ -99,6 +108,194 @@ impl<T: TokenStream> Parser<T> {
 
     pub fn exit_statement(&mut self) {
         self.next_or_exit_statement(Kw::Exit, ExitStatement);
+    }
+
+    pub fn return_statement(&mut self) {
+        self.any_sequential_statement(ReturnStatement, Parser::return_statement_inner);
+    }
+
+    fn return_statement_inner(&mut self) {
+        self.expect_kw(Kw::Return);
+        if !self.next_is(SemiColon) {
+            self.expression();
+        }
+    }
+
+    pub fn null_statement(&mut self) {
+        self.any_sequential_statement(NullStatement, Parser::null_statement_inner);
+    }
+
+    fn null_statement_inner(&mut self) {
+        self.expect_kw(Kw::Null);
+    }
+
+    fn if_statement_inner(&mut self) {
+        self.expect_kw(Kw::If);
+        self.condition();
+        self.expect_kw(Kw::Then);
+        self.sequence_of_statements();
+        while self.next_is(Keyword(Kw::Elsif)) {
+            self.start_node(ElsifBranch);
+            self.skip();
+            self.condition();
+            self.expect_kw(Kw::Then);
+            self.sequence_of_statements();
+            self.end_node();
+        }
+        if self.next_is(Keyword(Kw::Else)) {
+            self.start_node(ElseBranch);
+            self.skip();
+            self.sequence_of_statements();
+            self.end_node();
+        }
+        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::If)]);
+        self.opt_identifier();
+    }
+
+    pub fn if_statement(&mut self) {
+        self.any_sequential_statement(IfStatement, Parser::if_statement_inner);
+    }
+
+    fn case_statement_inner(&mut self) {
+        self.expect_kw(Kw::Case);
+        self.opt_token(Que);
+        self.expression();
+        self.expect_kw(Is);
+        while self.next_is(Keyword(Kw::When)) {
+            self.case_statement_alternative();
+        }
+        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Case)]);
+        self.opt_token(Que);
+        self.opt_label();
+    }
+
+    pub fn case_statement(&mut self) {
+        self.any_sequential_statement(CaseStatement, Parser::case_statement_inner);
+    }
+
+    pub fn case_statement_alternative(&mut self) {
+        self.start_node(CaseStatementAlternative);
+        self.expect_kw(Kw::When);
+        self.choices();
+        self.expect_token(RightArrow);
+        self.sequence_of_statements();
+        self.end_node();
+    }
+
+    pub fn aggregate(&mut self) {
+        todo!()
+    }
+
+    fn loop_statement_inner(&mut self) {
+        self.opt_iteration_scheme();
+        self.expect_kw(Kw::Loop);
+        self.sequence_of_statements();
+        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Loop)]);
+        self.opt_identifier();
+    }
+
+    pub fn loop_statement(&mut self) {
+        self.any_sequential_statement(LoopStatement, Parser::loop_statement_inner)
+    }
+
+    fn opt_iteration_scheme(&mut self) {
+        if self.next_is(Keyword(Kw::While)) {
+            self.start_node(WhileIterationScheme);
+            self.skip();
+            self.condition();
+            self.end_node();
+        } else if self.next_is(Keyword(Kw::For)) {
+            self.start_node(ForIterationScheme);
+            self.skip();
+            self.parameter_specification();
+            self.end_node();
+        }
+    }
+
+    pub fn iteration_scheme(&mut self) {
+        if !self.next_is_one_of([Keyword(Kw::While), Keyword(Kw::For)]) {
+            self.expect_tokens_err([Keyword(Kw::While), Keyword(Kw::For)]);
+            return;
+        }
+        self.opt_iteration_scheme();
+    }
+
+    pub fn sequence_of_statements(&mut self) {
+        self.start_node(SequenceOfStatements);
+        loop {
+            match self.peek_token() {
+                None | Some(Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When)) => break,
+                _ => self.sequential_statement(),
+            }
+        }
+        self.end_node();
+    }
+
+    pub fn sequential_statement(&mut self) {
+        let checkpoint = self.checkpoint();
+        self.opt_label();
+        match self.peek_token() {
+            Some(Keyword(Kw::Wait)) => {
+                self.start_node_at(checkpoint, WaitStatement);
+                self.wait_statement_inner()
+            }
+            Some(Keyword(Kw::Assert)) => {
+                self.start_node_at(checkpoint, AssertStatement);
+                self.assert_statement_inner()
+            }
+            Some(Keyword(Kw::Report)) => {
+                self.start_node_at(checkpoint, ReportStatement);
+                self.report_statement_inner()
+            }
+            Some(Keyword(Kw::If)) => {
+                self.start_node_at(checkpoint, IfStatement);
+                self.if_statement_inner()
+            }
+            Some(Keyword(Kw::Case)) => {
+                self.start_node_at(checkpoint, CaseStatement);
+                self.case_statement_inner()
+            }
+            Some(Keyword(Kw::For | Kw::Loop | Kw::While)) => {
+                self.start_node_at(checkpoint, LoopStatement);
+                self.loop_statement_inner()
+            }
+            Some(Keyword(Kw::Next)) => {
+                self.start_node_at(checkpoint, NextStatement);
+                self.next_or_exit_statement_inner(Kw::Next);
+            }
+            Some(Keyword(Kw::Exit)) => {
+                self.start_node_at(checkpoint, ExitStatement);
+                self.next_or_exit_statement_inner(Kw::Exit);
+            }
+            Some(Keyword(Kw::Return)) => {
+                self.start_node_at(checkpoint, ReturnStatement);
+                self.next_or_exit_statement_inner(Kw::Return);
+            }
+            Some(Keyword(Kw::Null)) => {
+                self.start_node_at(checkpoint, NullStatement);
+                self.null_statement_inner()
+            }
+            Some(Keyword(Kw::With)) => {
+                todo!()
+            }
+            Some(Identifier | LeftPar | LtLt) => {
+                self.target();
+                match self.peek_token() {
+                    Some(ColonEq) => {
+                        self.start_node_at(checkpoint, SimpleVariableAssignmentStatement);
+                        self.skip();
+                        self.expression();
+                    }
+                    Some(SemiColon) => {
+                        self.start_node_at(checkpoint, ProcedureCallStatement);
+                    }
+                    _ => todo!(),
+                }
+            }
+            _ => todo!(),
+        }
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 }
 
@@ -400,6 +597,605 @@ ExitStatement
       Identifier 'condition'
   SemiColon
         ",
+        );
+    }
+
+    #[test]
+    fn return_statement() {
+        check(
+            Parser::return_statement,
+            "return;",
+            "\
+ReturnStatement
+  Keyword(Return)
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn return_statement_expression() {
+        check(
+            Parser::return_statement,
+            "return 1 + 2;",
+            "\
+ReturnStatement
+  Keyword(Return)
+  BinaryExpression
+    Literal
+      AbstractLiteral '1'
+    Plus
+    Literal
+      AbstractLiteral '2'
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn null_statement() {
+        check(
+            Parser::null_statement,
+            "null;",
+            "\
+NullStatement
+  Keyword(Null)
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn empty_if_statement() {
+        check(
+            Parser::if_statement,
+            "\
+if cond = true then
+end if;",
+            "\
+IfStatement
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+  Keyword(End)
+  Keyword(If)
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn simple_if_statement() {
+        check(
+            Parser::if_statement,
+            "\
+if cond = true then
+   foo(1,2);
+   x := 1;
+end if;",
+            "\
+IfStatement
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'foo'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      SemiColon
+    SimpleVariableAssignmentStatement
+      Name
+        Identifier 'x'
+      ColonEq
+      Literal
+        AbstractLiteral '1'
+      SemiColon
+  Keyword(End)
+  Keyword(If)
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn labeled_if_statement() {
+        check(
+            Parser::if_statement,
+            "\
+mylabel: if cond = true then
+   foo(1,2);
+   x := 1;
+end if mylabel;",
+            "\
+IfStatement
+  Label
+    Identifier 'mylabel'
+    Colon
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'foo'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      SemiColon
+    SimpleVariableAssignmentStatement
+      Name
+        Identifier 'x'
+      ColonEq
+      Literal
+        AbstractLiteral '1'
+      SemiColon
+  Keyword(End)
+  Keyword(If)
+  Identifier 'mylabel'
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn if_else_statement() {
+        check(
+            Parser::if_statement,
+            "\
+if cond = true then
+   foo(1,2);
+else
+   x := 1;
+end if;",
+            "\
+IfStatement
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'foo'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      SemiColon
+  ElseBranch
+    Keyword(Else)
+    SequenceOfStatements
+      SimpleVariableAssignmentStatement
+        Name
+          Identifier 'x'
+        ColonEq
+        Literal
+          AbstractLiteral '1'
+        SemiColon
+  Keyword(End)
+  Keyword(If)
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn labeled_if_else_statement() {
+        check(
+            Parser::if_statement,
+            "\
+mylabel: if cond = true then
+   foo(1,2);
+else
+   x := 1;
+end if mylabel;",
+            "\
+IfStatement
+  Label
+    Identifier 'mylabel'
+    Colon
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'foo'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      SemiColon
+  ElseBranch
+    Keyword(Else)
+    SequenceOfStatements
+      SimpleVariableAssignmentStatement
+        Name
+          Identifier 'x'
+        ColonEq
+        Literal
+          AbstractLiteral '1'
+        SemiColon
+  Keyword(End)
+  Keyword(If)
+  Identifier 'mylabel'
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn if_elsif_else_statement() {
+        check(
+            Parser::if_statement,
+            "\
+if cond = true then
+   foo(1,2);
+elsif cond2 = false then
+   y := 2;
+else
+   x := 1;
+end if;",
+            "\
+IfStatement
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'foo'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      SemiColon
+  ElsifBranch
+    Keyword(Elsif)
+    BinaryExpression
+      Name
+        Identifier 'cond2'
+      EQ
+      Name
+        Identifier 'false'
+    Keyword(Then)
+    SequenceOfStatements
+      SimpleVariableAssignmentStatement
+        Name
+          Identifier 'y'
+        ColonEq
+        Literal
+          AbstractLiteral '2'
+        SemiColon
+  ElseBranch
+    Keyword(Else)
+    SequenceOfStatements
+      SimpleVariableAssignmentStatement
+        Name
+          Identifier 'x'
+        ColonEq
+        Literal
+          AbstractLiteral '1'
+        SemiColon
+  Keyword(End)
+  Keyword(If)
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn labeled_if_elsif_else_statement() {
+        check(
+            Parser::if_statement,
+            "\
+mylabel: if cond = true then
+   foo(1,2);
+elsif cond2 = false then
+   y := 2;
+else
+   x := 1;
+end if mylabel;",
+            "\
+IfStatement
+  Label
+    Identifier 'mylabel'
+    Colon
+  Keyword(If)
+  BinaryExpression
+    Name
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
+  Keyword(Then)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'foo'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      SemiColon
+  ElsifBranch
+    Keyword(Elsif)
+    BinaryExpression
+      Name
+        Identifier 'cond2'
+      EQ
+      Name
+        Identifier 'false'
+    Keyword(Then)
+    SequenceOfStatements
+      SimpleVariableAssignmentStatement
+        Name
+          Identifier 'y'
+        ColonEq
+        Literal
+          AbstractLiteral '2'
+        SemiColon
+  ElseBranch
+    Keyword(Else)
+    SequenceOfStatements
+      SimpleVariableAssignmentStatement
+        Name
+          Identifier 'x'
+        ColonEq
+        Literal
+          AbstractLiteral '1'
+        SemiColon
+  Keyword(End)
+  Keyword(If)
+  Identifier 'mylabel'
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn case_statement() {
+        check(
+            Parser::case_statement,
+            "\
+case foo(1) is
+  when 1 | 2 =>
+    stmt1;
+    stmt2;
+  when others =>
+    stmt3;
+    stmt4;
+end case;",
+            "\
+CaseStatement
+  Keyword(Case)
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      RightPar
+  Keyword(Is)
+  CaseStatementAlternative
+    Keyword(When)
+    Choices
+      Literal
+        AbstractLiteral '1'
+      Bar
+      Literal
+        AbstractLiteral '2'
+    RightArrow
+    SequenceOfStatements
+      ProcedureCallStatement
+        Name
+          Identifier 'stmt1'
+        SemiColon
+      ProcedureCallStatement
+        Name
+          Identifier 'stmt2'
+        SemiColon
+  CaseStatementAlternative
+    Keyword(When)
+    Choices
+      Keyword(Others)
+    RightArrow
+    SequenceOfStatements
+      ProcedureCallStatement
+        Name
+          Identifier 'stmt3'
+        SemiColon
+      ProcedureCallStatement
+        Name
+          Identifier 'stmt4'
+        SemiColon
+  Keyword(End)
+  Keyword(Case)
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn matching_case_statement() {
+        check(
+            Parser::case_statement,
+            "\
+case? foo(1) is
+  when others => null;
+end case?;",
+            "\
+CaseStatement
+  Keyword(Case)
+  Que
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      RightPar
+  Keyword(Is)
+  CaseStatementAlternative
+    Keyword(When)
+    Choices
+      Keyword(Others)
+    RightArrow
+    SequenceOfStatements
+      NullStatement
+        Keyword(Null)
+        SemiColon
+  Keyword(End)
+  Keyword(Case)
+  Que
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn loop_statement() {
+        check(
+            Parser::loop_statement,
+            "\
+lbl: loop
+  stmt1;
+  stmt2;
+end loop lbl;",
+            "\
+LoopStatement
+  Label
+    Identifier 'lbl'
+    Colon
+  Keyword(Loop)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'stmt1'
+      SemiColon
+    ProcedureCallStatement
+      Name
+        Identifier 'stmt2'
+      SemiColon
+  Keyword(End)
+  Keyword(Loop)
+  Identifier 'lbl'
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn while_loop_statement() {
+        check(
+            Parser::loop_statement,
+            "\
+while foo = true loop
+  stmt1;
+  stmt2;
+end loop;",
+            "\
+LoopStatement
+  WhileIterationScheme
+    Keyword(While)
+    BinaryExpression
+      Name
+        Identifier 'foo'
+      EQ
+      Name
+        Identifier 'true'
+  Keyword(Loop)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'stmt1'
+      SemiColon
+    ProcedureCallStatement
+      Name
+        Identifier 'stmt2'
+      SemiColon
+  Keyword(End)
+  Keyword(Loop)
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn for_loop_statement() {
+        check(
+            Parser::loop_statement,
+            "\
+for idx in 0 to 3 loop
+  stmt1;
+  stmt2;
+end loop;",
+            "\
+LoopStatement
+  ForIterationScheme
+    Keyword(For)
+    ParameterSpecification
+      TODO
+  Keyword(Loop)
+  SequenceOfStatements
+    ProcedureCallStatement
+      Name
+        Identifier 'stmt1'
+      SemiColon
+    ProcedureCallStatement
+      Name
+        Identifier 'stmt2'
+      SemiColon
+  Keyword(End)
+  Keyword(Loop)
+  SemiColon
+            ",
         );
     }
 }
