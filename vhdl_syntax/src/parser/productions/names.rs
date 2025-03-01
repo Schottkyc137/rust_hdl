@@ -200,8 +200,10 @@ impl<T: TokenStream> Parser<T> {
             }
         },
         Dot => {
+            self.start_node(AbsolutePathname);
             self.expect_token(Dot);
             self.partial_pathname();
+            self.end_node();
         },
         Circ, Identifier => {
             while self.opt_token(Circ) {
@@ -215,6 +217,7 @@ impl<T: TokenStream> Parser<T> {
     fn partial_pathname(&mut self) {
         // LRM §8.7
         // partial_pathname ::= { identifier [ `(` expression `)` ] `.` } identifier ;
+        self.start_node(PartialPathname);
         self.identifier();
         loop {
             if self.next_is(LeftPar) {
@@ -229,6 +232,7 @@ impl<T: TokenStream> Parser<T> {
             }
             self.identifier();
         }
+        self.end_node();
     }
 
     pub fn choices(&mut self) {

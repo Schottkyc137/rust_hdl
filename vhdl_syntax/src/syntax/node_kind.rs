@@ -6,6 +6,8 @@
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum NodeKind {
+    AbsolutePathname,
+    PartialPathname,
     AttributeDeclaration,
     AttributeSpecification,
     AliasDeclaration,
@@ -117,9 +119,7 @@ pub enum NodeKind {
     NullStatement,
     IfStatement,
     SequenceOfStatements,
-    SimpleVariableAssignmentStatement,
-    ConditionalVariableAssignmentStatement,
-    SelectedVariableAssignmentStatement,
+    SimpleVariableAssignment,
     ProcedureCallStatement,
     ElsifBranch,
     ElseBranch,
@@ -129,4 +129,16 @@ pub enum NodeKind {
     LoopStatement,
     WhileIterationScheme,
     ForIterationScheme,
+    SelectedForceAssignment,
+    SelectedWaveformAssignment,
+    SelectedVariableAssignment,
+    SelectedExpressions,
+    SelectedExpression,
+    SimpleWaveformAssignment,
+    SimpleForceAssignment,
+    SimpleReleaseAssignment,
+    ConditionalVariableAssignment,
+    ConditionalWhenExpression,
+    ConditionalElseWhenExpression,
+    ConditionalElseExpression,
 }

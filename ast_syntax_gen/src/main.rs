@@ -262,6 +262,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     ],
                 ),
                 node_with_subnodes("Name", []),
+                node_with_children("AbsolutePathname", [token!(Dot), node!(PartialPathname)]),
+                node_with_children(
+                    "PartialPathname",
+                    [
+                        // TODO
+                        ],
+                ),
             ],
         ),
         (
@@ -383,6 +390,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             vec![node_with_children(
                 "IdentifierList",
                 [token!(Identifier, repeated), token!(Comma, repeated)],
+            )],
+        ),
+        (
+            "types",
+            vec![node_with_children(
+                "AccessTypeDefinition",
+                [keyword!(Access), node!(SubtypeIndication)],
             )],
         ),
     ]);

@@ -231,6 +231,22 @@ impl<T: TokenStream> Parser<T> {
         self.end_node();
     }
 
+    fn opt_force_mode(&mut self) {
+        self.opt_tokens([Keyword(Kw::In), Keyword(Kw::Out)]);
+    }
+
+    pub fn selected_expressions(&mut self) {
+        self.separated_list(Parser::selected_expression, Comma);
+    }
+
+    fn selected_expression(&mut self) {
+        self.start_node(SelectedExpression);
+        self.expression();
+        self.expect_kw(Kw::When);
+        self.choices();
+        self.end_node();
+    }
+
     pub fn sequential_statement(&mut self) {
         let checkpoint = self.checkpoint();
         self.opt_label();
@@ -276,15 +292,86 @@ impl<T: TokenStream> Parser<T> {
                 self.null_statement_inner()
             }
             Some(Keyword(Kw::With)) => {
-                todo!()
+                self.skip();
+                self.expression();
+                self.expect_kw(Kw::Select);
+                self.opt_token(Que);
+                self.target();
+                match self.peek_token() {
+                    Some(LTE) => {
+                        if self.next_nth_is(Keyword(Kw::Force), 1) {
+                            self.start_node_at(checkpoint, SelectedForceAssignment);
+                            self.skip_n(2);
+                            self.opt_force_mode();
+                            self.selected_expressions();
+                        } else {
+                            self.start_node_at(checkpoint, SelectedWaveformAssignment);
+                            self.skip();
+                            self.opt_delay_mechanism();
+                            self.selected_waveforms();
+                        }
+                    }
+                    Some(ColonEq) => {
+                        self.start_node_at(checkpoint, SelectedVariableAssignment);
+                        self.skip();
+                        self.selected_expressions();
+                    }
+                    _ => {
+                        todo!()
+                    }
+                }
             }
             Some(Identifier | LeftPar | LtLt) => {
                 self.target();
                 match self.peek_token() {
                     Some(ColonEq) => {
-                        self.start_node_at(checkpoint, SimpleVariableAssignmentStatement);
                         self.skip();
+                        let checkpoint2 = self.checkpoint();
                         self.expression();
+                        if self.next_is(Keyword(Kw::When)) {
+                            self.start_node_at(checkpoint, ConditionalVariableAssignment);
+                            self.start_node_at(checkpoint2, ConditionalWhenExpression);
+                            self.skip();
+                            self.condition();
+                            self.end_node();
+                            while self.next_is(Keyword(Kw::Else)) {
+                                let local_checkpoint = self.checkpoint();
+                                self.skip();
+                                self.expression();
+                                if self.next_is(Keyword(Kw::When)) {
+                                    self.start_node_at(
+                                        local_checkpoint,
+                                        ConditionalElseWhenExpression,
+                                    );
+                                    self.skip();
+                                    self.condition();
+                                    self.end_node();
+                                } else {
+                                    self.start_node_at(local_checkpoint, ConditionalElseExpression);
+                                    self.end_node();
+                                    break;
+                                }
+                            }
+                        } else {
+                            self.start_node_at(checkpoint, SimpleVariableAssignment);
+                        }
+                    }
+                    Some(LTE) => {
+                        if self.next_nth_is(Keyword(Kw::Force), 1) {
+                            self.start_node_at(checkpoint, SimpleForceAssignment);
+                            self.skip_n(2);
+                            self.opt_force_mode();
+                            self.expression();
+                        } else if self.next_nth_is(Keyword(Kw::Release), 1) {
+                            self.start_node_at(checkpoint, SimpleReleaseAssignment);
+                            self.skip_n(2);
+                            self.opt_force_mode();
+                        } else {
+                            self.start_node_at(checkpoint, SimpleWaveformAssignment);
+                            self.skip();
+                            self.opt_delay_mechanism();
+                            self.waveform();
+                        }
                     }
                     Some(SemiColon) => {
                         self.start_node_at(checkpoint, ProcedureCallStatement);
@@ -700,7 +787,7 @@ IfStatement
           AbstractLiteral '2'
           RightPar
       SemiColon
-    SimpleVariableAssignmentStatement
+    SimpleVariableAssignment
       Name
         Identifier 'x'
       ColonEq
@@ -747,7 +834,7 @@ IfStatement
           AbstractLiteral '2'
           RightPar
       SemiColon
-    SimpleVariableAssignmentStatement
+    SimpleVariableAssignment
       Name
         Identifier 'x'
       ColonEq
@@ -796,7 +883,7 @@ IfStatement
   ElseBranch
     Keyword(Else)
     SequenceOfStatements
-      SimpleVariableAssignmentStatement
+      SimpleVariableAssignment
         Name
           Identifier 'x'
         ColonEq
@@ -847,7 +934,7 @@ IfStatement
   ElseBranch
     Keyword(Else)
     SequenceOfStatements
-      SimpleVariableAssignmentStatement
+      SimpleVariableAssignment
         Name
           Identifier 'x'
         ColonEq
@@ -905,7 +992,7 @@ IfStatement
         Identifier 'false'
     Keyword(Then)
     SequenceOfStatements
-      SimpleVariableAssignmentStatement
+      SimpleVariableAssignment
         Name
           Identifier 'y'
         ColonEq
@@ -915,7 +1002,7 @@ IfStatement
   ElseBranch
     Keyword(Else)
     SequenceOfStatements
-      SimpleVariableAssignmentStatement
+      SimpleVariableAssignment
         Name
           Identifier 'x'
         ColonEq
@@ -975,7 +1062,7 @@ IfStatement
         Identifier 'false'
     Keyword(Then)
     SequenceOfStatements
-      SimpleVariableAssignmentStatement
+      SimpleVariableAssignment
         Name
           Identifier 'y'
         ColonEq
@@ -985,7 +1072,7 @@ IfStatement
   ElseBranch
     Keyword(Else)
     SequenceOfStatements
-      SimpleVariableAssignmentStatement
+      SimpleVariableAssignment
         Name
           Identifier 'x'
         ColonEq
@@ -1196,6 +1283,624 @@ LoopStatement
   Keyword(Loop)
   SemiColon
             ",
+        );
+    }
+
+    #[test]
+    fn simple_signal_assignment() {
+        check(
+            Parser::sequential_statement,
+            "foo(0) <= bar(1,2) after 2 ns;",
+            "\
+SimpleWaveformAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  Waveform
+    WaveformElement
+      Name
+        Identifier 'bar'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      Keyword(After)
+      PhysicalLiteral
+        AbstractLiteral '2'
+        Name
+          Identifier 'ns'
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn simple_signal_force_assignment() {
+        check(
+            Parser::sequential_statement,
+            "foo(0) <= force bar(1,2);",
+            "\
+SimpleForceAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  Keyword(Force)
+  Name
+    Identifier 'bar'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  SemiColon",
+        );
+    }
+
+    #[test]
+    fn simple_signal_release_assignment() {
+        check(
+            Parser::sequential_statement,
+            "foo(0) <= release;",
+            "\
+SimpleReleaseAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  Keyword(Release)
+  SemiColon",
+        );
+    }
+
+    #[test]
+    fn signal_assignment_external_name() {
+        check(
+            Parser::sequential_statement,
+            "<< signal dut.foo : boolean  >> <= bar(1,2);",
+            "\
+SimpleWaveformAssignment
+  Name
+    ExternalName
+      LtLt
+      Keyword(Signal)
+      ExternalPathName
+        PartialPathname
+          Identifier 'dut'
+          Dot
+          Identifier 'foo'
+      Colon
+      Identifier 'boolean'
+      GtGt
+  LTE
+  Waveform
+    WaveformElement
+      Name
+        Identifier 'bar'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+  SemiColon",
+        );
+    }
+
+    #[test]
+    fn simple_signal_assignment_delay_mechanism() {
+        check(
+            Parser::sequential_statement,
+            "foo(0) <= transport bar(1,2);",
+            "\
+SimpleWaveformAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  DelayMechanism
+    Keyword(Transport)
+  Waveform
+    WaveformElement
+      Name
+        Identifier 'bar'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+  SemiColon",
+        );
+    }
+
+    #[test]
+    fn simple_variable_assignment() {
+        check(
+            Parser::sequential_statement,
+            "foo(0) := bar(1,2);",
+            "\
+SimpleVariableAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  ColonEq
+  Name
+    Identifier 'bar'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  SemiColon",
+        );
+    }
+
+    #[test]
+    fn variable_assignment_external_name() {
+        check(
+            Parser::sequential_statement,
+            "<< variable dut.foo : boolean >> := bar(1,2);",
+            "\
+SimpleVariableAssignment
+  Name
+    ExternalName
+      LtLt
+      Keyword(Variable)
+      ExternalPathName
+        PartialPathname
+          Identifier 'dut'
+          Dot
+          Identifier 'foo'
+      Colon
+      Identifier 'boolean'
+      GtGt
+  ColonEq
+  Name
+    Identifier 'bar'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn simple_aggregate_variable_assignment() {
+        check(
+            Parser::sequential_statement,
+            "(foo, 1 => bar) := integer_vector'(1, 2);",
+            "TODO",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn labeled_aggregate_variable_assignment() {
+        check(
+            Parser::sequential_statement,
+            "name: (foo, 1 => bar) := integer_vector'(1, 2);",
+            "TODO",
+        );
+    }
+
+    #[test]
+    fn labeled_simple_variable_assignment() {
+        check(
+            Parser::sequential_statement,
+            "name: foo(0) := bar(1,2);",
+            "\
+SimpleVariableAssignment
+  Label
+    Identifier 'name'
+    Colon
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  ColonEq
+  Name
+    Identifier 'bar'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn selected_variable_assignment() {
+        check(
+            Parser::sequential_statement,
+            "\
+with x(0) + 1 select
+   foo(0) := bar(1,2) when 0|1,
+             def when others;
+        ",
+            "\
+SelectedVariableAssignment
+  Keyword(With)
+  BinaryExpression
+    Name
+      Identifier 'x'
+      RawTokens
+        LeftPar
+        AbstractLiteral '0'
+        RightPar
+    Plus
+    Literal
+      AbstractLiteral '1'
+  Keyword(Select)
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  ColonEq
+  SelectedExpression
+    Name
+      Identifier 'bar'
+      RawTokens
+        LeftPar
+        AbstractLiteral '1'
+        Comma
+        AbstractLiteral '2'
+        RightPar
+    Keyword(When)
+    Choices
+      Literal
+        AbstractLiteral '0'
+      Bar
+      Literal
+        AbstractLiteral '1'
+  Comma
+  SelectedExpression
+    Name
+      Identifier 'def'
+    Keyword(When)
+    Choices
+      Keyword(Others)
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn conditional_variable_assignment() {
+        check(
+            Parser::sequential_statement,
+            "\
+foo(0) := bar(1,2) when cond = true;
+        ",
+            "\
+ConditionalVariableAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  ColonEq
+  ConditionalWhenExpression
+    Name
+      Identifier 'bar'
+      RawTokens
+        LeftPar
+        AbstractLiteral '1'
+        Comma
+        AbstractLiteral '2'
+        RightPar
+    Keyword(When)
+    BinaryExpression
+      Name
+        Identifier 'cond'
+      EQ
+      Name
+        Identifier 'true'
+  SemiColon",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn conditional_signal_force_assignment() {
+        check(
+            Parser::sequential_statement,
+            "\
+foo(0) <= force bar(1,2) when cond;
+        ",
+            "\
+TODO            ",
+        );
+    }
+
+    #[test]
+    fn conditional_variable_assignment_several() {
+        check(
+            Parser::sequential_statement,
+            "\
+foo(0) := bar(1,2) when cond = true else expr2 when cond2;
+        ",
+            "\
+ConditionalVariableAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  ColonEq
+  ConditionalWhenExpression
+    Name
+      Identifier 'bar'
+      RawTokens
+        LeftPar
+        AbstractLiteral '1'
+        Comma
+        AbstractLiteral '2'
+        RightPar
+    Keyword(When)
+    BinaryExpression
+      Name
+        Identifier 'cond'
+      EQ
+      Name
+        Identifier 'true'
+  ConditionalElseWhenExpression
+    Keyword(Else)
+    Name
+      Identifier 'expr2'
+    Keyword(When)
+    Name
+      Identifier 'cond2'
+  SemiColon",
+        );
+    }
+
+    #[test]
+    fn conditional_variable_assignment_else() {
+        check(
+            Parser::sequential_statement,
+            "\
+foo(0) := bar(1,2) when cond = true else expr2;
+        ",
+            "\
+ConditionalVariableAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  ColonEq
+  ConditionalWhenExpression
+    Name
+      Identifier 'bar'
+      RawTokens
+        LeftPar
+        AbstractLiteral '1'
+        Comma
+        AbstractLiteral '2'
+        RightPar
+    Keyword(When)
+    BinaryExpression
+      Name
+        Identifier 'cond'
+      EQ
+      Name
+        Identifier 'true'
+  ConditionalElseExpression
+    Keyword(Else)
+    Name
+      Identifier 'expr2'
+  SemiColon",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn conditional_signal_assignment() {
+        check(
+            Parser::sequential_statement,
+            "\
+foo(0) <= bar(1,2) after 2 ns when cond;
+        ",
+            "\
+TODO            ",
+        );
+    }
+
+    #[test]
+    fn selected_signal_assignment() {
+        check(
+            Parser::sequential_statement,
+            "\
+with x(0) + 1 select
+   foo(0) <= transport bar(1,2) after 2 ns when 0|1,
+                       def when others;
+        ",
+            "\
+SelectedWaveformAssignment
+  Keyword(With)
+  BinaryExpression
+    Name
+      Identifier 'x'
+      RawTokens
+        LeftPar
+        AbstractLiteral '0'
+        RightPar
+    Plus
+    Literal
+      AbstractLiteral '1'
+  Keyword(Select)
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  DelayMechanism
+    Keyword(Transport)
+  SelectedWaveforms
+    SelectedWaveform
+      Waveform
+        WaveformElement
+          Name
+            Identifier 'bar'
+            RawTokens
+              LeftPar
+              AbstractLiteral '1'
+              Comma
+              AbstractLiteral '2'
+              RightPar
+          Keyword(After)
+          PhysicalLiteral
+            AbstractLiteral '2'
+            Name
+              Identifier 'ns'
+      Keyword(When)
+      Choices
+        Literal
+          AbstractLiteral '0'
+        Bar
+        Literal
+          AbstractLiteral '1'
+    Comma
+    SelectedWaveform
+      Waveform
+        WaveformElement
+          Name
+            Identifier 'def'
+      Keyword(When)
+      Choices
+        Keyword(Others)
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn selected_signal_force_assignment() {
+        check(
+            Parser::sequential_statement,
+            "\
+with x(0) + 1 select
+   foo(0) <= force bar(1,2) when 0|1,
+                       def when others;",
+            "\
+SelectedForceAssignment
+  Keyword(With)
+  BinaryExpression
+    Name
+      Identifier 'x'
+      RawTokens
+        LeftPar
+        AbstractLiteral '0'
+        RightPar
+    Plus
+    Literal
+      AbstractLiteral '1'
+  Keyword(Select)
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  Keyword(Force)
+  SelectedExpression
+    Name
+      Identifier 'bar'
+      RawTokens
+        LeftPar
+        AbstractLiteral '1'
+        Comma
+        AbstractLiteral '2'
+        RightPar
+    Keyword(When)
+    Choices
+      Literal
+        AbstractLiteral '0'
+      Bar
+      Literal
+        AbstractLiteral '1'
+  Comma
+  SelectedExpression
+    Name
+      Identifier 'def'
+    Keyword(When)
+    Choices
+      Keyword(Others)
+  SemiColon
+            ",
+        );
+    }
+
+    #[test]
+    fn procedure_call_statement() {
+        check(
+            Parser::sequential_statement,
+            "foo(1, 2);",
+            "\
+ProcedureCallStatement
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  SemiColon
+        ",
+        );
+    }
+
+    #[test]
+    fn procedure_call_statement_no_args() {
+        check(
+            Parser::sequential_statement,
+            "foo;",
+            "\
+ProcedureCallStatement
+  Name
+    Identifier 'foo'
+  SemiColon
+        ",
         );
     }
 }

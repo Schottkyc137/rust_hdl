@@ -44,3 +44,38 @@ impl AstNode for NameSyntax {
         }
     }
 }
+#[derive(Debug, Clone)]
+pub struct AbsolutePathnameSyntax(pub(crate) SyntaxNode);
+impl AstNode for AbsolutePathnameSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::AbsolutePathname => Some(AbsolutePathnameSyntax(node)),
+            _ => None,
+        }
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl AbsolutePathnameSyntax {
+    pub fn dot_token(&self) -> Option<SyntaxToken> {
+        self.0.tokens().find(|token| token.kind() == Dot)
+    }
+    pub fn partial_pathname(&self) -> Option<PartialPathnameSyntax> {
+        self.0.children().find_map(PartialPathnameSyntax::cast)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct PartialPathnameSyntax(pub(crate) SyntaxNode);
+impl AstNode for PartialPathnameSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::PartialPathname => Some(PartialPathnameSyntax(node)),
+            _ => None,
+        }
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl PartialPathnameSyntax {}

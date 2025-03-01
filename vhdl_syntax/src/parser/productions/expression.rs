@@ -190,9 +190,10 @@ Name
     LtLt
     Keyword(Signal)
     ExternalPathName
-      Identifier 'dut'
-      Dot
-      Identifier 'foo'
+      PartialPathName
+        Identifier 'dut'
+        Dot
+        Identifier 'foo'
     Colon
     Identifier 'boolean'
     GtGt
