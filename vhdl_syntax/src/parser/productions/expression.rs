@@ -52,10 +52,8 @@ impl<T: TokenStream> Parser<T> {
                 self.end_node();
             },
             LeftPar => {
-                self.start_node(ParenthesizedExpression);
-                self.skip();
-                self.expression();
-                self.expect_token(RightPar);
+                self.start_node(ParenthesizedExpressionOrAggregate);
+                self.aggregate_inner();
                 self.end_node();
             }
         );
@@ -371,28 +369,76 @@ UnaryExpression
         check_expr("foo'(others => '1')", todo!())
     }
 
-    #[ignore]
     #[test]
     fn positional_aggregate() {
-        check_expr("(1, 2)", todo!())
+        check_expr(
+            "(1, 2)",
+            "\
+ParenthesizedExpressionOrAggregate
+  LeftPar
+  Literal
+    AbstractLiteral '1'
+  Comma
+  Literal
+    AbstractLiteral '2'
+  RightPar",
+        )
     }
 
-    #[ignore]
     #[test]
     fn named_aggregate() {
-        check_expr("(1 => 2)", todo!())
+        check_expr(
+            "(1 => 2)",
+            "\
+ParenthesizedExpressionOrAggregate
+  LeftPar
+  ElementAssociationWithChoices
+    Choices
+      Literal
+        AbstractLiteral '1'
+    RightArrow
+    Literal
+      AbstractLiteral '2'
+  RightPar",
+        )
     }
 
-    #[ignore]
     #[test]
     fn named_aggregate_many_choices() {
-        check_expr("(1 | 2 => 3)", todo!())
+        check_expr(
+            "(1 | 2 => 3)",
+            "\
+ParenthesizedExpressionOrAggregate
+  LeftPar
+  ElementAssociationWithChoices
+    Choices
+      Literal
+        AbstractLiteral '1'
+      Bar
+      Literal
+        AbstractLiteral '2'
+    RightArrow
+    Literal
+      AbstractLiteral '3'
+  RightPar",
+        )
     }
 
-    #[ignore]
     #[test]
     fn aggregate_others() {
-        check_expr("(others => 1)", todo!())
+        check_expr(
+            "(others => 1)",
+            "\
+ParenthesizedExpressionOrAggregate
+  LeftPar
+  ElementAssociationWithChoices
+    Choices
+      Keyword(Others)
+    RightArrow
+    Literal
+      AbstractLiteral '1'
+  RightPar",
+        )
     }
 
     #[ignore]
@@ -401,16 +447,49 @@ UnaryExpression
         todo!()
     }
 
-    #[ignore]
     #[test]
     fn multiple_others_aggregate() {
-        check_expr("(others => 1, others => 2)", todo!())
+        check_expr(
+            "(others => 1, others => 2)",
+            "\
+ParenthesizedExpressionOrAggregate
+  LeftPar
+  ElementAssociationWithChoices
+    Choices
+      Keyword(Others)
+    RightArrow
+    Literal
+      AbstractLiteral '1'
+  Comma
+  ElementAssociationWithChoices
+    Choices
+      Keyword(Others)
+    RightArrow
+    Literal
+      AbstractLiteral '2'
+  RightPar",
+        )
     }
 
-    #[ignore]
     #[test]
     fn mixed_aggregate() {
-        check_expr("(1 => 2, 3)", todo!())
+        check_expr(
+            "(1 => 2, 3)",
+            "\
+ParenthesizedExpressionOrAggregate
+  LeftPar
+  ElementAssociationWithChoices
+    Choices
+      Literal
+        AbstractLiteral '1'
+    RightArrow
+    Literal
+      AbstractLiteral '2'
+  Comma
+  Literal
+    AbstractLiteral '3'
+  RightPar",
+        )
     }
 
     #[test]
@@ -422,7 +501,7 @@ BinaryExpression
   Literal
     AbstractLiteral '1'
   Plus
-  ParenthesizedExpression
+  ParenthesizedExpressionOrAggregate
     LeftPar
     BinaryExpression
       Literal
@@ -441,7 +520,7 @@ BinaryExpression
             "(1 + 2) + 3",
             "\
 BinaryExpression
-  ParenthesizedExpression
+  ParenthesizedExpressionOrAggregate
     LeftPar
     BinaryExpression
       Literal
@@ -538,7 +617,7 @@ BinaryExpression
             "(1+2)*3",
             "\
 BinaryExpression
-  ParenthesizedExpression
+  ParenthesizedExpressionOrAggregate
     LeftPar
     BinaryExpression
       Literal

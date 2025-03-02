@@ -153,7 +153,7 @@ impl<T: TokenStream> Parser<T> {
             }
 
             if self.next_is(LeftPar) {
-                self.start_node(ParenthesizedExpression);
+                self.start_node(ParenthesizedExpressionOrAggregate);
                 self.expect_token(LeftPar);
                 self.expression();
                 self.expect_token(RightPar);
@@ -221,7 +221,7 @@ impl<T: TokenStream> Parser<T> {
         self.identifier();
         loop {
             if self.next_is(LeftPar) {
-                self.start_node(ParenthesizedExpression);
+                self.start_node(ParenthesizedExpressionOrAggregate);
                 self.expect_token(LeftPar);
                 self.expression();
                 self.expect_token(RightPar);

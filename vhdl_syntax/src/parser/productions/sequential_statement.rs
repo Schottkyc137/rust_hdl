@@ -8,7 +8,6 @@ use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
-use crate::tokens::Keyword::Is;
 use crate::tokens::TokenKind::*;
 use crate::tokens::TokenStream;
 
@@ -160,7 +159,7 @@ impl<T: TokenStream> Parser<T> {
         self.expect_kw(Kw::Case);
         self.opt_token(Que);
         self.expression();
-        self.expect_kw(Is);
+        self.expect_kw(Kw::Is);
         while self.next_is(Keyword(Kw::When)) {
             self.case_statement_alternative();
         }
@@ -184,24 +183,30 @@ impl<T: TokenStream> Parser<T> {
 
     pub fn aggregate(&mut self) {
         self.start_node(Aggregate);
-        self.expect_token(LeftPar);
-        self.separated_list(Parser::element_association, Comma);
-        self.expect_token(RightPar);
+        self.aggregate_inner();
         self.end_node();
     }
 
+    pub(crate) fn aggregate_inner(&mut self) {
+        self.expect_token(LeftPar);
+        self.separated_list(Parser::element_association, Comma);
+        self.expect_token(RightPar);
+    }
+
     pub fn element_association(&mut self) {
-        self.start_node(ElementAssociation);
         let has_choices = matches!(
             self.lookahead_max_token_index(usize::MAX, [RightArrow, Comma]),
             Ok((RightArrow, _))
         );
         if has_choices {
+            self.start_node(ElementAssociationWithChoices);
             self.choices();
             self.expect_token(RightArrow)
         }
         self.expression();
-        self.end_node();
+        if has_choices {
+            self.end_node();
+        }
     }
 
     fn loop_statement_inner(&mut self) {
@@ -1560,11 +1565,10 @@ SimpleVariableAssignment
 SimpleVariableAssignment
   Aggregate
     LeftPar
-    ElementAssociation
-      Name
-        Identifier 'foo'
+    Name
+      Identifier 'foo'
     Comma
-    ElementAssociation
+    ElementAssociationWithChoices
       Choices
         Literal
           AbstractLiteral '1'
@@ -1591,11 +1595,10 @@ SimpleVariableAssignment
     Colon
   Aggregate
     LeftPar
-    ElementAssociation
-      Name
-        Identifier 'foo'
+    Name
+      Identifier 'foo'
     Comma
-    ElementAssociation
+    ElementAssociationWithChoices
       Choices
         Literal
           AbstractLiteral '1'

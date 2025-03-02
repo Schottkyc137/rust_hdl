@@ -82,7 +82,9 @@ pub enum NodeKind {
     WaveformElement,
     DelayMechanism,
     InterfaceObjectDeclaration,
-    ParenthesizedExpression,
+    // At the parser level, it is not possible to distinguish between a parenthesized expression
+    // and an aggregate since a parenthesized expression is a valid aggregate.
+    ParenthesizedExpressionOrAggregate,
     Expression,
     SimpleExpression,
     ExpressionList,
@@ -147,6 +149,6 @@ pub enum NodeKind {
     ConditionalElseWaveform,
     ConditionalWaveformAssignment,
     ConditionalForceAssignment,
-    ElementAssociation,
+    ElementAssociationWithChoices,
     Aggregate,
 }
