@@ -1310,7 +1310,6 @@ LoopStatement
     }
 
     #[test]
-    #[ignore]
     fn for_loop_statement() {
         check(
             Parser::loop_statement,
@@ -1324,7 +1323,14 @@ LoopStatement
   ForIterationScheme
     Keyword(For)
     ParameterSpecification
-      TODO
+      Identifier 'idx'
+      Keyword(In)
+      Range
+        SimpleExpression
+          AbstractLiteral '0'
+        Keyword(To)
+        SimpleExpression
+          AbstractLiteral '3'
   Keyword(Loop)
   SequenceOfStatements
     ProcedureCallStatement
@@ -1546,12 +1552,30 @@ SimpleVariableAssignment
     }
 
     #[test]
-    #[ignore]
     fn simple_aggregate_variable_assignment() {
         check(
             Parser::sequential_statement,
-            "(foo, 1 => bar) := integer_vector'(1, 2);",
-            "TODO",
+            "(foo, 1 => bar) := bar;",
+            "\
+SimpleVariableAssignment
+  Aggregate
+    LeftPar
+    ElementAssociation
+      Name
+        Identifier 'foo'
+    Comma
+    ElementAssociation
+      Choices
+        Literal
+          AbstractLiteral '1'
+      RightArrow
+      Name
+        Identifier 'bar'
+    RightPar
+  ColonEq
+  Name
+    Identifier 'bar'
+  SemiColon",
         );
     }
 

@@ -170,6 +170,8 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn discrete_range(&mut self) {
-        todo!()
+        // TODO: This is likely not all there is to it.
+        // discrete_range ::= range | subtype_indication
+        self.range();
     }
 }
