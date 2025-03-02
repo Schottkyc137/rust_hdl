@@ -37,6 +37,7 @@ impl NodeBuilder {
             .push(GreenChild::Token((offset, GreenToken::new(token))));
         self.rel_offset += tok_text_len;
         self.token_index += 1;
+        self.text_len += tok_text_len;
     }
 
     pub fn start_node(&mut self, kind: NodeKind) {

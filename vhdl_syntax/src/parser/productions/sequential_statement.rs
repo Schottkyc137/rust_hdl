@@ -183,7 +183,25 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn aggregate(&mut self) {
-        todo!()
+        self.start_node(Aggregate);
+        self.expect_token(LeftPar);
+        self.separated_list(Parser::element_association, Comma);
+        self.expect_token(RightPar);
+        self.end_node();
+    }
+
+    pub fn element_association(&mut self) {
+        self.start_node(ElementAssociation);
+        let has_choices = matches!(
+            self.lookahead_max_token_index(usize::MAX, [RightArrow, Comma]),
+            Ok((RightArrow, _))
+        );
+        if has_choices {
+            self.choices();
+            self.expect_token(RightArrow)
+        }
+        self.expression();
+        self.end_node();
     }
 
     fn loop_statement_inner(&mut self) {
@@ -334,43 +352,58 @@ impl<T: TokenStream> Parser<T> {
                             self.skip();
                             self.condition();
                             self.end_node();
-                            while self.next_is(Keyword(Kw::Else)) {
-                                let local_checkpoint = self.checkpoint();
-                                self.skip();
-                                self.expression();
-                                if self.next_is(Keyword(Kw::When)) {
-                                    self.start_node_at(
-                                        local_checkpoint,
-                                        ConditionalElseWhenExpression,
-                                    );
-                                    self.skip();
-                                    self.condition();
-                                    self.end_node();
-                                } else {
-                                    self.start_node_at(local_checkpoint, ConditionalElseExpression);
-                                    self.end_node();
-                                    break;
-                                }
-                            }
+                            self.conditional_else(
+                                Parser::expression,
+                                ConditionalElseWhenExpression,
+                                ConditionalElseExpression,
+                            );
                         } else {
                             self.start_node_at(checkpoint, SimpleVariableAssignment);
                         }
                     }
                     Some(LTE) => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
-                            self.start_node_at(checkpoint, SimpleForceAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
+                            let checkpoint2 = self.checkpoint();
                             self.expression();
+                            if self.next_is(Keyword(Kw::When)) {
+                                self.start_node_at(checkpoint, ConditionalForceAssignment);
+                                self.start_node_at(checkpoint2, ConditionalWhenExpression);
+                                self.skip();
+                                self.condition();
+                                self.end_node();
+                                self.conditional_else(
+                                    Parser::waveform,
+                                    ConditionalElseWhenExpression,
+                                    ConditionalElseExpression,
+                                );
+                            } else {
+                                self.start_node_at(checkpoint, SimpleForceAssignment);
+                            }
                         } else if self.next_nth_is(Keyword(Kw::Release), 1) {
                             self.start_node_at(checkpoint, SimpleReleaseAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
                         } else {
-                            self.start_node_at(checkpoint, SimpleWaveformAssignment);
                             self.skip();
                             self.opt_delay_mechanism();
+                            let checkpoint2 = self.checkpoint();
                             self.waveform();
+                            if self.next_is(Keyword(Kw::When)) {
+                                self.start_node_at(checkpoint, ConditionalWaveformAssignment);
+                                self.start_node_at(checkpoint2, ConditionalWhenWaveform);
+                                self.skip();
+                                self.condition();
+                                self.end_node();
+                                self.conditional_else(
+                                    Parser::waveform,
+                                    ConditionalElseWhenWaveform,
+                                    ConditionalElseWaveform,
+                                );
+                            } else {
+                                self.start_node_at(checkpoint, SimpleWaveformAssignment);
+                            }
                         }
                     }
                     Some(SemiColon) => {
@@ -383,6 +416,29 @@ impl<T: TokenStream> Parser<T> {
         }
         self.expect_token(SemiColon);
         self.end_node();
+    }
+
+    fn conditional_else(
+        &mut self,
+        item: impl Fn(&mut Parser<T>),
+        else_when_node: NodeKind,
+        else_node: NodeKind,
+    ) {
+        while self.next_is(Keyword(Kw::Else)) {
+            let local_checkpoint = self.checkpoint();
+            self.skip();
+            item(self);
+            if self.next_is(Keyword(Kw::When)) {
+                self.start_node_at(local_checkpoint, else_when_node);
+                self.skip();
+                self.condition();
+                self.end_node();
+            } else {
+                self.start_node_at(local_checkpoint, else_node);
+                self.end_node();
+                break;
+            }
+        }
     }
 }
 
@@ -1500,12 +1556,33 @@ SimpleVariableAssignment
     }
 
     #[test]
-    #[ignore]
     fn labeled_aggregate_variable_assignment() {
         check(
             Parser::sequential_statement,
-            "name: (foo, 1 => bar) := integer_vector'(1, 2);",
-            "TODO",
+            "name: (foo, 1 => bar) := bar;",
+            "\
+SimpleVariableAssignment
+  Label
+    Identifier 'name'
+    Colon
+  Aggregate
+    LeftPar
+    ElementAssociation
+      Name
+        Identifier 'foo'
+    Comma
+    ElementAssociation
+      Choices
+        Literal
+          AbstractLiteral '1'
+      RightArrow
+      Name
+        Identifier 'bar'
+    RightPar
+  ColonEq
+  Name
+    Identifier 'bar'
+  SemiColon",
         );
     }
 
@@ -1634,7 +1711,6 @@ ConditionalVariableAssignment
     }
 
     #[test]
-    #[ignore]
     fn conditional_signal_force_assignment() {
         check(
             Parser::sequential_statement,
@@ -1642,7 +1718,28 @@ ConditionalVariableAssignment
 foo(0) <= force bar(1,2) when cond;
         ",
             "\
-TODO            ",
+ConditionalForceAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  Keyword(Force)
+  ConditionalWhenExpression
+    Name
+      Identifier 'bar'
+      RawTokens
+        LeftPar
+        AbstractLiteral '1'
+        Comma
+        AbstractLiteral '2'
+        RightPar
+    Keyword(When)
+    Name
+      Identifier 'cond'
+  SemiColon",
         );
     }
 
@@ -1730,7 +1827,6 @@ ConditionalVariableAssignment
     }
 
     #[test]
-    #[ignore]
     fn conditional_signal_assignment() {
         check(
             Parser::sequential_statement,
@@ -1738,7 +1834,34 @@ ConditionalVariableAssignment
 foo(0) <= bar(1,2) after 2 ns when cond;
         ",
             "\
-TODO            ",
+ConditionalWaveformAssignment
+  Name
+    Identifier 'foo'
+    RawTokens
+      LeftPar
+      AbstractLiteral '0'
+      RightPar
+  LTE
+  ConditionalWhenWaveform
+    Waveform
+      WaveformElement
+        Name
+          Identifier 'bar'
+          RawTokens
+            LeftPar
+            AbstractLiteral '1'
+            Comma
+            AbstractLiteral '2'
+            RightPar
+        Keyword(After)
+        PhysicalLiteral
+          AbstractLiteral '2'
+          Name
+            Identifier 'ns'
+    Keyword(When)
+    Name
+      Identifier 'cond'
+  SemiColon",
         );
     }
 

@@ -24,7 +24,6 @@ impl<T: TokenStream> Parser<T> {
         self.concurrent_statements();
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Block)]);
         self.opt_identifier();
-        self.expect_token(SemiColon);
     }
 
     pub fn block_header(&mut self) {
@@ -56,30 +55,31 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub(crate) fn concurrent_statement(&mut self) {
-        self.start_unknown_node();
+        let checkpoint = self.checkpoint();
         self.opt_label();
         match_next_token!(self,
             Keyword(Kw::Block) => {
+                self.start_node_at(checkpoint, BlockStatement);
                 self.block_statement_inner();
-                self.end_node_with_kind(BlockStatement);
             },
             Keyword(Kw::Process) => {
+                self.start_node_at(checkpoint, ProcessStatement);
                 self.process_statement_inner();
-                self.end_node_with_kind(ProcessStatement);
             },
             Keyword(Kw::Component) => {
+                self.start_node_at(checkpoint, ComponentInstantiationStatement);
                 self.skip();
                 self.name();
                 self.instantiation_statement_inner();
-                self.end_node_with_kind(ComponentInstantiationStatement)
             },
             Keyword(Kw::Configuration) => {
+                self.start_node_at(checkpoint, ConfigurationInstantiationStatement);
                 self.skip();
                 self.name();
                 self.instantiation_statement_inner();
-                self.end_node_with_kind(ConfigurationInstantiationStatement)
             },
             Keyword(Kw::Entity) => {
+                self.start_node_at(checkpoint, EntityInstantiationStatement);
                 self.skip();
                 self.name();
                 if self.opt_token(LeftPar) {
@@ -87,47 +87,48 @@ impl<T: TokenStream> Parser<T> {
                     self.expect_token(RightPar);
                 }
                 self.instantiation_statement_inner();
-                self.end_node_with_kind(EntityInstantiationStatement);
             },
             Keyword(Kw::For) => {
+                self.start_node_at(checkpoint, ForGenerateStatement);
                 self.for_generate_statement_inner();
-                self.end_node_with_kind(ForGenerateStatement);
             },
             Keyword(Kw::If) => {
+                self.start_node_at(checkpoint, IfGenerateStatement);
                 self.if_generate_statement_inner();
-                self.end_node_with_kind(IfGenerateStatement);
             },
             Keyword(Kw::Case) => {
+                self.start_node_at(checkpoint, CaseGenerateStatement);
                 self.case_generate_statement_inner();
-                self.end_node_with_kind(CaseGenerateStatement);
             },
             Keyword(Kw::Assert) => {
+                self.start_node_at(checkpoint, ConcurrentAssertionStatement);
                 self.concurrent_assert_statement_inner();
-                self.end_node_with_kind(ConcurrentAssertionStatement);
             },
             Keyword(Kw::Postponed) => {
                 match self.peek_nth_token(1) {
                     Some(Keyword(Kw::Process)) => {
+                        self.start_node_at(checkpoint, ProcessStatement);
                         self.process_statement_inner();
-                        self.end_node_with_kind(ProcessStatement);
                     },
                     Some(Keyword(Kw::Assert)) => {
+                        self.start_node_at(checkpoint, ConcurrentAssertionStatement);
                         self.concurrent_assert_statement_inner();
-                        self.end_node_with_kind(ConcurrentAssertionStatement);
                     }
                     Some(Keyword(Kw::With)) => {
+                        self.start_node_at(checkpoint, ConcurrentSelectedSignalAssignmentStatement);
                         self.concurrent_selected_signal_assignment_inner();
-                        self.end_node_with_kind(ConcurrentSelectedSignalAssignmentStatement);
                     }
                     _ => todo!()
                 }
             },
             Keyword(Kw::With) => {
+                self.start_node_at(checkpoint, ConcurrentSelectedSignalAssignmentStatement);
                 self.concurrent_selected_signal_assignment_inner();
-                self.end_node_with_kind(ConcurrentSelectedSignalAssignmentStatement);
             }
             // _ => todo!()
         );
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 
     fn concurrent_selected_signal_assignment_inner(&mut self) {
@@ -141,18 +142,19 @@ impl<T: TokenStream> Parser<T> {
         self.opt_token(Keyword(Kw::Guarded));
         self.opt_delay_mechanism();
         self.selected_waveforms();
-        self.expect_token(SemiColon);
     }
 
     pub fn target(&mut self) {
-        // TODO: can also be aggregate
-        self.name()
+        if self.next_is(LeftPar) {
+            self.aggregate();
+        } else {
+            self.name()
+        }
     }
 
     fn concurrent_assert_statement_inner(&mut self) {
         self.opt_token(Keyword(Kw::Postponed));
         self.assertion();
-        self.expect_token(SemiColon);
     }
 
     pub fn assertion(&mut self) {
@@ -177,7 +179,6 @@ impl<T: TokenStream> Parser<T> {
         }
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
         self.opt_identifier();
-        self.expect_token(SemiColon);
     }
 
     pub fn case_generate_alternative(&mut self) {
@@ -197,7 +198,6 @@ impl<T: TokenStream> Parser<T> {
         self.generate_statement_body();
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
         self.opt_identifier();
-        self.expect_token(SemiColon);
     }
 
     fn if_generate_statement_inner(&mut self) {
@@ -262,7 +262,6 @@ impl<T: TokenStream> Parser<T> {
         self.opt_token(Keyword(Kw::Postponed));
         self.expect_token(Keyword(Kw::Process));
         self.opt_identifier();
-        self.expect_token(SemiColon);
     }
 
     pub fn process_sensitivity_list(&mut self) {

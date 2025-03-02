@@ -141,4 +141,12 @@ pub enum NodeKind {
     ConditionalWhenExpression,
     ConditionalElseWhenExpression,
     ConditionalElseExpression,
+    ConditionalWaveforms,
+    ConditionalWhenWaveform,
+    ConditionalElseWhenWaveform,
+    ConditionalElseWaveform,
+    ConditionalWaveformAssignment,
+    ConditionalForceAssignment,
+    ElementAssociation,
+    Aggregate,
 }
