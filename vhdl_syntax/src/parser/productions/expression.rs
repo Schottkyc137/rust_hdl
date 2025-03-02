@@ -41,14 +41,15 @@ impl<T: TokenStream> Parser<T> {
             Identifier, LtLt => self.name(),
             BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Kw::Null) => self.skip_into_node(Literal),
             AbstractLiteral => {
-                self.start_node(Literal);
+                let checkpoint = self.checkpoint();
                 self.skip();
                 if self.next_is(Identifier) {
+                    self.start_node_at(checkpoint, PhysicalLiteral);
                     self.name();
-                    self.end_node_with_kind(PhysicalLiteral)
                 } else {
-                    self.end_node();
+                    self.start_node_at(checkpoint, Literal);
                 }
+                self.end_node();
             },
             LeftPar => {
                 self.start_node(ParenthesizedExpression);
@@ -190,7 +191,7 @@ Name
     LtLt
     Keyword(Signal)
     ExternalPathName
-      PartialPathName
+      PartialPathname
         Identifier 'dut'
         Dot
         Identifier 'foo'

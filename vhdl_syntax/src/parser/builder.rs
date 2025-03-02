@@ -53,28 +53,6 @@ impl NodeBuilder {
             .push(GreenChild::Node((0, GreenNode::new(data))));
     }
 
-    /// Ends the current node and changes the kind.
-    /// This is useful when the exact kind cannot be determined a priori (resp. this is hard).
-    /// For instance, when parsing a type, the following production
-    /// ```vhdl
-    /// type foo
-    /// ```
-    /// could either be an incomplete type:
-    /// ```vhdl
-    /// type foo;
-    /// ```
-    /// or a regular type indication:
-    /// ```vhdl
-    /// type foo is ...
-    /// ```
-    pub fn end_node_with_kind(&mut self, kind: NodeKind) {
-        let (_, first_child) = self.parents.pop().unwrap();
-        let mut data = GreenNodeData::new(kind);
-        data.push_children(self.children.drain(first_child..));
-        self.children
-            .push(GreenChild::Node((0, GreenNode::new(data))));
-    }
-
     pub fn end(mut self) -> GreenNode {
         assert_eq!(self.children.len(), 1);
         match self.children.pop().unwrap() {

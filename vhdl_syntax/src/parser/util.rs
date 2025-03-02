@@ -173,10 +173,6 @@ impl<T: TokenStream> Parser<T> {
         }
     }
 
-    pub(crate) fn start_unknown_node(&mut self) {
-        self.start_node(NodeKind::AttributeDeclaration)
-    }
-
     pub(crate) fn start_node(&mut self, kind: NodeKind) {
         self.builder.start_node(kind)
     }
@@ -191,10 +187,6 @@ impl<T: TokenStream> Parser<T> {
 
     pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: NodeKind) {
         self.builder.start_node_at(checkpoint, kind)
-    }
-
-    pub(crate) fn end_node_with_kind(&mut self, kind: NodeKind) {
-        self.builder.end_node_with_kind(kind)
     }
 
     pub(crate) fn eof_err(&mut self) {

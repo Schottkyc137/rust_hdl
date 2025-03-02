@@ -67,12 +67,14 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub(crate) fn subprogram_declaration_or_body(&mut self) {
-        self.start_node(SubprogramBody);
+        let checkpoint = self.checkpoint();
         self.subprogram_specification();
         if self.opt_token(SemiColon) {
-            self.end_node_with_kind(SubprogramDeclaration);
+            self.start_node_at(checkpoint, SubprogramDeclaration);
+            self.end_node();
             return;
         }
+        self.start_node_at(checkpoint, SubprogramBody);
         self.expect_kw(Kw::Is);
         self.declarative_part();
         self.expect_kw(Kw::Begin);

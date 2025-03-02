@@ -112,7 +112,10 @@ impl<T: TokenStream> Parser<T> {
         self.start_node(AssociationElement);
 
         // TODO: Error handling is done at a bare minimum.
-        if let Ok(_) = self.lookahead_max_token_index(max_index, [RightArrow]) {
+        if self
+            .lookahead_max_token_index(max_index, [RightArrow])
+            .is_ok()
+        {
             self.formal_part();
             self.expect_token(RightArrow);
         }
