@@ -5,11 +5,44 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::parser::Parser;
-use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 use crate::tokens::TokenStream;
+use crate::tokens::{Keyword as Kw, TokenKind};
+
+fn is_start_of_declarative_part(token_kind: TokenKind) -> bool {
+    matches!(
+        token_kind,
+        Keyword(
+            Kw::Use
+                | Kw::Type
+                | Kw::Subtype
+                | Kw::Shared
+                | Kw::Constant
+                | Kw::Signal
+                | Kw::Variable
+                | Kw::File
+                | Kw::Component
+                | Kw::Attribute
+                | Kw::Alias
+                | Kw::Impure
+                | Kw::Pure
+                | Kw::Function
+                | Kw::Procedure
+                | Kw::Package
+                | Kw::For
+                | Kw::View
+                | Kw::Begin
+        )
+    )
+}
 
 impl<T: TokenStream> Parser<T> {
+    pub(crate) fn opt_declarative_part(&mut self) {
+        if self.peek_token().is_some_and(is_start_of_declarative_part) {
+            self.declarative_part();
+        }
+    }
+
     pub(crate) fn declarative_part(&mut self) {
         while let Some(token) = self.peek_token() {
             match token {

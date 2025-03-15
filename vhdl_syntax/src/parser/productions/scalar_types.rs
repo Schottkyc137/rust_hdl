@@ -12,6 +12,7 @@ impl<T: TokenStream> Parser<T> {
     pub fn range(&mut self) {
         self.range_bounded(usize::MAX);
     }
+
     fn range_bounded(&mut self, max_index: usize) {
         // LRM §5.2.1
 
