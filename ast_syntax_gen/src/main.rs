@@ -269,6 +269,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                         // TODO
                         ],
                 ),
+                node_with_children("Label", [token!(Identifier), token!(Colon)]),
+                node_with_children("ExternalName", [token!(Identifier), token!(Colon)]),
             ],
         ),
         (

@@ -121,7 +121,7 @@ impl<T: TokenStream> Parser<T> {
                     self.start_node_at(checkpoint, ConcurrentSelectedSignalAssignment);
                     self.concurrent_selected_signal_assignment_inner();
                 }
-                _ => todo!(),
+                _ => todo!("Postponed concurrent signal assignment or procedure call"),
             },
             Some(Keyword(Kw::With)) => {
                 self.start_node_at(checkpoint, ConcurrentSelectedSignalAssignment);
@@ -1202,6 +1202,152 @@ ForGenerateStatement
   Keyword(Generate)
   SemiColon
   ",
+        );
+    }
+
+    #[test]
+    fn for_generate_empty_declarations() {
+        check_stmt(
+            "\
+gen: for idx in 0 to 1 generate
+begin
+  foo <= bar;
+end generate;",
+            "\
+ForGenerateStatement
+  Label
+    Identifier 'gen'
+    Colon
+  Keyword(For)
+  ParameterSpecification
+    Identifier 'idx'
+    Keyword(In)
+    Range
+      SimpleExpression
+        AbstractLiteral '0'
+      Keyword(To)
+      SimpleExpression
+        AbstractLiteral '1'
+  Keyword(Generate)
+  GenerateStatementBody
+    Keyword(Begin)
+    ConcurrentSimpleSignalAssignment
+      Name
+        Identifier 'foo'
+      LTE
+      Waveform
+        WaveformElement
+          Name
+            Identifier 'bar'
+      SemiColon
+  Keyword(End)
+  Keyword(Generate)
+  SemiColon
+  ",
+        );
+
+        check_stmt(
+            "\
+gen: for idx in 0 to 1 generate
+  foo <= bar;
+end generate;",
+            "\
+ForGenerateStatement
+  Label
+    Identifier 'gen'
+    Colon
+  Keyword(For)
+  ParameterSpecification
+    Identifier 'idx'
+    Keyword(In)
+    Range
+      SimpleExpression
+        AbstractLiteral '0'
+      Keyword(To)
+      SimpleExpression
+        AbstractLiteral '1'
+  Keyword(Generate)
+  GenerateStatementBody
+    ConcurrentSimpleSignalAssignment
+      Name
+        Identifier 'foo'
+      LTE
+      Waveform
+        WaveformElement
+          Name
+            Identifier 'bar'
+      SemiColon
+  Keyword(End)
+  Keyword(Generate)
+  SemiColon
+  ",
+        );
+
+        check_stmt(
+            "\
+gen: for idx in 0 to 1 generate
+begin
+  foo <= bar;
+end;
+end generate;",
+            "\
+ForGenerateStatement
+  Label
+    Identifier 'gen'
+    Colon
+  Keyword(For)
+  ParameterSpecification
+    Identifier 'idx'
+    Keyword(In)
+    Range
+      SimpleExpression
+        AbstractLiteral '0'
+      Keyword(To)
+      SimpleExpression
+        AbstractLiteral '1'
+  Keyword(Generate)
+  GenerateStatementBody
+    Keyword(Begin)
+    ConcurrentSimpleSignalAssignment
+      Name
+        Identifier 'foo'
+      LTE
+      Waveform
+        WaveformElement
+          Name
+            Identifier 'bar'
+      SemiColon
+    Keyword(End)
+    SemiColon
+  Keyword(End)
+  Keyword(Generate)
+  SemiColon
+  ",
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn for_generate_declarations() {
+        check_stmt(
+            "\
+gen: for idx in 0 to 1 generate
+  signal foo : natural;
+begin
+  foo <= bar;
+end generate;",
+            "TODO",
+        );
+
+        check_stmt(
+            "\
+gen: for idx in 0 to 1 generate
+  signal foo : natural;
+begin
+  foo <= bar;
+end;
+end generate;",
+            "TODO",
         );
     }
 

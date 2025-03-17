@@ -83,6 +83,7 @@ impl<T: TokenStream> Parser<T> {
             self.end_node();
         }
     }
+
     pub(crate) fn name_list(&mut self) {
         self.start_node(NameList);
         self.separated_list(Parser::name, Comma);
