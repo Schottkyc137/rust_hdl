@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 /// Parsing of composite types (LRM §5.3)
-use crate::parser::Parser;
+use crate::parser::{util::LookaheadError, Parser};
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
@@ -68,7 +68,43 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn discrete_range(&mut self) {
-        todo!();
+        // One of the following tokens must follow after a `discrete_range`.
+        //    FOLLOW(discrete_range) := "," | ")" | "|" | "=>" | "generate" | "loop" | ";"
+        // If a `to` or `downto` is found before any of the other tokens, the discrete range is a `range`!
+        // Otherwise put everything before in a `RawTokens` node!
+        let end_of_range = match self.lookahead([
+            Comma,
+            RightPar,
+            RightArrow,
+            Bar,
+            Keyword(Kw::Generate),
+            Keyword(Kw::Loop),
+            SemiColon,
+            Keyword(Kw::To),
+            Keyword(Kw::Downto),
+        ]) {
+            Ok((tok, end_index)) => Some((tok, end_index)),
+            // If EOF is reached, the range cannot be parsed correctly
+            Err((LookaheadError::Eof, _)) => {
+                self.eof_err();
+                None
+            }
+            // Since we use `usize::MAX` as a maximum index, this error is not possible!
+            Err((LookaheadError::MaxIndexReached, _)) => unreachable!(),
+            // This error is only possible, when a `RightPar` is found before any token in `kinds`.
+            // Since `RightPar` is in `kinds` that's not possible!
+            Err((LookaheadError::TokenKindNotFound, _)) => unreachable!(),
+        };
+
+        if let Some((tok, end_index)) = end_of_range {
+            if tok == Keyword(Kw::To) || tok == Keyword(Kw::Downto) {
+                self.range();
+            } else {
+                self.start_node(RawTokens);
+                self.skip_to(end_index);
+                self.end_node();
+            }
+        }
     }
 }
 
@@ -133,7 +169,6 @@ TypeDeclaration
     }
 
     #[test]
-    #[ignore = "parsing of discrete_range is currently not supported"]
     fn array_type_declaration_with_discrete_range() {
         check(
             Parser::type_declaration,
@@ -145,13 +180,15 @@ TypeDeclaration
   Keyword(Is)
   ConstrainedArrayDefinition
     Keyword(Array)
-    LeftPar
-    DiscreteRange
+    IndexConstraint
+      LeftPar
       Range
-        AbstractLiteral
+        SimpleExpression
+          AbstractLiteral '0'
         Keyword(To)
-        AbstractLiteral
-    RightPar
+        SimpleExpression
+          AbstractLiteral '1'
+      RightPar
     Keyword(Of)
     Identifier 'positive'
   SemiColon
@@ -166,31 +203,31 @@ TypeDeclaration
   Keyword(Type)
   Identifier 'constrained_int_arr_2d'
   Keyword(Is)
-  TypeDefinition
-    ConstrainedArrayDefinition
-      Keyword(Array)
+  ConstrainedArrayDefinition
+    Keyword(Array)
+    IndexConstraint
       LeftPar
-      DiscreteRange
-        Range
-          AbstractLiteral
-          Keyword(Downto)
-          AbstractLiteral
+      Range
+        SimpleExpression
+          AbstractLiteral '10'
+        Keyword(Downto)
+        SimpleExpression
+          AbstractLiteral '5'
       Comma
-      DiscreteRange
-        Range
-          CharacterLiteral
-          Keyword(To)
-          CharacterLiteral
+      Range
+        SimpleExpression
+          CharacterLiteral ''A''
+        Keyword(To)
+        SimpleExpression
+          CharacterLiteral ''B''
       Comma
-      DiscreteRange
-        Name
-          Identifier 'enum_t'
-          AttributeName
-            Tick
-            Identifier 'range'
+      RawTokens
+        Identifier 'enum_t'
+        Tick
+        Keyword(Range)
       RightPar
-      Keyword(Of)
-      Identifier 'bit'
+    Keyword(Of)
+    Identifier 'bit'
   SemiColon
 ",
         );

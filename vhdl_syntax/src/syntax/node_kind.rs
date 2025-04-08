@@ -97,6 +97,7 @@ pub enum NodeKind {
     SimpleExpression,
     ExpressionList,
     Range,
+    DiscreteRange,
     SelectedName,
     ExternalName,
     ExternalPathName,
