@@ -12,15 +12,17 @@ use crate::tokens::TokenStream;
 
 impl<T: TokenStream> Parser<T> {
     pub fn array_type_definition(&mut self) {
-        self.start_node(ArrayTypeDefinition);
+        let checkpoint = self.checkpoint();
         self.expect_kw(Kw::Array);
         let box_found = self.lookahead_skip_n(1, [BOX]).is_ok();
 
         if box_found {
+            self.start_node_at(checkpoint, UnboundedArrayDefinition);
             self.expect_token(LeftPar);
             self.separated_list(Parser::index_subtype_definition, Comma);
             self.expect_token(RightPar);
         } else {
+            self.start_node_at(checkpoint, ConstrainedArrayDefinition);
             self.index_constraint();
         }
         self.expect_kw(Kw::Of);
@@ -85,7 +87,7 @@ TypeDeclaration
   Keyword(Type)
   Identifier 'int_arr_t'
   Keyword(Is)
-  ArrayTypeDefinition
+  UnboundedArrayDefinition
     Keyword(Array)
     LeftPar
     IndexSubtypeDefinition
@@ -108,7 +110,7 @@ TypeDeclaration
   Keyword(Type)
   Identifier 'int_arr_2d_t'
   Keyword(Is)
-  ArrayTypeDefinition
+  UnboundedArrayDefinition
     Keyword(Array)
     LeftPar
     IndexSubtypeDefinition
@@ -141,7 +143,7 @@ TypeDeclaration
   Keyword(Type)
   Identifier 'constrained_int_arr'
   Keyword(Is)
-  ArrayTypeDefinition
+  ConstrainedArrayDefinition
     Keyword(Array)
     LeftPar
     DiscreteRange
@@ -165,7 +167,7 @@ TypeDeclaration
   Identifier 'constrained_int_arr_2d'
   Keyword(Is)
   TypeDefinition
-    ArrayTypeDefinition
+    ConstrainedArrayDefinition
       Keyword(Array)
       LeftPar
       DiscreteRange
