@@ -1,0 +1,151 @@
+Designator:
+  builtin: true
+
+SubprogramDeclaration:
+  sequence:
+    - node: SubprogramSpecification
+    - token: SemiColon
+
+SubprogramSpecification:
+  choices:
+    - node: ProcedureSpecification
+    - node: FunctionSpecification
+
+ProcedureSpecification:
+  sequence:
+    - keyword: Procedure
+    - node: Designator
+    - node: SubprogramHeader
+    - node: ParameterList
+      optional: true
+
+FunctionSpecification:
+  sequence:
+    - node: FunctionPurity
+      optional: true
+    - keyword: Function
+    - node: Designator
+    - node: SubprogramHeader
+    - node: ParameterList
+    - keyword: Return
+    - node: TypeMark
+
+ParameterList:
+  sequence:
+    - keyword: Parameter
+      optional: true
+    - node: InterfaceList
+      parenthesized: true
+
+FunctionPurity:
+  choices:
+    - keyword: Pure
+    - keyword: Impure
+
+SubprogramHeader:
+  sequence:
+    - node: GenericClause
+      optional: true
+    - node: GenericMapAspect
+      optional: true
+
+SubprogramBody:
+  sequence:
+    - node: SubprogramSpecification
+    - keyword: Is
+    - node: DeclarativePart
+    - keyword: Begin
+    - node: StatementPart
+    - keyword: End
+    - node: SubprogramKind
+      optional: true
+    - node: Designator
+      optional: true
+    - token: SemiColon
+
+SubprogramKind:
+  choices:
+    - keyword: Procedure
+    - keyword: Function
+
+SubprogramInstantiationDeclaration:
+  sequence:
+    - node: SubprogramKind
+    - token: Identifier
+      name: name
+    - keyword: Is
+    - keyword: New
+    - node: Name
+    - node: Signature
+      optional: true
+    - node: GenericMapAspect
+      optional: true
+    - token: SemiColon
+
+PackageDeclaration:
+  sequence:
+    - keyword: Package
+    - token: Identifier
+      name: name
+    - keyword: Is
+    - node: PackageHeader
+    - node: DeclarativePart
+    - keyword: End
+    - keyword: Package
+      optional: true
+    - token: Identifier
+      name: trailing_name
+      optional: true
+    - token: SemiColon
+
+PackageHeader:
+  sequence:
+    - node: GenericClause
+      optional: true
+    - node: GenericMapAspect
+      optional: true
+    - token: SemiColon
+      optional: true
+
+PackageBody:
+  sequence:
+    - keyword: Package
+    - keyword: Body
+    - token: Identifier
+      name: name
+    - keyword: Is
+    - node: DeclarativePart
+    - keyword: End
+    - keyword: Package
+      optional: true
+    - keyword: Body
+      optional: true
+    - token: Identifier
+      name: trailing_name
+      optional: true
+    - token: SemiColon
+
+PackageInstantiationDeclaration:
+  sequence:
+    - keyword: Package
+    - token: Identifier
+      name: name
+    - keyword: Is
+    - keyword: New
+    - node: Name
+    - node: GenericMapAspect
+      optional: true
+    - token: SemiColon
+
+Signature:
+  sequence:
+    - token: LBrack
+    - node: TypeMarkList
+    - keyword: Return
+    - node: TypeMark
+    - token: RBrack
+
+TypeMarkList:
+  list:
+    node: TypeMark
+    separator: Comma

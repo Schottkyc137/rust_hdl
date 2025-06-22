@@ -4,11 +4,11 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 use crate::syntax::generated::*;
-use crate::syntax::node::{SyntaxNode, SyntaxToken};
+use crate::syntax::node::SyntaxNode;
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::AstNode;
-use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
+
 #[derive(Debug, Clone)]
 pub struct DesignFileSyntax(pub(crate) SyntaxNode);
 impl AstNode for DesignFileSyntax {
