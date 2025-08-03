@@ -4,9 +4,10 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 use crate::syntax::generated::*;
-use crate::syntax::node::SyntaxNode;
+use crate::syntax::node::{SyntaxNode, SyntaxToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::AstNode;
+use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 #[derive(Debug, Clone)]
@@ -94,6 +95,27 @@ impl AstNode for ContextClauseSyntax {
     fn raw(&self) -> SyntaxNode {
         match self {
             _ => unreachable!(),
+        }
+    }
+}
+
+pub enum FunctionPurity {
+    Pure(SyntaxToken),
+    Impure(SyntaxToken),
+}
+impl FunctionPurity {
+    fn cast(token: SyntaxToken) -> Option<Self> {
+        match token.kind() {
+            Keyword(Kw::Impure) => Some(FunctionPurity::Impure(token)),
+            Keyword(Kw::Pure) => Some(FunctionPurity::Pure(token)),
+            _ => None,
+        }
+    }
+
+    fn raw(&self) -> SyntaxToken {
+        match self {
+            FunctionPurity::Impure(token) => token.clone(),
+            FunctionPurity::Pure(token) => token.clone(),
         }
     }
 }

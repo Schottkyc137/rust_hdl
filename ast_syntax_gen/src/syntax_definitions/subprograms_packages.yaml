@@ -1,151 +1,135 @@
-Designator:
-  builtin: true
+SubprogramDeclaration: !Sequence
+  - node: SubprogramSpecification
+  - token: SemiColon
 
-SubprogramDeclaration:
-  sequence:
-    - node: SubprogramSpecification
-    - token: SemiColon
+SubprogramSpecification: !Choice
+  - node: ProcedureSpecification
+  - node: FunctionSpecification
 
-SubprogramSpecification:
-  choices:
-    - node: ProcedureSpecification
-    - node: FunctionSpecification
+ProcedureSpecification: !Sequence
+  - keyword: Procedure
+  - node: Designator
+  - node: SubprogramHeader
+  - node: ParameterList
+    optional: true
 
-ProcedureSpecification:
-  sequence:
-    - keyword: Procedure
-    - node: Designator
-    - node: SubprogramHeader
-    - node: ParameterList
-      optional: true
+FunctionSpecification: !Sequence
+  - node: FunctionPurity
+    optional: true
+  - keyword: Function
+  - node: Designator
+  - node: SubprogramHeader
+  - node: ParameterList
+  - keyword: Return
+  - node: TypeMark
 
-FunctionSpecification:
-  sequence:
-    - node: FunctionPurity
-      optional: true
-    - keyword: Function
-    - node: Designator
-    - node: SubprogramHeader
-    - node: ParameterList
-    - keyword: Return
-    - node: TypeMark
+ParameterList: !Sequence
+  - keyword: Parameter
+    optional: true
+  - node: InterfaceList
+    parenthesized: true
 
-ParameterList:
-  sequence:
-    - keyword: Parameter
-      optional: true
-    - node: InterfaceList
-      parenthesized: true
+FunctionPurity: !Choice
+  - keyword: Pure
+  - keyword: Impure
 
-FunctionPurity:
-  choices:
-    - keyword: Pure
-    - keyword: Impure
+SubprogramHeader: !Sequence
+  - node: GenericClause
+    optional: true
+  - node: GenericMapAspect
+    optional: true
 
-SubprogramHeader:
-  sequence:
-    - node: GenericClause
-      optional: true
-    - node: GenericMapAspect
-      optional: true
+SubprogramBody: !Sequence
+  - node: SubprogramSpecification
+  - keyword: Is
+  - node: DeclarativePart
+  - keyword: Begin
+  - node: StatementPart
+  - keyword: End
+  - node: SubprogramKind
+    optional: true
+  - node: Designator
+    optional: true
+  - token: SemiColon
 
-SubprogramBody:
-  sequence:
-    - node: SubprogramSpecification
-    - keyword: Is
-    - node: DeclarativePart
-    - keyword: Begin
-    - node: StatementPart
-    - keyword: End
-    - node: SubprogramKind
-      optional: true
-    - node: Designator
-      optional: true
-    - token: SemiColon
+SubprogramKind: !Choice
+  - keyword: Procedure
+  - keyword: Function
 
-SubprogramKind:
-  choices:
-    - keyword: Procedure
-    - keyword: Function
+SubprogramInstantiationDeclaration: !Sequence
+  - node: SubprogramKind
+  - token: Identifier
+    name: name
+  - keyword: Is
+  - keyword: New
+  - node: Name
+  - node: Signature
+    optional: true
+  - node: GenericMapAspect
+    optional: true
+  - token: SemiColon
 
-SubprogramInstantiationDeclaration:
-  sequence:
-    - node: SubprogramKind
-    - token: Identifier
-      name: name
-    - keyword: Is
-    - keyword: New
-    - node: Name
-    - node: Signature
-      optional: true
-    - node: GenericMapAspect
-      optional: true
-    - token: SemiColon
+PackageDeclaration: !Sequence
+  - keyword: Package
+  - token: Identifier
+    name: name
+  - keyword: Is
+  - node: PackageHeader
+  - node: DeclarativePart
+  - keyword: End
+  - keyword: Package
+    optional: true
+    trailing: true
+  - token: Identifier
+    name: name
+    trailing: true
+    optional: true
+  - token: SemiColon
 
-PackageDeclaration:
-  sequence:
-    - keyword: Package
-    - token: Identifier
-      name: name
-    - keyword: Is
-    - node: PackageHeader
-    - node: DeclarativePart
-    - keyword: End
-    - keyword: Package
-      optional: true
-    - token: Identifier
-      name: trailing_name
-      optional: true
-    - token: SemiColon
+PackageHeader: !Sequence
+  - node: GenericClause
+    optional: true
+  - node: GenericMapAspect
+    optional: true
+  - token: SemiColon
+    optional: true
 
-PackageHeader:
-  sequence:
-    - node: GenericClause
-      optional: true
-    - node: GenericMapAspect
-      optional: true
-    - token: SemiColon
-      optional: true
+PackageBody: !Sequence
+  - keyword: Package
+  - keyword: Body
+  - token: Identifier
+    name: name
+  - keyword: Is
+  - node: DeclarativePart
+  - keyword: End
+  - keyword: Package
+    optional: true
+    trailing: true
+  - keyword: Body
+    optional: true
+    trailing: true
+  - token: Identifier
+    trailing: true
+    optional: true
+  - token: SemiColon
 
-PackageBody:
-  sequence:
-    - keyword: Package
-    - keyword: Body
-    - token: Identifier
-      name: name
-    - keyword: Is
-    - node: DeclarativePart
-    - keyword: End
-    - keyword: Package
-      optional: true
-    - keyword: Body
-      optional: true
-    - token: Identifier
-      name: trailing_name
-      optional: true
-    - token: SemiColon
+PackageInstantiationDeclaration: !Sequence
+  - keyword: Package
+  - token: Identifier
+    name: name
+  - keyword: Is
+  - keyword: New
+  - node: Name
+  - node: GenericMapAspect
+    optional: true
+  - token: SemiColon
 
-PackageInstantiationDeclaration:
-  sequence:
-    - keyword: Package
-    - token: Identifier
-      name: name
-    - keyword: Is
-    - keyword: New
-    - node: Name
-    - node: GenericMapAspect
-      optional: true
-    - token: SemiColon
-
-Signature:
-  sequence:
-    - token: LBrack
-    - node: TypeMarkList
-    - keyword: Return
-    - node: TypeMark
-    - token: RBrack
-
-TypeMarkList:
-  list:
-    node: TypeMark
+Signature: !Sequence
+  - token: LeftSquare
+  - node: TypeMark
+    repeated: True
     separator: Comma
+  - keyword: Return
+  - node: TypeMark
+    name: return_type
+  - token: RightSquare

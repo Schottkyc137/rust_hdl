@@ -8,8 +8,7 @@ use crate::token::{Token, TokenKind};
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{format_ident, quote};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_yml::{Mapping, Value};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TokenOrNode {
@@ -17,8 +16,29 @@ pub enum TokenOrNode {
     Token(Token),
 }
 
+impl From<TokenKind> for TokenOrNode {
+    fn from(value: TokenKind) -> Self {
+        TokenOrNode::Token(Token::from(value))
+    }
+}
+
+impl From<NodeRef> for TokenOrNode {
+    fn from(value: NodeRef) -> Self {
+        TokenOrNode::Node(value)
+    }
+}
+
 impl TokenOrNode {
-    pub fn generate_rust_getter(&self) -> proc_macro2::TokenStream {
+    pub fn getter_name(&self) -> Ident {
+        match self {
+            TokenOrNode::Node(node) => node.getter_name(),
+            TokenOrNode::Token(token) => token.getter_name(),
+        }
+    }
+}
+
+impl TokenOrNode {
+    pub fn generate_rust_getter(&self) -> TokenStream {
         match self {
             TokenOrNode::Node(node) => node.build_getter(),
             TokenOrNode::Token(token) => token.build_getter(),
@@ -28,51 +48,32 @@ impl TokenOrNode {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NodeRef {
-    kind: String,
-    nth: usize,
-    builtin: bool,
-    repeated: bool,
-    name: String,
+    pub kind: String,
+    pub nth: usize,
+    pub builtin: bool,
+    pub repeated: bool,
+    pub name: String,
+}
+
+impl From<String> for NodeRef {
+    fn from(value: String) -> Self {
+        NodeRef {
+            kind: value.clone(),
+            nth: 0,
+            builtin: false,
+            repeated: false,
+            name: value,
+        }
+    }
 }
 
 impl NodeRef {
-    pub fn from_mapping(mapping: &Mapping, parent: &SequenceNode) -> Option<Self> {
-        let node = mapping
-            .get("node")
-            .unwrap_or_else(|| panic!("{mapping:?} does not contain 'node'"));
-        let kind = node
-            .as_str()
-            .unwrap_or_else(|| panic!("{node:?} not a string"))
-            .to_owned();
-        let builtin = mapping
-            .get("builtin")
-            .unwrap_or(&Value::Bool(false))
-            .as_bool()?;
-        let repeated = mapping
-            .get("repeated")
-            .unwrap_or(&Value::Bool(false))
-            .as_bool()?;
-        let name = mapping
-            .get("name")
-            .unwrap_or(&Value::String(kind.to_string().to_case(Case::Snake)))
-            .as_str()?
-            .to_owned();
-        let nth = parent.count_of_node(&kind);
-        Some(NodeRef {
-            kind,
-            builtin,
-            nth,
-            repeated,
-            name,
-        })
-    }
-
-    pub fn from_yaml(yaml: &Value, parent: &SequenceNode) -> Option<Self> {
-        Self::from_mapping(yaml.as_mapping()?, parent)
+    fn getter_name(&self) -> Ident {
+        format_ident!("{}", self.name.to_case(Case::Snake))
     }
 
     pub fn build_getter(&self) -> TokenStream {
-        let fn_name = format_ident!("{}", self.name);
+        let fn_name = self.getter_name();
         let kind_name = format_ident!("{}Syntax", self.kind.to_string());
         let nth = Literal::usize_unsuffixed(self.nth);
         if self.repeated {
@@ -101,6 +102,27 @@ pub enum Node {
     Choices(ChoiceNode),
 }
 
+impl Node {
+    pub fn name(&self) -> String {
+        match self {
+            Node::Items(items) => items.name.clone(),
+            Node::Choices(choices) => choices.name.clone(),
+        }
+    }
+}
+
+impl From<SequenceNode> for Node {
+    fn from(value: SequenceNode) -> Self {
+        Node::Items(value)
+    }
+}
+
+impl From<ChoiceNode> for Node {
+    fn from(value: ChoiceNode) -> Self {
+        Node::Choices(value)
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct SequenceNode {
     name: String,
@@ -108,31 +130,18 @@ pub struct SequenceNode {
 }
 
 impl SequenceNode {
-    pub fn count_of_token_kind(&self, kind: TokenKind) -> usize {
-        self.items
-            .iter()
-            .filter(|item| match item {
-                TokenOrNode::Token(tok) => tok.kind == kind,
-                _ => false,
-            })
-            .count()
-    }
-
-    pub fn count_of_node(&self, node: &str) -> usize {
-        self.items
-            .iter()
-            .filter(|item| match item {
-                TokenOrNode::Node(node_ref) => node_ref.kind == node,
-                _ => false,
-            })
-            .count()
+    pub fn new(name: impl Into<String>, items: Vec<TokenOrNode>) -> SequenceNode {
+        SequenceNode {
+            name: name.into().to_case(Case::UpperCamel),
+            items,
+        }
     }
 
     pub fn struct_name(&self) -> Ident {
         format_ident!("{}Syntax", self.name.to_case(Case::UpperCamel))
     }
 
-    pub fn generate_rust_struct(&self) -> proc_macro2::TokenStream {
+    pub fn generate_rust_struct(&self) -> TokenStream {
         let name = self.struct_name();
         quote! {
             #[derive(Debug, Clone)]
@@ -140,7 +149,7 @@ impl SequenceNode {
         }
     }
 
-    pub fn generate_ast_node_rust_impl(&self) -> proc_macro2::TokenStream {
+    pub fn generate_ast_node_rust_impl(&self) -> TokenStream {
         let struct_name = self.struct_name();
         let node_kind = format_ident!("{}", self.name.to_case(Case::UpperCamel));
         quote! {
@@ -174,9 +183,27 @@ impl SequenceNode {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
+pub enum NodesOrTokens {
+    Nodes(Vec<NodeRef>),
+    Tokens(Vec<Token>),
+}
+
+impl FromIterator<NodeRef> for NodesOrTokens {
+    fn from_iter<T: IntoIterator<Item = NodeRef>>(iter: T) -> Self {
+        NodesOrTokens::Nodes(iter.into_iter().collect())
+    }
+}
+
+impl FromIterator<Token> for NodesOrTokens {
+    fn from_iter<T: IntoIterator<Item = Token>>(iter: T) -> Self {
+        NodesOrTokens::Tokens(iter.into_iter().collect())
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct ChoiceNode {
-    name: String,
-    items: Vec<NodeRef>,
+    pub name: String,
+    pub items: NodesOrTokens,
 }
 
 impl ChoiceNode {
@@ -184,19 +211,45 @@ impl ChoiceNode {
         format_ident!("{}Syntax", self.name.to_case(Case::UpperCamel))
     }
 
-    fn enum_choices(&self) -> impl Iterator<Item = proc_macro2::TokenStream> + use<'_> {
-        self.items.iter().map(|item| {
-            let name = format_ident!("{}", item.name);
-            let syntax_name = format_ident!("{}Syntax", item.name);
-            quote! {
-                #name(#syntax_name)
-            }
-        })
+    fn enum_choices(&self) -> Vec<TokenStream> {
+        match &self.items {
+            NodesOrTokens::Nodes(nodes) => self.all_nodes_choices(nodes),
+            NodesOrTokens::Tokens(tokens) => self.all_token_choices(tokens),
+        }
+    }
+
+    fn all_nodes_choices(&self, items: &[NodeRef]) -> Vec<TokenStream> {
+        items
+            .iter()
+            .map(|item| {
+                let name = format_ident!("{}", item.name);
+                let syntax_name = format_ident!("{}", item.name);
+                quote! {
+                    #name(#syntax_name)
+                }
+            })
+            .collect()
+    }
+
+    fn all_token_choices(&self, items: &[Token]) -> Vec<proc_macro2::TokenStream> {
+        items
+            .into_iter()
+            .map(|item| {
+                let name = format_ident!("{}", item.name);
+                quote! {
+                    #name(SyntaxToken)
+                }
+            })
+            .collect()
     }
 
     pub fn generate_rust_enum(&self) -> proc_macro2::TokenStream {
         let name = self.enum_name();
-        let choices: TokenStream = self.enum_choices().map(|x| quote! { #x , }).collect();
+        let choices: TokenStream = self
+            .enum_choices()
+            .into_iter()
+            .map(|x| quote! { #x , })
+            .collect();
         quote! {
             #[derive(Debug, Clone)]
             pub enum #name {
@@ -205,36 +258,75 @@ impl ChoiceNode {
         }
     }
 
-    pub fn generate_ast_node_rust_impl(&self) -> proc_macro2::TokenStream {
+    pub fn generate_ast_node_rust_impl(&self) -> TokenStream {
         let name = self.enum_name();
-        let cast_branches: TokenStream = self.items.iter().map(|item| {
-            let node_kind = format_ident!("{}", item.kind);
-            let enum_variant = format_ident!("{}Syntax", item.kind);
-            quote! {
+        match &self.items {
+            NodesOrTokens::Nodes(nodes) => {
+                let cast_branches: TokenStream = nodes.iter().map(|item| {
+                    let node_kind = format_ident!("{}", item.kind);
+                    let enum_variant = format_ident!("{}Syntax", item.kind);
+                    quote! {
                     NodeKind::#node_kind => Some(#name::#enum_variant(#node_kind::cast(node).unwrap())),
             }
-        }).collect();
-        let raw_branches: TokenStream = self
-            .items
-            .iter()
-            .map(|item| {
-                let enum_variant = format_ident!("{}Syntax", item.kind);
+                }).collect();
+                let raw_branches: TokenStream = nodes
+                    .iter()
+                    .map(|item| {
+                        let enum_variant = format_ident!("{}Syntax", item.kind);
+                        quote! {
+                                #name::#enum_variant(inner) => inner.raw(),
+                        }
+                    })
+                    .collect();
                 quote! {
-                        #name::#enum_variant(inner) => inner.raw(),
-                }
-            })
-            .collect();
-        quote! {
-            impl AstNode for #name {
-                fn cast(node: SyntaxNode) -> Option<Self> {
-                    match node.kind() {
-                        #cast_branches
-                        _ => None,
+                    impl AstNode for #name {
+                        fn cast(node: SyntaxNode) -> Option<Self> {
+                            match node.kind() {
+                                #cast_branches
+                                _ => None,
+                            }
+                        }
+                        fn raw(&self) -> SyntaxNode {
+                             match self {
+                                #raw_branches
+                            }
+                        }
                     }
                 }
-                fn raw(&self) -> SyntaxNode {
-                     match self {
-                        #raw_branches
+            }
+            NodesOrTokens::Tokens(tokens) => {
+                let cast_branches: TokenStream = tokens
+                    .iter()
+                    .map(|item| {
+                        let token_kind = item.kind.build_expression();
+                        let enum_variant = format_ident!("{}", item.name);
+                        quote! {
+                            #token_kind => Some(#name::#enum_variant(token)),
+                        }
+                    })
+                    .collect();
+                let raw_branches: TokenStream = tokens
+                    .iter()
+                    .map(|item| {
+                        let enum_variant = format_ident!("{}", item.name);
+                        quote! {
+                                #name::#enum_variant(token) => token.clone(),
+                        }
+                    })
+                    .collect();
+                quote! {
+                    impl #name {
+                        fn cast(token: SyntaxToken) -> Option<Self> {
+                            match token.kind() {
+                                #cast_branches
+                                _ => None,
+                            }
+                        }
+                        fn raw(&self) -> SyntaxToken {
+                             match self {
+                                #raw_branches
+                            }
+                        }
                     }
                 }
             }
@@ -243,76 +335,88 @@ impl ChoiceNode {
 }
 
 impl Node {
-    pub fn from_key_value(name: String, mapping: &Mapping) -> Option<Self> {
-        if let Some(seq) = mapping.get("sequence") {
-            let mut node = SequenceNode {
-                items: Vec::default(),
-                name,
-            };
-            for element in seq
-                .as_sequence()
-                .unwrap_or_else(|| panic!("{:?} not a sequence", seq))
-            {
-                let mapping = element
-                    .as_mapping()
-                    .unwrap_or_else(|| panic!("{:?} not a mapping", element));
-                if mapping.contains_key("node") {
-                    node.items
-                        .push(TokenOrNode::Node(NodeRef::from_mapping(mapping, &node)?));
-                } else if mapping.contains_key("token") {
-                    node.items
-                        .push(TokenOrNode::Token(Token::from_mapping(mapping, &node)?));
-                } else if mapping.contains_key("keyword") {
-                    node.items.push(TokenOrNode::Token(Token::from_keyword(
-                        mapping.get("keyword")?.as_str()?,
-                        &node,
-                    )?));
-                } else {
-                    panic!("Mapping {:?} not a node or token", mapping)
-                }
-            }
-            Some(Node::Items(node))
-        } else if let Some(choices) = mapping.get("choices") {
-            let mut node = ChoiceNode {
-                items: Vec::default(),
-                name,
-            };
-            for element in choices
-                .as_sequence()
-                .unwrap_or_else(|| panic!("{:?} not a sequence", choices))
-            {
-                node.items.push(NodeRef::from_yaml(
-                    element,
-                    &SequenceNode {
-                        name: "dummy".to_string(),
-                        items: vec![],
-                    },
-                )?)
-            }
-            Some(Node::Choices(node))
-        } else {
-            panic!("{mapping:?} does not contain 'choices' or 'sequence'");
-        }
-    }
-
-    pub fn generate_rust_struct(&self) -> proc_macro2::TokenStream {
+    pub fn generate_rust_struct(&self) -> TokenStream {
         match self {
             Node::Items(items) => items.generate_rust_struct(),
             Node::Choices(choices) => choices.generate_rust_enum(),
         }
     }
 
-    pub fn generate_ast_node_rust_impl(&self) -> proc_macro2::TokenStream {
+    pub fn generate_ast_node_rust_impl(&self) -> TokenStream {
         match self {
             Node::Items(items) => items.generate_ast_node_rust_impl(),
             Node::Choices(choices) => choices.generate_ast_node_rust_impl(),
         }
     }
 
-    pub fn generate_rust_impl_getters(&self) -> proc_macro2::TokenStream {
+    pub fn generate_rust_impl_getters(&self) -> TokenStream {
         match self {
             Node::Items(items) => items.generate_rust_impl_getters(),
             Node::Choices(_) => quote! {},
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Model {
+    sections: HashMap<String, Vec<Node>>,
+}
+
+impl Model {
+    pub fn push_node(&mut self, section: String, node: impl Into<Node>) {
+        self.sections.entry(section).or_default().push(node.into())
+    }
+
+    pub fn into_sections(self) -> HashMap<String, Vec<Node>> {
+        self.sections
+    }
+
+    pub fn check_no_duplicates(&self) {
+        for (section, nodes) in &self.sections {
+            for node in nodes {
+                let mut seen = HashSet::new();
+                match node {
+                    Node::Items(seq_node) => {
+                        for item in &seq_node.items {
+                            if seen.contains(&item.getter_name()) {
+                                panic!(
+                                    "Duplicate node {} in node {} (section {})",
+                                    item.getter_name(),
+                                    node.name(),
+                                    section
+                                )
+                            }
+                            seen.insert(item.getter_name());
+                        }
+                    }
+                    Node::Choices(choices_node) => match &choices_node.items {
+                        NodesOrTokens::Nodes(nodes) => {
+                            for item in nodes {
+                                if seen.contains(&item.getter_name()) {
+                                    panic!(
+                                        "Duplicate node {} in node {}",
+                                        item.getter_name(),
+                                        node.name()
+                                    )
+                                }
+                                seen.insert(item.getter_name());
+                            }
+                        }
+                        NodesOrTokens::Tokens(tokens) => {
+                            for item in tokens {
+                                if seen.contains(&item.getter_name()) {
+                                    panic!(
+                                        "Duplicate node {} in node {}",
+                                        item.getter_name(),
+                                        node.name()
+                                    )
+                                }
+                                seen.insert(item.getter_name());
+                            }
+                        }
+                    },
+                }
+            }
         }
     }
 }
@@ -322,83 +426,6 @@ mod tests {
     use crate::node::{Node, NodeRef, SequenceNode, TokenOrNode};
     use crate::token::{Keyword, Token, TokenKind};
     use quote::quote;
-    use std::error::Error;
-
-    macro_rules! check_node_ref {
-        ($name:ident, $str:literal, $exp:expr) => {
-            #[test]
-            fn $name() -> Result<(), Box<dyn Error>> {
-                let yaml = $str;
-                let node = NodeRef::from_yaml(
-                    &serde_yml::from_str(yaml)?,
-                    &SequenceNode {
-                        items: Vec::new(),
-                        name: "parent".to_owned(),
-                    },
-                );
-                assert_eq!(node, Some($exp));
-                Ok(())
-            }
-        };
-    }
-
-    check_node_ref!(
-        node_ref_mapped_from_yaml,
-        "node: EntityHeader",
-        NodeRef {
-            builtin: false,
-            nth: 0,
-            repeated: false,
-            kind: "EntityHeader".to_owned(),
-            name: "entity_header".to_owned()
-        }
-    );
-    check_node_ref!(
-        builtin_node_ref_from_yaml,
-        "
-node: EntityHeader
-builtin: true
-",
-        NodeRef {
-            builtin: true,
-            nth: 0,
-            repeated: false,
-            kind: "EntityHeader".to_owned(),
-            name: "entity_header".to_owned()
-        }
-    );
-
-    #[test]
-    fn simple_node_sequence() -> Result<(), Box<dyn Error>> {
-        let yaml = r#"
-sequence:
-  - keyword: Entity
-  - node: EntityHeader
-"#;
-        let node = Node::from_key_value("Foo".to_owned(), &serde_yml::from_str(yaml)?);
-        assert_eq!(
-            node,
-            Some(Node::Items(SequenceNode {
-                name: "Foo".to_owned(),
-                items: vec![
-                    TokenOrNode::Token(Token {
-                        kind: TokenKind::Keyword(Keyword::Entity),
-                        nth: 0,
-                        repeated: false,
-                        name: "entity".to_owned()
-                    }),
-                    TokenOrNode::Node(NodeRef {
-                        kind: "EntityHeader".to_owned(),
-                        nth: 0,
-                        repeated: false,
-                        builtin: false,
-                        name: "entity_header".to_owned()
-                    })
-                ]
-            }))
-        );
-        Ok(())
-    }
 
     #[test]
     fn test_node_generates_correct_struct() {
@@ -475,22 +502,5 @@ sequence:
             }
             .to_string()
         );
-    }
-}
-
-trait Only<T> {
-    fn only(&mut self) -> Option<T>;
-}
-
-impl<E, T> Only<T> for E
-where
-    E: ExactSizeIterator<Item = T>,
-{
-    fn only(&mut self) -> Option<T> {
-        if self.len() != 1 {
-            None
-        } else {
-            self.next()
-        }
     }
 }

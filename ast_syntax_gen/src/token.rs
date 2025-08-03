@@ -4,11 +4,9 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::node::SequenceNode;
 use convert_case::{Case, Casing};
-use proc_macro2::{Literal, TokenStream};
+use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{format_ident, quote, ToTokens};
-use serde_yml::{Mapping, Value};
 use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, strum::Display, strum::EnumString)]
@@ -74,6 +72,12 @@ pub enum TokenKind {
     ///
     /// Produced, for example, when there is an unknown char or illegal bit string
     Unknown,
+}
+
+impl TokenKind {
+    pub fn from_str_expect(s: &str) -> TokenKind {
+        TokenKind::from_str(s).unwrap_or_else(|_| panic!("Token kind {s} not valid"))
+    }
 }
 
 /// All available keywords in the latest (VHDL 2019) edition of VHDL
@@ -197,6 +201,12 @@ pub enum Keyword {
     Xor,
 }
 
+impl Keyword {
+    pub fn from_str_expect(s: &str) -> Keyword {
+        Keyword::from_str(s).unwrap_or_else(|_| panic!("Keyword {s} not valid"))
+    }
+}
+
 impl TokenKind {
     pub fn build_expression(&self) -> proc_macro2::TokenStream {
         match self {
@@ -214,67 +224,33 @@ impl TokenKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
+    /// The name of the token; defines the function-name
     pub name: String,
     /// the occurrence of this token, i.e., whether this is the
     /// 1st, second, third, e.t.c. token in the parent node.
     pub nth: usize,
+    /// whether this token can occur repeatedly
     pub repeated: bool,
 }
 
-impl Token {
-    pub fn from_mapping(mapping: &Mapping, parent: &SequenceNode) -> Option<Self> {
-        let repeated = mapping
-            .get("repeated")
-            .unwrap_or(&Value::Bool(false))
-            .as_bool()?;
-        let kind = if let Some(token) = mapping.get("token") {
-            let tok_name = token
-                .as_str()
-                .unwrap_or_else(|| panic!("{token:?} not a string"));
-            TokenKind::from_str(tok_name)
-                .unwrap_or_else(|err| panic!("'{tok_name}' is not a token: {err}"))
-        } else if let Some(keyword) = mapping.get("keyword") {
-            let kw_name = keyword
-                .as_str()
-                .unwrap_or_else(|| panic!("{keyword:?} not a string"));
-            let kw = Keyword::from_str(kw_name)
-                .unwrap_or_else(|err| panic!("{kw_name} not a token: {err}"));
-            TokenKind::Keyword(kw)
-        } else {
-            panic!("{mapping:?} does not contain 'token' or 'keyword'");
-        };
-        let default_name = Value::String(kind.to_string().to_case(Case::Snake));
-        let name_val = mapping.get("name").unwrap_or(&default_name);
-
-        let name = name_val
-            .as_str()
-            .unwrap_or_else(|| panic!("{:?} not a ", name_val))
-            .to_owned();
-        let nth = parent.count_of_token_kind(kind);
-        Some(Token {
+impl From<TokenKind> for Token {
+    fn from(kind: TokenKind) -> Self {
+        Token {
+            name: kind.to_string(),
             kind,
-            repeated,
-            nth,
-            name,
-        })
-    }
-
-    pub fn from_yaml(yaml: &Value, parent: &SequenceNode) -> Option<Self> {
-        Self::from_mapping(yaml.as_mapping()?, parent)
-    }
-
-    pub fn from_keyword(kw: &str, parent: &SequenceNode) -> Option<Self> {
-        let kind = TokenKind::Keyword(Keyword::from_str(kw).ok()?);
-        Some(Self {
-            kind,
-            name: kw.to_lowercase(),
             repeated: false,
-            nth: parent.count_of_token_kind(kind),
-        })
+            nth: 0,
+        }
+    }
+}
+
+impl Token {
+    pub fn getter_name(&self) -> Ident {
+        format_ident!("{}_token", self.name.to_case(Case::Snake))
     }
 
     pub fn build_getter(&self) -> TokenStream {
-        let function_name = format_ident!("{}_token", self.name);
+        let function_name = self.getter_name();
         let kind_ident = self.kind.build_expression();
         let nth = Literal::usize_unsuffixed(self.nth);
         if self.repeated {

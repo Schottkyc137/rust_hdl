@@ -1,113 +1,102 @@
-ArchitectureBody:
-  sequence:
-    - keyword: Architecture
-    - token: Identifier
-      name: name
-    - keyword: Of
-    - node: Name
-      name: entity_name
-    - keyword: Is
-    - node: DeclarativePart
-    - keyword: Begin
-    - node: StatementPart
-    - keyword: End
-    - keyword: Architecture
-    - token: Identifier
-      name: final_name
-    - token: SemiColon
+# §3: Design entities and configuration
 
-BlockConfiguration:
-  sequence:
-    - keyword: For
-    - node: BlockSpecification
-    - node: UseClause
-      repeated: true
-    - node: ConfigurationItem
-      repeated: true
-    - keyword: End
-    - keyword: For
-    - token: SemiColon
+ArchitectureBody: !Sequence
+  - keyword: Architecture
+  - token: Identifier
+    name: name
+  - keyword: Of
+  - node: Name
+    name: entity_name
+  - keyword: Is
+  - node: DeclarativePart
+  - keyword: Begin
+  - node: StatementPart
+  - keyword: End
+  - keyword: Architecture
+    trailing: true
+  - token: Identifier
+    name: name
+    trailing: true
+  - token: SemiColon
 
-BlockSpecification:
-  sequence:
-    - node: Name
-    - node: ParenthesizedGenerateSpecification
+BlockConfiguration: !Sequence
+  - keyword: For
+  - node: BlockSpecification
+  - node: UseClause
+    repeated: true
+  - node: ConfigurationItem
+    repeated: true
+  - keyword: End
+  - keyword: For
+    trailing: true
+  - token: SemiColon
 
-ParenthesizedGenerateSpecification:
-  sequence:
-    - token: LeftPar
-    - node: GenerateSpecification
-    - token: RightPar
+BlockSpecification: !Sequence
+  - node: Name
+  - node: GenerateSpecification
+    parenthesized: true
 
-GenerateSpecification:
-  choices:
-    - node: DiscreteRange
-    - node: Expression
-    - node: Identifier
+GenerateSpecification: !Choice
+  - node: DiscreteRange
+  - node: Expression
+  - node: Identifier
 
-ComponentConfiguration:
-  sequence:
-    - keyword: For
-    - node: ComponentSpecification
-    - node: TerminatedBindingIndication
-    - node: TerminatedVUnitBindingIndication
-      repeated: true
-    - node: BlockConfiguration
-    - keyword: End
-    - keyword: For
-    - token: SemiColon
+ComponentConfiguration: !Sequence
+  - keyword: For
+  - node: ComponentSpecification
+  - node: BindingIndication
+    terminated: SemiColon
+  - node: VUnitBindingIndication
+    terminated: SemiColon
+    repeated: true
+  - node: BlockConfiguration
+  - keyword: End
+  - keyword: For
+    trailing: true
+  - token: SemiColon
 
-TerminatedBindingIndication:
-  sequence:
-    - node: BindingIndication
-    - token: SemiColon
+ConfigurationDeclaration: !Sequence
+  - keyword: Configuration
+  - token: Identifier
+    name: name
+  - keyword: Of
+  - node: Name
+    name: entity_name
+  - keyword: Is
+  - node: DeclarativePart
+  - node: VUnitBindingIndication
+    terminated: SemiColon
+    repeated: true
+  - node: BlockConfiguration
+  - keyword: End
+  - keyword: Configuration
+    trailing: true
+  - token: Identifier
+    name: name
+    trailing: true
+  - token: SemiColon
 
-TerminatedVUnitBindingIndication:
-  sequence:
-    - node: VerificationUnitBindingIndication
-    - token: SemiColon
+ConfigurationItem: !Choice
+  - node: BlockConfiguration
+  - node: ComponentConfiguration
 
-ConfigurationDeclaration:
-  sequence:
-    - keyword: Configuration
-    - token: Identifier
-      name: name
-    - keyword: Of
-    - node: Name
-      name: entity_name
-    - keyword: Is
-    - node: DeclarativePart
-    - node: TerminatedVUnitBindingIndication
-      repeated: true
-    - node: BlockConfiguration
-    - keyword: End
-    - keyword: Configuration
-    - token: Identifier
-      name: trailing_name
-    - token: SemiColon
+EntityDeclaration: !Sequence
+  - keyword: Entity
+  - token: Identifier
+    name: name
+  - keyword: Is
+  - node: EntityHeader
+  - node: DeclarativePart
+  - keyword: Begin
+  - node: StatementPart
+  - keyword: End
+  - keyword: Entity
+    trailing: true
+  - token: Identifier
+    name: name
+    trailing: true
+  - token: SemiColon
 
-ConfigurationItem:
-  choices:
-    - node: BlockConfiguration
-    - node: ComponentConfiguration
-
-EntityDeclaration:
-  sequence:
-    - keyword: Entity
-    - token: Identifier
-      name: name
-    - keyword: Is
-    - node: EntityHeader
-    - node: DeclarativePart
-    - keyword: Begin
-    - node: StatementPart
-    - keyword: End
-    - keyword: Entity
-    - token: Identifier
-      name: trailing_name
-    - token: SemiColon
-
-EntityHeader:
-  sequence:
-    - node: GenericClause
-    - node: PortClause
+EntityHeader: !Sequence
+  - node: GenericClause
+  - node: PortClause

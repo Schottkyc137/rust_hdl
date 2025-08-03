@@ -10,3 +10,4 @@ convert_case = "0.6.0"
 serde_yml = "0.0.12"
 strum = { version = "0.27", features = ["derive"] }
 serde = { version = "1.0.217", features = ["derive"] }
+chrono = "0.4.41"
