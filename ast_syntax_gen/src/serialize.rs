@@ -8,13 +8,22 @@ use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, PartialEq, Eq)]
 pub struct Node {
     pub name: String,
     pub contents: NodeContents,
 }
 
-#[derive(Debug, Default)]
+impl Node {
+    pub fn new(name: impl Into<String>, contents: NodeContents) -> Node {
+        Node {
+            name: name.into(),
+            contents,
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Nodes(Vec<Node>);
 
 impl From<Nodes> for Vec<Node> {
@@ -67,13 +76,14 @@ impl<'de> Deserialize<'de> for Nodes {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum NodeContents {
     Sequence(Vec<NodeOrToken>),
     Choice(Vec<NodeOrToken>),
+    Alias(NodeOrToken),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum NodeOrToken {
     Node(NodeRef),
@@ -81,7 +91,7 @@ pub enum NodeOrToken {
     Keyword(KeywordRef),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct NodeRef {
     pub node: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -104,7 +114,19 @@ impl NodeRef {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+impl From<String> for NodeRef {
+    fn from(value: String) -> Self {
+        Self {
+            node: value,
+            name: None,
+            terminated: None,
+            parenthesized: false,
+            repeated: false,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct TokenRef {
     pub token: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -130,7 +152,7 @@ impl TokenRef {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct KeywordRef {
     pub keyword: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -192,4 +214,23 @@ ArchitectureBody: !Sequence
     .unwrap();
 
     println!("{deserialized:?}")
+}
+
+#[test]
+fn alias() {
+    let deserialized: Nodes = serde_yml::from_str(
+        "\
+Foo: !Alias
+  node: Bar
+    ",
+    )
+    .unwrap();
+
+    assert_eq!(
+        deserialized,
+        Nodes(vec![Node::new(
+            "Foo",
+            NodeContents::Alias(NodeOrToken::Node(NodeRef::from("Bar".to_string())))
+        )])
+    );
 }

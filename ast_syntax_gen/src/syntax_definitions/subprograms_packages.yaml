@@ -1,3 +1,5 @@
+# §3: Subprograms and packages
+
 SubprogramDeclaration: !Sequence
   - node: SubprogramSpecification
   - token: SemiColon

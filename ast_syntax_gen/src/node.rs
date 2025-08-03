@@ -4,6 +4,7 @@
 //
 // Copyright (c) 2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::serialize::NodeOrToken;
 use crate::token::{Token, TokenKind};
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, TokenStream};
@@ -100,6 +101,7 @@ impl NodeRef {
 pub enum Node {
     Items(SequenceNode),
     Choices(ChoiceNode),
+    Alias(AliasNode),
 }
 
 impl Node {
@@ -107,6 +109,7 @@ impl Node {
         match self {
             Node::Items(items) => items.name.clone(),
             Node::Choices(choices) => choices.name.clone(),
+            Node::Alias(alias) => alias.name.clone(),
         }
     }
 }
@@ -334,11 +337,31 @@ impl ChoiceNode {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct AliasNode {
+    pub name: String,
+    pub item: TokenOrNode,
+}
+
+impl AliasNode {
+    pub fn generate_rust_alias(&self) -> TokenStream {
+        let alias = format_ident!("{}", self.name.to_case(Case::UpperCamel));
+        let target = match &self.item {
+            TokenOrNode::Node(node) => format_ident!("{}", node.name.to_case(Case::UpperCamel)),
+            TokenOrNode::Token(token) => format_ident!("{}", token.name.to_case(Case::UpperCamel)),
+        };
+        quote! {
+            type #alias = #target;
+        }
+    }
+}
+
 impl Node {
     pub fn generate_rust_struct(&self) -> TokenStream {
         match self {
             Node::Items(items) => items.generate_rust_struct(),
             Node::Choices(choices) => choices.generate_rust_enum(),
+            Node::Alias(alias) => alias.generate_rust_alias(),
         }
     }
 
@@ -346,6 +369,7 @@ impl Node {
         match self {
             Node::Items(items) => items.generate_ast_node_rust_impl(),
             Node::Choices(choices) => choices.generate_ast_node_rust_impl(),
+            Node::Alias(_) => quote! {},
         }
     }
 
@@ -353,6 +377,7 @@ impl Node {
         match self {
             Node::Items(items) => items.generate_rust_impl_getters(),
             Node::Choices(_) => quote! {},
+            Node::Alias(_) => quote! {},
         }
     }
 }
@@ -415,6 +440,7 @@ impl Model {
                             }
                         }
                     },
+                    Node::Alias(_) => {}
                 }
             }
         }
