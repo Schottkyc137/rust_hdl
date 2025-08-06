@@ -13,10 +13,9 @@ ArchitectureBody: !Sequence
   - node: StatementPart
   - keyword: End
   - keyword: Architecture
-    trailing: true
+    name: trailing_architecture
   - token: Identifier
-    name: name
-    trailing: true
+    name: trailing_name
   - token: SemiColon
 
 BlockConfiguration: !Sequence
@@ -28,7 +27,7 @@ BlockConfiguration: !Sequence
     repeated: true
   - keyword: End
   - keyword: For
-    trailing: true
+    name: trailing_for
   - token: SemiColon
 
 BlockSpecification: !Sequence
@@ -52,7 +51,7 @@ ComponentConfiguration: !Sequence
   - node: BlockConfiguration
   - keyword: End
   - keyword: For
-    trailing: true
+    name: trailing_for
   - token: SemiColon
 
 ConfigurationDeclaration: !Sequence
@@ -70,10 +69,9 @@ ConfigurationDeclaration: !Sequence
   - node: BlockConfiguration
   - keyword: End
   - keyword: Configuration
-    trailing: true
+    name: trailing_configuration
   - token: Identifier
-    name: name
-    trailing: true
+    name: trailing_name
   - token: SemiColon
 
 ConfigurationItem: !Choice
@@ -91,10 +89,9 @@ EntityDeclaration: !Sequence
   - node: StatementPart
   - keyword: End
   - keyword: Entity
-    trailing: true
+    name: trailing_entity
   - token: Identifier
-    name: name
-    trailing: true
+    name: trailing_name
   - token: SemiColon
 
 EntityHeader: !Sequence

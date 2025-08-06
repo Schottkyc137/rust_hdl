@@ -254,7 +254,7 @@ impl Token {
         let kind_ident = self.kind.build_expression();
         let nth = Literal::usize_unsuffixed(self.nth);
         if self.repeated {
-            assert_eq!(self.nth, 1);
+            assert_eq!(self.nth, 0, "{} multiple", self.name);
             quote! {
                 pub fn #function_name(&self) -> impl Iterator<Item = SyntaxToken>  + use<'_> {
                     self.0

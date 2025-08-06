@@ -4,7 +4,6 @@
 //
 // Copyright (c) 2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::serialize::NodeOrToken;
 use crate::token::{Token, TokenKind};
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, TokenStream};

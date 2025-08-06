@@ -133,22 +133,15 @@ pub struct TokenRef {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not", default)]
     pub repeated: bool,
-    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
-    pub trailing: bool,
 }
 
-fn token_str_name(name: Option<String>, token: &str, trailing: bool) -> String {
-    let base_name = name.clone().unwrap_or_else(|| token.to_owned());
-    if trailing {
-        format!("trailing_{base_name}")
-    } else {
-        base_name
-    }
+fn token_str_name(name: Option<String>, token: &str) -> String {
+    name.clone().unwrap_or_else(|| token.to_owned())
 }
 
 impl TokenRef {
     pub fn name(&self) -> String {
-        token_str_name(self.name.clone(), &self.token, self.trailing)
+        token_str_name(self.name.clone(), &self.token)
     }
 }
 
@@ -157,13 +150,11 @@ pub struct KeywordRef {
     pub keyword: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub name: Option<String>,
-    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
-    pub trailing: bool,
 }
 
 impl KeywordRef {
     pub fn name(&self) -> String {
-        token_str_name(self.name.clone(), &self.keyword, self.trailing)
+        token_str_name(self.name.clone(), &self.keyword)
     }
 }
 

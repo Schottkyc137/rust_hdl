@@ -81,10 +81,9 @@ PackageDeclaration: !Sequence
   - keyword: End
   - keyword: Package
     optional: true
-    trailing: true
+    name: trailing_package
   - token: Identifier
-    name: name
-    trailing: true
+    name: trailing_name
     optional: true
   - token: SemiColon
 
@@ -106,12 +105,12 @@ PackageBody: !Sequence
   - keyword: End
   - keyword: Package
     optional: true
-    trailing: true
+    name: trailing_package
   - keyword: Body
     optional: true
-    trailing: true
+    name: trailing_body
   - token: Identifier
-    trailing: true
+    name: trailing_name
     optional: true
   - token: SemiColon
 
