@@ -1,4 +1,4 @@
-# §3: Subprograms and packages
+# §4: Subprograms and packages
 
 SubprogramDeclaration: !Sequence
   - node: SubprogramSpecification
