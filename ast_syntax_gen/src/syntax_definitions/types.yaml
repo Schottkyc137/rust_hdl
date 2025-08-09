@@ -1,0 +1,178 @@
+# §5: Types
+
+AccessTypeDefinition: !Sequence
+  - keyword: Access
+  - node: SubtypeIndication
+
+ArrayConstraint: !Sequence
+  - node: IndexConstraint
+  - node: ArrayElementConstraint
+
+ArrayElementConstraint: !Alias
+  node: ElementConstraint
+
+ArrayTypeDefinition: !Choice
+  - node: UnboundedArrayDefinition
+  - node: ConstrainedArrayDefinition
+
+CompositeTypeDefinition: !Choice
+  - node: ArrayTypeDefinition
+  - node: RecordTypeDefinition
+
+ConstrainedArrayDefinition: !Sequence
+  - keyword: Array
+  - node: IndexConstraint
+  - keyword: Of
+  - node: ElementSubtypeIndication
+
+Direction: !Choice
+  - keyword: To
+  - keyword: Downto
+
+DiscreteRange: !Choice
+  - node: DiscreteSubtypeIndication
+  - node: Range
+  - node: OpenRange
+
+OpenRange: !Sequence
+  - keyword: Open
+
+ElementDeclaration: !Sequence
+  - node: IdentifierList
+  - token: Colon
+  - node: ElementSubtypeDefinition
+  - token: SemiColon
+
+ElementSubtypeDefinition: !Alias
+  node: SubtypeIndication
+
+EnumerationLiteral: !Choice
+  - token: Identifier
+  - token: CharacterLiteral
+
+EnumerationTypeDefinition: !Sequence
+  - token: LeftPar
+  - node: DiscreteRange
+    repeated: true
+  - token: Comma
+    repeated: true
+  - token: RightPar
+
+FileTypeDefinition: !Sequence
+  - keyword: File
+  - keyword: Of
+  - node: TypeMark
+
+FloatingTypeDefinition: !Alias
+  node: RangeConstraint
+
+IdentifierList: !Sequence
+  - node: Identifier
+  - token: Comma
+
+IncompleteTypeDeclaration: !Sequence
+  - keyword: Type
+  - token: Identifier
+  - token: SemiColon
+
+IndexSubtypeDefinition: !Sequence
+  - node: TypeMark
+  - keyword: Range
+  - token: BOX
+
+IntegerTypeDefinition: !Alias
+  node: RangeConstraint
+
+PhysicalLiteral: !Sequence
+  - node: AbstractLiteral
+  - node: UnitName
+
+PhysicalTypeDefinition: !Sequence
+  - node: RangeConstraint
+  - keyword: Units
+  - node: PrimaryUnitDeclaration
+  - node: SecondaryUnitDeclaration
+    repeated: true
+  - keyword: End
+  - keyword: Units
+    name: trailing_units
+  - token: Identifier
+    name: name
+
+PrimaryUnitDeclaration: !Sequence
+  - token: Identifier
+  - token: SemiColon
+
+ProtectedTypeBody: !Sequence
+  - keyword: Protected
+  - keyword: Body
+  - node: DeclarativePart
+  - keyword: End
+  - keyword: Protected
+    name: trailing_protected
+  - keyword: Body
+    name: trailing_body
+  - token: Identifier
+    name: name
+
+ProtectedTypeDeclaration: !Sequence
+  - keyword: Protected
+  - node: DeclarativePart
+  - keyword: End
+  - keyword: Protected
+    name: trailing_protected
+  - token: Identifier
+    name: name
+
+ProtectedTypeDefinition: !Choice
+  - node: ProtectedTypeDeclaration
+  - node: ProtectedTypeBody
+
+RangeExpression: !Sequence
+  - node: Expression
+    name: lhs
+  - node: Direction
+  - node: Expression
+    name: rhs
+
+Range: !Choice
+  - node: Name
+  - node: RangeExpression
+
+RangeConstraint: !Sequence
+  - keyword: Range
+  - node: Range
+
+RecordConstraint: !Sequence
+  - token: LeftPar
+  - node: RecordElementConstraint
+    repeated: true
+  - token: Comma
+    repeated: true
+  - token: RightPar
+
+RecordElementConstraint: !Sequence
+  - node: Name
+  - node: ElementConstraint
+
+RecordTypeDefinition: !Sequence
+  - keyword: Record
+  - node: ElementDeclaration
+    repeated: true
+  - keyword: End
+  - keyword: Record
+    name: trailing_record
+  - node: Identifier
+    name: trailing_name
+
+ScalarTypeDefinition: !Choice
+  - node: EnumerationTypeDefinition
+  - node: IntegerTypeDefinition
+  - node: FloatingTypeDefinition
+  - node: PhysicalTypeDefinition
+
+SecondaryUnitDeclaration: !Sequence
+  - token: Identifier
+  - token: EQ
+  - node: PhysicalLiteral
+  - token: SemiColon
