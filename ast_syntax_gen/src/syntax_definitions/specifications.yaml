@@ -1,0 +1,180 @@
+# §7: Specification
+
+AttributeSpecification: !Sequence
+  - keyword: Attribute
+  - node: AttributeDesignator
+  - keyword: Of
+  - node: EntitySpecification
+  - keyword: Is
+  - node: Expression
+  - token: SemiColon
+
+BindingIndication: !Sequence
+  - keyword: Use
+    optional: true
+  - node: EntityAspect
+    optional: true
+  - node: GenericMapAspect
+    optional: true
+  - node: PortMapAspect
+    optional: true
+
+ComponentSpecification: !Sequence
+  - node: InstantiationList
+  - token: Colon
+  - node: ComponentName
+
+CompoundConfigurationSpecification: !Sequence
+  - keyword: For
+  - node: ComponentSpecification
+  - node: BindingIndication
+  - token: SemiColon
+  - node: VerificationUnitBindingIndication
+    trailing: SemiColon
+    repeated: true
+    optional: true
+  - keyword: End
+  - keyword: For
+    name: trailing_for
+  - token: SemiColon
+    name: trailing_semi_colon
+
+ConfigurationSpecification: !Choice
+  - node: SimpleConfigurationSpecification
+  - node: CompoundConfigurationSpecification
+
+DisconnectionSpecification: !Sequence
+  - keyword: Disconnect
+  - node: GuardedSignalSpecification
+  - keyword: After
+  - node: Expression
+  - token: SemiColon
+
+EntityEntityAspect: !Sequence
+  - keyword: Entity
+  - node: Name
+  - token: LeftPar
+    optional: true
+  - token: Identifier
+    optional: true
+  - token: RightPar
+    optional: true
+
+EntityConfigurationAspect: !Sequence
+  - keyword: Configuration
+  - node: ConfigurationName
+
+EntityOpenAspect: !Sequence
+  - keyword: Open
+
+EntityAspect: !Choice
+  - node: EntityEntityAspect
+  - node: EntityConfigurationAspect
+  - node: EntityOpenAspect
+
+EntityClass: !Choice
+  - keyword: Entity
+  - keyword: Architecture
+  - keyword: Configuration
+  - keyword: Procedure
+  - keyword: Function
+  - keyword: Package
+  - keyword: Type
+  - keyword: Subtype
+  - keyword: Constant
+  - keyword: Signal
+  - keyword: Variable
+  - keyword: Component
+  - keyword: Label
+  - keyword: Literal
+  - keyword: Units
+  - keyword: Group
+  - keyword: File
+  - keyword: Property
+  - keyword: Sequence
+
+EntityDesignator: !Sequence
+  - node: EntityTag
+  - node: Signature
+    optional: true
+
+# Bis hier
+
+OthersDesignator: !Sequence
+  - keyword: All
+
+AllDesignator: !Sequence
+  - keyword: All
+
+EntityNameListList: !Sequence
+  - node: EntityDesignator
+    repeated: true
+  - node: Comma
+    repeated: true
+
+EntityNameList: !Choice
+  - node: EntityNameList
+  - node: AllDesignator
+  - node: OthersDesignator
+
+EntitySpecification: !Sequence
+  - node: EntityNameList
+  - token: Colon
+  - node: EntityClass
+
+EntityTag: !Choice
+  - token: Identifier
+  - token: CharacterLiteral
+  - token: StringLiteral
+
+GuardedSignalSpecification: !Sequence
+  - node: SignalList
+  - token: Colon
+  - node: TypeMark
+
+InstantiationListList: !Sequence
+  - node: InstantiationLabel
+    repeated: true
+  - node: Comma
+    repeated: true
+
+InstantiationList: !Choice
+  - node: InstantiationListList
+  - node: OthersDesignator
+  - node: AllDesignator
+
+SignalListList: !Sequence
+  - node: Name
+    repeated: true
+  - node: Comma
+    repeated: true
+
+SignalList: !Choice
+  - node: SignalListList
+  - node: OthersDesignator
+  - node: AllDesignator
+
+SimpleConfigurationSpecification: !Sequence
+  - keyword: For
+  - node: ComponentSpecification
+  - node: BindingIndication
+  - token: SemiColon
+  - keyword: End
+    optional: true
+  - keyword: For
+    name: trailing_for
+    optional: true
+  - token: SemiColon
+    optional: true
+    name: trailing_semi_colon
+
+VerificationUnitBindingIndication: !Sequence
+  - keyword: Use
+  - keyword: Vunit
+  - node: VerificationUnitList
+
+VerificationUnitList: !Sequence
+  - node: VerificationUnitName
+    repeated: true
+  - token: Comma
+    repeated: true

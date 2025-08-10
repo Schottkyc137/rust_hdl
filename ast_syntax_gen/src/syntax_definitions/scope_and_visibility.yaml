@@ -1,0 +1,9 @@
+# §12 Scope and Visibility
+
+UseClause: !Sequence
+  - keyword: Use
+  - node: SelectedName
+    repeated: true
+  - token: Comma
+    repeated: true
+  - token: SemiColon
