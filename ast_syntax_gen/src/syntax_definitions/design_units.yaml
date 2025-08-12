@@ -1,0 +1,82 @@
+# §13: Design Units
+
+ContextClause: !Sequence
+  - node: ContextItem
+    repeated: true
+
+ContextDeclaration: !Sequence
+  - keyword: Context
+  - token: Identifier
+    name: name
+  - keyword: Is
+  - node: ContextClause
+  - keyword: End
+  - keyword: Context
+    optional: true
+    name: trailing_context
+  - token: Identifier
+    name: trailing_name
+    optional: true
+  - token: SemiColon
+
+ContextItem: !Choice
+  - node: LibraryClause
+  - node: UseClause
+  - node: ContextReference
+
+ContextReference: !Sequence
+  - keyword: Context
+  - node: SelectedName
+  - token: Comma
+    repeated: true
+    optional: true
+  - node: SelectedName
+    repeated: true
+    optional: true
+  - token: SemiColon
+
+DesignFile: !Sequence
+  - node: DesignUnit
+  - node: DesignUnit
+    repeated: true
+
+DesignUnit: !Sequence
+  - node: ContextClause
+  - node: LibraryUnit
+
+LibraryClause: !Sequence
+  - keyword: Library
+  - node: LogicalNameList
+  - token: SemiColon
+
+LibraryUnit: !Choice
+  - node: PrimaryUnit
+  - node: SecondaryUnit
+
+LogicalName: !Alias
+  node: Identifier
+
+LogicalNameList: !Sequence
+  - node: LogicalName
+  - token: Comma
+    repeated: true
+  - node: LogicalName
+    repeated: true
+
+PrimaryUnit: !Choice
+  - node: EntityDeclaration
+  - node: ConfigurationDeclaration
+  - node: PackageDeclaration
+  - node: PackageInstantiationDeclaration
+  - node: ContextDeclaration
+  - node: PSLVerificationUnit
+
+SecondaryUnit: !Choice
+  - node: ArchitectureBody
+  - node: PackageBody
+
+SelectedName: !Alias
+  node: Name
+
+UseClause: !Alias
+  node: UseClauseDefinition

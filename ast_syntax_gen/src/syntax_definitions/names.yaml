@@ -1,0 +1,62 @@
+# §8: Names
+
+absolute_pathname ::= "." partial_pathname
+
+attribute_designator ::= attribute_simple_name
+
+attribute_name ::=
+prefix [ signature ] "'" attribute_designator [ "(" expression ")" ]
+
+external_name ::=
+external_constant_name
+| external_signal_name
+| external_variable_name
+
+  external_constant_name ::=
+  "<<" "constant" external_pathname ":" subtype_indication ">>"
+  
+  external_signal_name ::=
+  "<<" "signal" external_pathname ":" subtype_indication ">>"
+  
+  external_variable_name ::=
+  "<<" "variable" external_pathname ":" subtype_indication ">>"
+  
+  external_pathname ::=
+  package_pathname
+  | absolute_pathname
+  | relative_pathname
+  
+  indexed_name ::= prefix "(" expression { "," expression } ")"
+  
+  name ::=
+  simple_name
+  | operator_symbol
+  | character_literal
+  | selected_name
+  | indexed_name
+  | slice_name
+  | attribute_name
+  | external_name
+  
+  package_pathname ::= "@" library_logical_name "." { package_simple_name "." } object_simple_name
+  
+  partial_pathname ::= { pathname_element "." } object_simple_name
+  
+  pathname_element ::=
+  entity_simple_name
+  | component_instantiation_label
+  | block_label
+  | generate_statement_label [ ( static_expression ) ]
+  | package_simple_name
+  
+  prefix ::= name | function_call
+  
+  relative_pathname ::= { "^" "." } partial_pathname
+  
+  selected_name ::= prefix "." suffix
+  
+  simple_name ::= identifier
+  
+  slice_name ::= prefix "(" discrete_range ")"
+  
+  suffix ::= simple_name | character_literal | operator_symbol | "all"

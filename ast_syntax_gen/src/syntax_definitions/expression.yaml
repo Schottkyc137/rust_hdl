@@ -1,0 +1,89 @@
+# §9: Expression
+
+actual_parameter_part ::= parameter_association_list
+
+adding_operator ::= "+" | "-"
+
+aggregate ::= "(" element_association {"," element_association } ")"
+
+allocator ::=
+"new" subtype_indication
+| "new" qualified_expression
+  
+  choice ::=
+      simple_expression
+      | discrete_range
+      | element_simple_name
+      | "others"
+  
+  choices ::= choice { | choice }
+  
+  condition_operator ::= "??"
+  
+  element_association ::= [ choices => ] expression
+  
+  expression ::=
+  condition_operator primary
+  | logical_expression
+  
+  factor ::=
+  primary [ "**" primary ]
+  | "abs" primary
+  | "not" primary
+  | logical_operator primary
+  
+  function_call ::=
+  function_name [ "(" actual_parameter_part ")" ]
+  
+  literal ::=
+  numeric_literal
+  | enumeration_literal
+  | string_literal
+  | bit_string_literal
+  | "null"
+  
+  logical_expression ::=
+      relation { "and" relation }
+      | relation { "or" relation }
+      | relation { "xor" relation }
+      | relation [ "nand" relation ]
+      | relation [ "nor" relation ]
+      | relation { "xnor" relation }
+  
+  logical_operator ::= "and" | "or" | "nand" | "nor" | "xor" | "xnor"
+  
+  miscellaneous_operator ::= "**" | "abs" | "not"
+  
+  multiplying_operator ::= "*" | "/" | "mod" | "rem"
+  
+  numeric_literal ::= abstract_literal | physical_literal
+  
+  primary ::=
+  name
+  | literal
+  | aggregate
+  | function_call
+  | qualified_expression
+  | type_conversion
+  | allocator
+  | "(" expression ")"
+  
+  qualified_expression ::=
+  type_mark "'" "(" expression ")"
+  | type_mark "'" aggregate
+  
+  relation ::= shift_expression [ relational_operator shift_expression ]
+  
+  relational_operator ::= "=" | "/=" | "<" | "<=" | ">" | ">=" | "?=" | "?/=" | "?<" | "?<=" | "?>" | "?>="
+  
+  shift_expression ::= simple_expression [ shift_operator simple_expression ]
+  
+  shift_operator ::= "sll" | "srl" | "sla" | "sra" | "rol" | "ror"
+  
+  sign ::= "+" | "–"
+  
+  simple_expression ::= [ sign ] term { adding_operator term }
+  
+  term ::= factor { multiplying_operator factor }
+  
+  type_conversion ::= type_mark "(" expression ")"
