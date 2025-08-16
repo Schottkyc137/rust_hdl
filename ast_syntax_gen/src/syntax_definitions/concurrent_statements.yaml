@@ -1,0 +1,307 @@
+# § 11: Concurrent Statements
+
+BlockDeclarativePart: !Sequence
+  - node: BlockDeclarativeItem
+    repeated: true
+
+BlockHeader: !Sequence
+  - node: GenericClause
+    optional: true
+  - node: GenericMapAspect
+    optional: true
+  - token: SemiColon
+    optional: true
+  - node: PortClause
+    optional: true
+  - node: PortMapAspect
+    optional: true
+  - token: SemiColon
+    optional: true
+
+BlockStatement: !Sequence
+  - token: Identifier
+    name: block_label
+    optional: true
+  - token: Colon
+    optional: true
+  - keyword: Block
+  - node: GuardCondition
+    parenthesized: true
+    optional: true
+  - keyword: Is
+    optional: true
+  - node: BlockHeader
+  - node: BlockDeclarativePart
+  - keyword: Begin
+  - node: BlockStatementPart
+  - keyword: End
+  - keyword: Block
+    name: trailing_block
+  - token: Identifier
+    name: trailing_label
+    optional: true
+  - token: SemiColon
+
+BlockStatementPart: !Sequence
+  - node: ConcurrentStatement
+    repeated: true
+
+CaseGenerateAlternative: !Sequence
+  - keyword: When
+  - token: Identifier
+    name: alternative_label
+    optional: true
+  - token: Colon
+    optional: true
+  - node: Choices
+  - token: RightArrow
+  - node: GenerateStatementBody
+
+CaseGenerateStatement: !Sequence
+  - token: Identifier
+    name: generate_label
+  - token: Colon
+  - keyword: Case
+  - node: Expression
+  - keyword: Generate
+  - node: CaseGenerateAlternative
+    repeated: true
+  - keyword: End
+  - keyword: Generate
+  - token: Identifier
+    name: trailing_generate_label
+    optional: true
+  - token: SemiColon
+
+ComponentInstantiationStatement: !Sequence
+  - token: Identifier
+    name: instantiation_label
+  - token: Colon
+  - node: InstantiatedUnit
+  - node: GenericMapAspect
+    optional: true
+  - node: PortMapAspect
+    optional: true
+  - token: SemiColon
+
+ConcurrentAssertionStatement: !Sequence
+  - token: Identifier
+    name: label
+    optional: true
+  - token: Colon
+    optional: true
+  - keyword: Postponed
+    optional: true
+  - node: Assertion
+  - token: SemiColon
+
+ConcurrentConditionalSignalAssignment: !Sequence
+  - node: Target
+  - token: LessEqual
+  - keyword: Guarded
+    optional: true
+  - node: DelayMechanism
+    optional: true
+  - node: ConditionalWaveforms
+  - token: SemiColon
+
+ConcurrentProcedureCallStatement: !Sequence
+  - token: Identifier
+    name: label
+    optional: true
+  - token: Colon
+    optional: true
+  - keyword: Postponed
+    optional: true
+  - node: ProcedureCall
+  - token: SemiColon
+
+ConcurrentSelectedSignalAssignment: !Sequence
+  - keyword: With
+  - node: Expression
+  - keyword: Select
+  - token: QuestionMark
+    optional: true
+  - node: Target
+  - token: LessEqual
+  - keyword: Guarded
+    optional: true
+  - node: DelayMechanism
+    optional: true
+  - node: SelectedWaveforms
+  - token: SemiColon
+
+ConcurrentSignalAssignmentChoice: !Choice
+  - node: ConcurrentSimpleSignalAssignment
+  - node: ConcurrentConditionalSignalAssignment
+  - node: ConcurrentSelectedSignalAssignment
+
+ConcurrentSignalAssignmentStatement: !Sequence
+  - token: Identifier
+    name: label
+    optional: true
+  - token: Colon
+    optional: true
+  - keyword: Postponed
+    optional: true
+  - node: ConcurrentSignalAssignmentChoice
+
+ConcurrentSimpleSignalAssignment: !Sequence
+  - node: Target
+  - token: LessEqual
+  - keyword: Guarded
+    optional: true
+  - node: DelayMechanism
+    optional: true
+  - node: Waveform
+  - token: SemiColon
+
+ConcurrentStatement: !Choice
+  - node: BlockStatement
+  - node: ProcessStatement
+  - node: ConcurrentProcedureCallStatement
+  - node: ConcurrentAssertionStatement
+  - node: ConcurrentSignalAssignmentStatement
+  - node: ComponentInstantiationStatement
+  - node: GenerateStatement
+  - node: PSL_PSL_Directive
+
+ForGenerateStatement: !Sequence
+  - token: Identifier
+    name: generate_label
+  - token: Colon
+  - keyword: For
+  - node: GenerateParameterSpecification
+  - keyword: Generate
+  - node: GenerateStatementBody
+  - keyword: End
+  - keyword: Generate
+  - token: Identifier
+    name: trailing_generate_label
+    optional: true
+  - token: SemiColon
+
+GenerateStatement: !Choice
+  - node: ForGenerateStatement
+  - node: IfGenerateStatement
+  - node: CaseGenerateStatement
+
+GenerateStatementBody: !Sequence
+  - node: BlockDeclarativePart
+    optional: true
+  - keyword: Begin
+    optional: true
+  - node: ConcurrentStatement
+    repeated: true
+  - keyword: End
+    optional: true
+  - token: Identifier
+    name: alternative_label
+    optional: true
+  - token: SemiColon
+    optional: true
+
+IfGenerateElsif: !Sequence
+  - keyword: Elsif
+  - token: Identifier
+    name: alternative_label
+    optional: true
+  - token: Colon
+    optional: true
+  - node: Condition
+  - keyword: Generate
+  - node: GenerateStatementBody
+
+IfGenerateElse: !Sequence
+  - keyword: Else
+  - token: Identifier
+    name: alternative_label
+    optional: true
+  - token: Colon
+    optional: true
+  - keyword: Generate
+  - node: GenerateStatementBody
+
+IfGenerateStatement: !Sequence
+  - token: Identifier
+    name: generate_label
+  - token: Colon
+  - keyword: If
+  - token: Identifier
+    name: alternative_label
+    optional: true
+  - token: Colon
+    optional: true
+  - node: Condition
+  - keyword: Generate
+  - node: GenerateStatementBody
+  - node: IfGenerateElsif
+    repeated: true
+  - node: IfGenerateElse
+    optional: true
+  - keyword: End
+  - keyword: Generate
+  - token: Identifier
+    name: trailing_generate_label
+    optional: true
+  - token: SemiColon
+
+InstantiatedUnit: !Choice
+  - node: ComponentInstantiatedUnit
+  - node: EntityInstantiatedUnit
+  - node: ConfigurationInstantiatedUnit
+
+ComponentInstantiatedUnit: !Sequence
+  - keyword: Component
+    optional: true
+  - node: ComponentName
+
+EntityInstantiatedUnit: !Sequence
+  - keyword: Entity
+  - node: EntityName
+  - token: LeftPar
+    optional: true
+  - node: ArchitectureIdentifier
+    optional: true
+  - token: RightPar
+    optional: true
+
+ConfigurationInstantiatedUnit: !Sequence
+  - keyword: Configuration
+  - node: ConfigurationName
+
+Label: !Alias
+  node: Identifier
+
+AllSensitivityList: !Sequence
+  - keyword: All
+
+ProcessSensitivityList: !Choice
+  - node: AllSensitivityList
+  - node: SensitivityList
+
+ProcessStatement: !Sequence
+  - token: Identifier
+    name: process_label
+    optional: true
+  - token: Colon
+    optional: true
+  - keyword: Postponed
+    optional: true
+  - keyword: Process
+  - node: ProcessSensitivityList
+    parenthesized: true
+    optional: true
+  - keyword: Is
+    optional: true
+  - node: DeclarativePart
+  - keyword: Begin
+  - node: StatementPart
+  - keyword: End
+  - keyword: Postponed
+    optional: true
+  - keyword: Process
+  - token: Identifier
+    name: trailing_process_label
+    optional: true
+  - token: SemiColon

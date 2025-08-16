@@ -1,62 +1,82 @@
 # §8: Names
 
-absolute_pathname ::= "." partial_pathname
+AbsolutePathname: !Sequence
+  - token: Dot
+  - node: PartialPathname
 
-attribute_designator ::= attribute_simple_name
+AttributeDesignator: !Alias
+  token: Identifier
 
-attribute_name ::=
-prefix [ signature ] "'" attribute_designator [ "(" expression ")" ]
+AttributeName: !Sequence
+  - token: LeftSquare
+  - node: Signature
+  - token: RightSquare
+  - token: Tick
+  - token: AttributeDesignator
+  - token: LeftPar
+  - node: Expression
+  - token: RightPar
 
-external_name ::=
-external_constant_name
-| external_signal_name
-| external_variable_name
+ExternalName: !Choice
+  - node: ExternalConstantName
+  - node: ExternalSignalName
+  - node: ExternalVariableName
 
-  external_constant_name ::=
-  "<<" "constant" external_pathname ":" subtype_indication ">>"
-  
-  external_signal_name ::=
-  "<<" "signal" external_pathname ":" subtype_indication ">>"
-  
-  external_variable_name ::=
-  "<<" "variable" external_pathname ":" subtype_indication ">>"
-  
-  external_pathname ::=
-  package_pathname
-  | absolute_pathname
-  | relative_pathname
-  
-  indexed_name ::= prefix "(" expression { "," expression } ")"
-  
-  name ::=
-  simple_name
-  | operator_symbol
-  | character_literal
-  | selected_name
-  | indexed_name
-  | slice_name
-  | attribute_name
-  | external_name
-  
-  package_pathname ::= "@" library_logical_name "." { package_simple_name "." } object_simple_name
-  
-  partial_pathname ::= { pathname_element "." } object_simple_name
-  
-  pathname_element ::=
-  entity_simple_name
-  | component_instantiation_label
-  | block_label
-  | generate_statement_label [ ( static_expression ) ]
-  | package_simple_name
-  
-  prefix ::= name | function_call
-  
-  relative_pathname ::= { "^" "." } partial_pathname
-  
-  selected_name ::= prefix "." suffix
-  
-  simple_name ::= identifier
-  
-  slice_name ::= prefix "(" discrete_range ")"
-  
-  suffix ::= simple_name | character_literal | operator_symbol | "all"
+ExternalConstantName: !Sequence
+  - token: LtLt
+  - keyword: Constant
+  - node: ExternalPathname
+  - token: Colon
+  - node: SubtypeIndication
+  - token: RtRt
+
+ExternalSignalName: !Sequence
+  - token: LtLt
+  - keyword: Signal
+  - node: ExternalPathname
+  - token: Colon
+  - node: SubtypeIndication
+  - token: RtRt
+
+ExternalVariableName: !Sequence
+  - token: LtLt
+  - keyword: Variable
+  - node: ExternalPathname
+  - token: Colon
+  - node: SubtypeIndication
+  - token: RtRt
+
+ExternalPathname: !Choice
+  - node: PackagePathname
+  - node: AbsolutePathname
+  - node: RelativePathname
+
+PackagePathname: !Sequence
+  - token: CommAt
+  - token: Dot
+    repeated: true
+  - token: Identifier
+    name: simple_name
+    repeated: true
+
+RelativePathname: !Sequence
+  - token: Cirq
+    repeated: true
+  - token: Dot
+    repeated: true
+  - node: PartialPathname
+
+PartialPathname: !Sequence
+  - token: ParenthesizedExpressionOrAggregate
+    repeated: true
+  - token: Dot
+    repeated: true
+  - token: Identifier
+
+NameList: !Sequence
+  - node: Name
+    repeated: true
+  - node: Comma
+    repeated: true
+
+# Name is a special node
