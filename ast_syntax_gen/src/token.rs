@@ -249,6 +249,10 @@ impl Token {
         format_ident!("{}_token", self.name.to_case(Case::Snake))
     }
 
+    pub fn enum_variant_ident(&self) -> Ident {
+        format_ident!("{}", self.name.to_case(Case::UpperCamel))
+    }
+
     pub fn build_getter(&self) -> TokenStream {
         let function_name = self.getter_name();
         let kind_ident = self.kind.build_expression();

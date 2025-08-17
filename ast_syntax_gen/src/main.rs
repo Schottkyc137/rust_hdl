@@ -1,7 +1,8 @@
 use crate::node::Model;
 use chrono::Datelike;
+use quote::quote;
 use std::error::Error;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::prelude::*;
 use std::io::BufWriter;
@@ -28,6 +29,48 @@ mod serialize;
 mod serialized_to_model;
 mod token;
 
+struct RustFile {
+    path: PathBuf,
+    inner: BufWriter<File>,
+}
+
+impl Drop for RustFile {
+    fn drop(&mut self) {
+        self.inner.flush().expect("Cannot flush file");
+        Command::new("rustfmt")
+            .arg(&self.path)
+            .spawn()
+            .expect("cannot spawn rustfmt")
+            .wait()
+            .expect("rustfmt wasn't running");
+    }
+}
+
+impl Write for RustFile {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+fn new_rust_file(name: impl Into<PathBuf>) -> io::Result<RustFile> {
+    let path = name.into().with_extension("rs");
+    let file = OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(&path)?;
+    let mut writer = BufWriter::new(file);
+    write_header(&mut writer)?;
+    Ok(RustFile {
+        inner: writer,
+        path,
+    })
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let mut syntax_definitions = std::env::current_dir()?;
 
@@ -51,22 +94,37 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     model.do_checks();
 
-    for (category, nodes) in model.into_sections() {
-        let path = PathBuf::from(format!("{category}.rs"));
-        let file = OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(&path)?;
-        let mut writer = BufWriter::new(file);
-        write_header(&mut writer)?;
+    // Generate output files
+    for (category, nodes) in model.sections() {
+        let mut rust_file = new_rust_file(category)?;
+        // Header
+        writeln!(
+            rust_file,
+            "{}",
+            quote! {
+                use super::*;
+                use crate::syntax::node::{SyntaxNode, SyntaxToken};
+                use crate::syntax::node_kind::NodeKind;
+                use crate::syntax::AstNode;
+                use crate::tokens::Keyword as Kw;
+                use crate::tokens::TokenKind::*;
+            }
+        )?;
+        writeln!(rust_file)?;
         for node in nodes {
-            writeln!(writer, "{}", node.generate_rust_struct())?;
-            writeln!(writer, "{}", node.generate_ast_node_rust_impl())?;
-            writeln!(writer, "{}", node.generate_rust_impl_getters())?;
+            writeln!(rust_file, "{}", node.generate_rust_struct())?;
+            writeln!(rust_file, "{}", node.generate_ast_node_rust_impl())?;
+            writeln!(rust_file, "{}", node.generate_rust_impl_getters())?;
         }
-        Command::new("rustfmt").arg(path).spawn()?;
     }
+
+    // Generate node_kind.rs file
+    let mut node_kinds = new_rust_file("node_kind")?;
+    writeln!(node_kinds, "{}", model.generate_node_kind_enum())?;
+
+    // Generate mod.rs file
+    let mut mod_rs = new_rust_file("mod")?;
+    writeln!(mod_rs, "{}", model.generate_mod())?;
 
     Ok(())
 }

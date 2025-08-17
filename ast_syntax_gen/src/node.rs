@@ -72,9 +72,21 @@ impl NodeRef {
         format_ident!("{}", self.name.to_case(Case::Snake))
     }
 
+    fn syntax_name(&self) -> Ident {
+        format_ident!("{}Syntax", self.kind.to_case(Case::UpperCamel))
+    }
+
+    fn enum_variant_ident(&self) -> Ident {
+        format_ident!("{}", self.kind.to_case(Case::UpperCamel))
+    }
+
+    fn node_kind_ident(&self) -> Ident {
+        format_ident!("{}", self.kind.to_case(Case::UpperCamel))
+    }
+
     pub fn build_getter(&self) -> TokenStream {
         let fn_name = self.getter_name();
-        let kind_name = format_ident!("{}Syntax", self.kind.to_string());
+        let syntax_name = self.syntax_name();
         let nth = Literal::usize_unsuffixed(self.nth);
         if self.repeated {
             assert_eq!(
@@ -82,14 +94,14 @@ impl NodeRef {
                 "node {self:?} is not at position 0 but is repeated"
             );
             quote! {
-                pub fn #fn_name(&self) -> impl Iterator<Item = #kind_name>  + use<'_> {
-                    self.0.children().filter_map(#kind_name::cast)
+                pub fn #fn_name(&self) -> impl Iterator<Item = #syntax_name>  + use<'_> {
+                    self.0.children().filter_map(#syntax_name::cast)
                 }
             }
         } else {
             quote! {
-                pub fn #fn_name(&self) -> Option<#kind_name> {
-                    self.0.children().filter_map(#kind_name::cast).nth(#nth)
+                pub fn #fn_name(&self) -> Option<#syntax_name> {
+                    self.0.children().filter_map(#syntax_name::cast).nth(#nth)
                 }
             }
         }
@@ -224,8 +236,8 @@ impl ChoiceNode {
         items
             .iter()
             .map(|item| {
-                let name = format_ident!("{}", item.name);
-                let syntax_name = format_ident!("{}", item.name);
+                let name = item.enum_variant_ident();
+                let syntax_name = item.syntax_name();
                 quote! {
                     #name(#syntax_name)
                 }
@@ -233,11 +245,11 @@ impl ChoiceNode {
             .collect()
     }
 
-    fn all_token_choices(&self, items: &[Token]) -> Vec<proc_macro2::TokenStream> {
+    fn all_token_choices(&self, items: &[Token]) -> Vec<TokenStream> {
         items
-            .into_iter()
+            .iter()
             .map(|item| {
-                let name = format_ident!("{}", item.name);
+                let name = item.enum_variant_ident();
                 quote! {
                     #name(SyntaxToken)
                 }
@@ -245,88 +257,85 @@ impl ChoiceNode {
             .collect()
     }
 
-    pub fn generate_rust_enum(&self) -> proc_macro2::TokenStream {
+    pub fn generate_rust_enum(&self) -> TokenStream {
         let name = self.enum_name();
-        let choices: TokenStream = self
-            .enum_choices()
-            .into_iter()
-            .map(|x| quote! { #x , })
-            .collect();
+        let choices = self.enum_choices();
         quote! {
             #[derive(Debug, Clone)]
             pub enum #name {
-                #choices
+                #(#choices),*
             }
         }
     }
 
     pub fn generate_ast_node_rust_impl(&self) -> TokenStream {
-        let name = self.enum_name();
+        let enum_name = self.enum_name();
         match &self.items {
             NodesOrTokens::Nodes(nodes) => {
-                let cast_branches: TokenStream = nodes.iter().map(|item| {
-                    let node_kind = format_ident!("{}", item.kind);
-                    let enum_variant = format_ident!("{}Syntax", item.kind);
+                let cast_branches: Vec<TokenStream> = nodes.iter().map(|item| {
+                    let node_kind = item.node_kind_ident();
+                    let enum_variant = item.enum_variant_ident();
+                    let syntax_name = item.syntax_name();
                     quote! {
-                    NodeKind::#node_kind => Some(#name::#enum_variant(#node_kind::cast(node).unwrap())),
-            }
+                        NodeKind::#node_kind => Some(#enum_name::#enum_variant(#syntax_name::cast(node).unwrap()))
+                    }
                 }).collect();
-                let raw_branches: TokenStream = nodes
+                let raw_branches: Vec<TokenStream> = nodes
                     .iter()
                     .map(|item| {
-                        let enum_variant = format_ident!("{}Syntax", item.kind);
+                        let enum_variant = item.enum_variant_ident();
                         quote! {
-                                #name::#enum_variant(inner) => inner.raw(),
+                                #enum_name::#enum_variant(inner) => inner.raw()
                         }
                     })
                     .collect();
                 quote! {
-                    impl AstNode for #name {
+                    impl AstNode for #enum_name {
                         fn cast(node: SyntaxNode) -> Option<Self> {
                             match node.kind() {
-                                #cast_branches
+                                #(#cast_branches ,)*
                                 _ => None,
                             }
                         }
                         fn raw(&self) -> SyntaxNode {
                              match self {
-                                #raw_branches
+                                #(#raw_branches, )*
                             }
                         }
                     }
                 }
             }
             NodesOrTokens::Tokens(tokens) => {
-                let cast_branches: TokenStream = tokens
+                let cast_branches: Vec<_> = tokens
                     .iter()
                     .map(|item| {
                         let token_kind = item.kind.build_expression();
-                        let enum_variant = format_ident!("{}", item.name);
+                        let enum_variant = item.enum_variant_ident();
                         quote! {
-                            #token_kind => Some(#name::#enum_variant(token)),
+                            #token_kind => Some(#enum_name::#enum_variant(token))
                         }
                     })
                     .collect();
-                let raw_branches: TokenStream = tokens
+                let raw_branches: Vec<_> = tokens
                     .iter()
                     .map(|item| {
-                        let enum_variant = format_ident!("{}", item.name);
+                        let enum_variant = item.enum_variant_ident();
                         quote! {
-                                #name::#enum_variant(token) => token.clone(),
+                                #enum_name::#enum_variant(token) => token.clone()
                         }
                     })
                     .collect();
                 quote! {
-                    impl #name {
+                    impl #enum_name {
                         fn cast(token: SyntaxToken) -> Option<Self> {
                             match token.kind() {
-                                #cast_branches
+                                #(#cast_branches ,)*
                                 _ => None,
                             }
                         }
                         fn raw(&self) -> SyntaxToken {
                              match self {
-                                #raw_branches
+                                #(#raw_branches ,)*
                             }
                         }
                     }
@@ -396,8 +405,8 @@ impl Model {
         self.builtins.insert(node);
     }
 
-    pub fn into_sections(self) -> HashMap<String, Vec<Node>> {
-        self.sections
+    pub fn sections(&self) -> &HashMap<String, Vec<Node>> {
+        &self.sections
     }
 
     pub fn do_checks(&self) {
@@ -455,14 +464,6 @@ impl Model {
         }
     }
 
-    fn collect_all_node_names(&self) -> HashSet<String> {
-        self.sections
-            .values()
-            .flatten()
-            .map(|node| node.name())
-            .collect()
-    }
-
     fn collect_referenced_nodes(&self) -> HashSet<String> {
         let mut referenced = HashSet::new();
         for node in self.sections.values().flatten() {
@@ -492,7 +493,7 @@ impl Model {
     }
 
     pub fn check_all_nodes_exist(&self) {
-        let mut defined = self.collect_all_node_names();
+        let mut defined = self.collect_all_node_kinds();
         defined.extend(self.builtins.clone());
         let referenced = self.collect_referenced_nodes();
 
@@ -520,6 +521,49 @@ impl Model {
                 println!("{node}");
             }
             panic!()
+        }
+    }
+
+    pub fn generate_mod(&self) -> TokenStream {
+        let sections = self
+            .sections
+            .keys()
+            .map(|section| {
+                let mod_ident = format_ident!("{}", section);
+                quote! {
+                    pub mod #mod_ident;
+                    pub use #mod_ident::*;
+                }
+            })
+            .collect::<TokenStream>();
+        quote! {
+            pub mod node_kind;
+            pub use node_kind::*;
+
+            #sections
+        }
+    }
+
+    pub fn collect_all_node_kinds(&self) -> HashSet<String> {
+        self.sections
+            .values()
+            .flatten()
+            .map(|node| node.name())
+            .collect()
+    }
+
+    pub fn generate_node_kind_enum(&self) -> TokenStream {
+        let mut choices = self
+            .collect_all_node_kinds()
+            .into_iter()
+            .map(|kind| format_ident!("{}", kind))
+            .collect::<Vec<_>>();
+        choices.sort();
+        quote! {
+            #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+            pub enum NodeKind {
+                #(#choices),*
+            }
         }
     }
 }
