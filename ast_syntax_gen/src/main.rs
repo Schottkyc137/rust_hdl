@@ -42,7 +42,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Some(extension) = path.extension() {
             if extension == "yaml" {
                 let file = std::fs::File::open(&path)?;
-                let nodes: crate::serialize::Nodes = serde_yml::from_reader(file)?;
+                let nodes: serialize::Nodes = serde_yml::from_reader(file)
+                    .map_err(|err| format!("{err} while processing {}", path.display()))?;
                 model.insert_ser_nodes(path.file_stem().unwrap().to_str().unwrap(), nodes);
             }
         }

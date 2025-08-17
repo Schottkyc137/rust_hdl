@@ -1,10 +1,10 @@
 # §9: Expression
 
-Literal: !Sequence
+Literal: !Choice
   - token: BitStringLiteral
   - token: CharacterLiteral
   - token: StringLiteral
-  - keyword: Null
+  - keyword: "Null"
 
 ParenthesizedExpressionOrAggregate: !Sequence
   - token: LeftPar
@@ -14,7 +14,7 @@ ParenthesizedExpressionOrAggregate: !Sequence
     repeated: true
   - token: RightPar
 
-UnaryOperator:
+UnaryOperator: !Choice
   - token: QueQue
   - token: Plus
   - token: Minus
@@ -32,7 +32,7 @@ UnaryExpression: !Sequence
     name: op
   - node: Expression
 
-BinaryOperator:
+BinaryOperator: !Choice
   - keyword: And
   - keyword: Or
   - keyword: Nand
@@ -84,7 +84,7 @@ SimpleExpression: !Choice
   - token: AbstractLiteral
 
 ActualParameterPart: !Alias
-  - node: AssociationList
+  node: AssociationList
 
 Aggregate: !Sequence
   - token: LeftPar
@@ -135,5 +135,5 @@ QualifiedExpression: !Sequence
 TypeConversion: !Sequence
   - node: TypeMark
   - token: LeftPar
-  - node: Exptression
+  - node: Expression
   - token: RightPar

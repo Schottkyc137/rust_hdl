@@ -12,7 +12,7 @@ AttributeName: !Sequence
   - node: Signature
   - token: RightSquare
   - token: Tick
-  - token: AttributeDesignator
+  - node: AttributeDesignator
   - token: LeftPar
   - node: Expression
   - token: RightPar
@@ -28,7 +28,7 @@ ExternalConstantName: !Sequence
   - node: ExternalPathname
   - token: Colon
   - node: SubtypeIndication
-  - token: RtRt
+  - token: GtGt
 
 ExternalSignalName: !Sequence
   - token: LtLt
@@ -36,7 +36,7 @@ ExternalSignalName: !Sequence
   - node: ExternalPathname
   - token: Colon
   - node: SubtypeIndication
-  - token: RtRt
+  - token: GtGt
 
 ExternalVariableName: !Sequence
   - token: LtLt
@@ -44,7 +44,7 @@ ExternalVariableName: !Sequence
   - node: ExternalPathname
   - token: Colon
   - node: SubtypeIndication
-  - token: RtRt
+  - token: GtGt
 
 ExternalPathname: !Choice
   - node: PackagePathname
@@ -60,14 +60,14 @@ PackagePathname: !Sequence
     repeated: true
 
 RelativePathname: !Sequence
-  - token: Cirq
+  - token: Circ
     repeated: true
   - token: Dot
     repeated: true
   - node: PartialPathname
 
 PartialPathname: !Sequence
-  - token: ParenthesizedExpressionOrAggregate
+  - node: ParenthesizedExpressionOrAggregate
     repeated: true
   - token: Dot
     repeated: true
@@ -78,5 +78,9 @@ NameList: !Sequence
     repeated: true
   - node: Comma
     repeated: true
+
+Label: !Sequence
+  - token: Identifier
+  - token: Colon
 
 # Name is a special node

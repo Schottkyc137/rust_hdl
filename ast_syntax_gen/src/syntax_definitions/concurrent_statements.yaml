@@ -11,19 +11,17 @@ BlockHeader: !Sequence
     optional: true
   - token: SemiColon
     optional: true
+    name: generic_semi_colon
   - node: PortClause
     optional: true
   - node: PortMapAspect
     optional: true
   - token: SemiColon
     optional: true
+    name: port_semi_colon
 
 BlockStatement: !Sequence
-  - token: Identifier
-    name: block_label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Block
   - node: GuardCondition
     parenthesized: true
@@ -48,19 +46,13 @@ BlockStatementPart: !Sequence
 
 CaseGenerateAlternative: !Sequence
   - keyword: When
-  - token: Identifier
-    name: alternative_label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - node: Choices
   - token: RightArrow
   - node: GenerateStatementBody
 
 CaseGenerateStatement: !Sequence
-  - token: Identifier
-    name: generate_label
-  - token: Colon
+  - node: Label
   - keyword: Case
   - node: Expression
   - keyword: Generate
@@ -68,15 +60,14 @@ CaseGenerateStatement: !Sequence
     repeated: true
   - keyword: End
   - keyword: Generate
+    name: trailing_generate
   - token: Identifier
     name: trailing_generate_label
     optional: true
   - token: SemiColon
 
 ComponentInstantiationStatement: !Sequence
-  - token: Identifier
-    name: instantiation_label
-  - token: Colon
+  - node: Label
   - node: InstantiatedUnit
   - node: GenericMapAspect
     optional: true
@@ -85,11 +76,7 @@ ComponentInstantiationStatement: !Sequence
   - token: SemiColon
 
 ConcurrentAssertionStatement: !Sequence
-  - token: Identifier
-    name: label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Postponed
     optional: true
   - node: Assertion
@@ -97,7 +84,7 @@ ConcurrentAssertionStatement: !Sequence
 
 ConcurrentConditionalSignalAssignment: !Sequence
   - node: Target
-  - token: LessEqual
+  - token: LTE
   - keyword: Guarded
     optional: true
   - node: DelayMechanism
@@ -106,11 +93,7 @@ ConcurrentConditionalSignalAssignment: !Sequence
   - token: SemiColon
 
 ConcurrentProcedureCallStatement: !Sequence
-  - token: Identifier
-    name: label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Postponed
     optional: true
   - node: ProcedureCall
@@ -120,10 +103,10 @@ ConcurrentSelectedSignalAssignment: !Sequence
   - keyword: With
   - node: Expression
   - keyword: Select
-  - token: QuestionMark
+  - token: Que
     optional: true
   - node: Target
-  - token: LessEqual
+  - token: LTE
   - keyword: Guarded
     optional: true
   - node: DelayMechanism
@@ -137,18 +120,14 @@ ConcurrentSignalAssignmentChoice: !Choice
   - node: ConcurrentSelectedSignalAssignment
 
 ConcurrentSignalAssignmentStatement: !Sequence
-  - token: Identifier
-    name: label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Postponed
     optional: true
   - node: ConcurrentSignalAssignmentChoice
 
 ConcurrentSimpleSignalAssignment: !Sequence
   - node: Target
-  - token: LessEqual
+  - token: LTE
   - keyword: Guarded
     optional: true
   - node: DelayMechanism
@@ -167,15 +146,14 @@ ConcurrentStatement: !Choice
   - node: PSL_PSL_Directive
 
 ForGenerateStatement: !Sequence
-  - token: Identifier
-    name: generate_label
-  - token: Colon
+  - node: Label
   - keyword: For
   - node: GenerateParameterSpecification
   - keyword: Generate
   - node: GenerateStatementBody
   - keyword: End
   - keyword: Generate
+    name: trailing_generate_token
   - token: Identifier
     name: trailing_generate_label
     optional: true
@@ -201,40 +179,30 @@ GenerateStatementBody: !Sequence
   - token: SemiColon
     optional: true
 
+IfGenerateIf: !Sequence
+  - keyword: If
+  - node: Label
+  - node: Expression
+    name: condition
+  - keyword: Generate
+  - node: GenerateStatementBody
+
 IfGenerateElsif: !Sequence
   - keyword: Elsif
-  - token: Identifier
-    name: alternative_label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - node: Condition
   - keyword: Generate
   - node: GenerateStatementBody
 
 IfGenerateElse: !Sequence
   - keyword: Else
-  - token: Identifier
-    name: alternative_label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Generate
   - node: GenerateStatementBody
 
 IfGenerateStatement: !Sequence
-  - token: Identifier
-    name: generate_label
-  - token: Colon
-  - keyword: If
-  - token: Identifier
-    name: alternative_label
-    optional: true
-  - token: Colon
-    optional: true
-  - node: Condition
-  - keyword: Generate
-  - node: GenerateStatementBody
+  - node: Label
+  - node: IfGenerateIf
   - node: IfGenerateElsif
     repeated: true
   - node: IfGenerateElse
@@ -281,11 +249,7 @@ ProcessSensitivityList: !Choice
   - node: SensitivityList
 
 ProcessStatement: !Sequence
-  - token: Identifier
-    name: process_label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Postponed
     optional: true
   - keyword: Process
@@ -300,7 +264,9 @@ ProcessStatement: !Sequence
   - keyword: End
   - keyword: Postponed
     optional: true
+    name: trailing_postponed
   - keyword: Process
+    name: trailing_process
   - token: Identifier
     name: trailing_process_label
     optional: true

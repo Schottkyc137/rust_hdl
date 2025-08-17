@@ -26,17 +26,13 @@ ContextItem: !Choice
 
 ContextReference: !Sequence
   - keyword: Context
-  - node: SelectedName
+  - node: Name
+    repeated: true
   - token: Comma
     repeated: true
-    optional: true
-  - node: SelectedName
-    repeated: true
-    optional: true
   - token: SemiColon
 
 DesignFile: !Sequence
-  - node: DesignUnit
   - node: DesignUnit
     repeated: true
 
@@ -58,9 +54,8 @@ LogicalName: !Alias
 
 LogicalNameList: !Sequence
   - node: LogicalName
-  - token: Comma
     repeated: true
-  - node: LogicalName
+  - token: Comma
     repeated: true
 
 PrimaryUnit: !Choice
