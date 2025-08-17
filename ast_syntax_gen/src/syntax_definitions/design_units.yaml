@@ -49,11 +49,8 @@ LibraryUnit: !Choice
   - node: PrimaryUnit
   - node: SecondaryUnit
 
-LogicalName: !Alias
-  token: Identifier
-
 LogicalNameList: !Sequence
-  - node: LogicalName
+  - token: Identifier
     repeated: true
   - token: Comma
     repeated: true
@@ -69,6 +66,3 @@ PrimaryUnit: !Choice
 SecondaryUnit: !Choice
   - node: ArchitectureBody
   - node: PackageBody
-
-SelectedName: !Alias
-  node: Name

@@ -63,9 +63,6 @@ AliasDesignator: !Choice
   - token: CharacterLiteral
   - token: StringLiteral
 
-ArrayElementResolution: !Alias
-  node: ResolutionIndication
-
 AssociationElement: !Sequence
   - node: FormalPart
     optional: true
@@ -83,7 +80,7 @@ AttributeDeclaration: !Sequence
   - keyword: Attribute
   - token: Identifier
   - token: Colon
-  - node: TypeMark
+  - node: Name
   - token: SemiColon
 
 ComponentDeclaration: !Sequence
@@ -125,7 +122,7 @@ ElementConstraint: !Choice
   - node: RecordConstraint
 
 ElementResolution: !Choice
-  - node: ArrayElementResolution
+  - node: ResolutionIndication
   - node: RecordResolution
 
 EntityClassEntry: !Sequence
@@ -147,21 +144,17 @@ FileDeclaration: !Sequence
   - node: FileOpenInformation
   - token: SemiColon
 
-FileLogicalName: !Alias
-  node: Expression
-
 FileOpenInformation: !Sequence
   - keyword: Open
   - node: Expression
+    name: file_open_kind
   - keyword: Is
-  - node: FileLogicalName
-
-FormalDesignator: !Alias
-  node: Name
+  - node: Expression
+    name: file_logical_name
 
 FormalPart: !Sequence
   - node: Name
-  - node: FormalDesignator
+  - node: Name
     parenthesized: true
 
 FullTypeDeclaration: !Sequence
@@ -174,12 +167,9 @@ FullTypeDeclaration: !Sequence
 GenericClause: !Sequence
   - keyword: Generic
   - token: LeftPar
-  - node: GenericList
+  - node: InterfaceList
   - token: RightPar
   - token: SemiColon
-
-GenericList: !Alias
-  node: InterfaceList
 
 GenericMapAspect: !Sequence
   - keyword: Generic
@@ -188,11 +178,8 @@ GenericMapAspect: !Sequence
   - node: AssociationList
   - token: RightPar
 
-GroupConstituent: !Alias
-  node: Name
-
 GroupConstituentList: !Sequence
-  - node: GroupConstituent
+  - node: Name
     repeated: true
   - token: Comma
     repeated: true
@@ -227,12 +214,9 @@ InterfaceConstantDeclaration: !Sequence
 
 InterfaceDeclaration: !Choice
   - node: InterfaceObjectDeclaration
-  - node: InterfaceTypeDeclaration
+  - node: InterfaceIncompleteTypeDeclaration
   - node: InterfaceSubprogramDeclaration
   - node: InterfacePackageDeclaration
-
-InterfaceElement: !Alias
-  node: InterfaceDeclaration
 
 InterfaceFileDeclaration: !Sequence
   - keyword: File
@@ -248,7 +232,7 @@ InterfaceFunctionSpecification: !Sequence
   - token: LeftPar
   - node: InterfaceList
   - keyword: Return
-  - node: TypeMark
+  - node: Name
 
 InterfaceIncompleteTypeDeclaration: !Sequence
   - keyword: Type
@@ -256,7 +240,7 @@ InterfaceIncompleteTypeDeclaration: !Sequence
   - token: SemiColon
 
 InterfaceList: !Sequence
-  - node: InterfaceElement
+  - node: InterfaceDeclaration
     repeated: true
   - token: SemiColon
     repeated: true
@@ -334,9 +318,6 @@ InterfaceSubprogramSpecification: !Choice
   - node: InterfaceProcedureSpecification
   - node: InterfaceFunctionSpecification
 
-InterfaceTypeDeclaration: !Alias
-  node: InterfaceIncompleteTypeDeclaration
-
 InterfaceVariableDeclaration: !Sequence
   - keyword: Variable
     optional: true
@@ -368,17 +349,14 @@ ObjectDeclaration: !Choice
 PortClause: !Sequence
   - keyword: Port
   - token: LeftPar
-  - node: PortList
+  - node: InterfaceList
   - token: RightPar
   - token: SemiColon
-
-PortList: !Alias
-  node: InterfaceList
 
 PortMapAspect: !Sequence
   - keyword: Port
   - keyword: Map
-  - node: PortList
+  - node: InterfaceList
   - node: AssociationList
   - token: SemiColon
 
@@ -424,7 +402,7 @@ SubtypeDeclaration: !Sequence
 
 SubtypeIndication: !Sequence
   - node: ResolutionIndication
-  - node: TypeMark
+  - node: Name
   - node: Constraint
 
 TypeDeclaration: !Choice
@@ -437,9 +415,6 @@ TypeDefinition: !Choice
   - node: AccessTypeDefinition
   - node: FileTypeDefinition
   - node: ProtectedTypeDefinition
-
-TypeMark: !Alias
-  node: Name
 
 VariableDeclaration: !Sequence
   - keyword: Variable

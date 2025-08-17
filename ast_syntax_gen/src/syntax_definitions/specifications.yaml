@@ -2,7 +2,8 @@
 
 AttributeSpecification: !Sequence
   - keyword: Attribute
-  - node: AttributeDesignator
+  - token: Identifier
+    name: attribute_designator_token
   - keyword: Of
   - node: EntitySpecification
   - keyword: Is
@@ -128,7 +129,7 @@ EntityTag: !Choice
 GuardedSignalSpecification: !Sequence
   - node: SignalList
   - token: Colon
-  - node: TypeMark
+  - node: Name
 
 InstantiationListList: !Sequence
   - token: Identifier

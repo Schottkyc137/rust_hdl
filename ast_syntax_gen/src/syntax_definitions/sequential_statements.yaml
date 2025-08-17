@@ -55,12 +55,9 @@ CaseStatement: !Sequence
     optional: true
   - token: SemiColon
 
-Condition: !Alias
-  node: Expression
-
 ConditionClause: !Sequence
   - keyword: Until
-  - node: Condition
+  - node: Expression
 
 ConditionalWhenExpression: !Sequence
   - node: Expression
@@ -162,7 +159,7 @@ ExitStatement: !Sequence
     optional: true
   - keyword: When
     optional: true
-  - node: Condition
+  - node: Expression
     optional: true
   - token: SemiColon
 
@@ -172,7 +169,7 @@ ForceMode: !Choice
 
 IfStatementElsif: !Sequence
   - keyword: Elsif
-  - node: Condition
+  - node: Expression
   - keyword: Then
   - node: SequentialStatements
 
@@ -187,7 +184,7 @@ IfStatement: !Sequence
   - token: Colon
     optional: true
   - keyword: If
-  - node: Condition
+  - node: Expression
   - keyword: Then
   - node: SequentialStatements
   - node: IfStatementElsif
@@ -204,7 +201,7 @@ IfStatement: !Sequence
 
 WhileIterationScheme: !Sequence
   - keyword: While
-  - node: Condition
+  - node: Expression
 
 ForIterationScheme: !Sequence
   - keyword: For
@@ -236,7 +233,7 @@ NextStatement: !Sequence
     optional: true
   - keyword: When
     optional: true
-  - node: Condition
+  - node: Expression
     optional: true
   - token: SemiColon
 
@@ -254,7 +251,7 @@ ProcedureCall: !Sequence
   - node: Name
   - token: LeftPar
     optional: true
-  - node: ActualParameterPart
+  - node: AssociationList
     optional: true
   - token: RightPar
     optional: true
@@ -351,10 +348,7 @@ SelectedWaveformAssignment: !Sequence
 
 SensitivityClause: !Sequence
   - keyword: On
-  - node: SensitivityList
-
-SensitivityList: !Alias
-  node: NameList
+  - node: NameList
 
 SequentialStatements: !Sequence
   - node: SequentialStatement

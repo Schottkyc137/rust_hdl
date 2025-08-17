@@ -23,7 +23,7 @@ FunctionSpecification: !Sequence
   - node: SubprogramHeader
   - node: ParameterList
   - keyword: Return
-  - node: TypeMark
+  - node: Name
 
 ParameterList: !Sequence
   - keyword: Parameter
@@ -127,10 +127,10 @@ PackageInstantiationDeclaration: !Sequence
 
 Signature: !Sequence
   - token: LeftSquare
-  - node: TypeMark
+  - node: Name
     repeated: True
     separator: Comma
   - keyword: Return
-  - node: TypeMark
+  - node: Name
     name: return_type
   - token: RightSquare

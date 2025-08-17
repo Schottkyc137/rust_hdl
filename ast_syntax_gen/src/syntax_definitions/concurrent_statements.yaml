@@ -187,7 +187,7 @@ IfGenerateIf: !Sequence
 IfGenerateElsif: !Sequence
   - keyword: Elsif
   - node: Label
-  - node: Condition
+  - node: Expression
   - keyword: Generate
   - node: GenerateStatementBody
 
@@ -235,15 +235,12 @@ ConfigurationInstantiatedUnit: !Sequence
   - keyword: Configuration
   - node: Name
 
-Label: !Alias
-  token: Identifier
-
 AllSensitivityList: !Sequence
   - keyword: All
 
 ProcessSensitivityList: !Choice
   - node: AllSensitivityList
-  - node: SensitivityList
+  - node: NameList
 
 ProcessStatement: !Sequence
   - node: Label

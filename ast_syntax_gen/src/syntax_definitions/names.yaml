@@ -4,15 +4,13 @@ AbsolutePathname: !Sequence
   - token: Dot
   - node: PartialPathname
 
-AttributeDesignator: !Alias
-  token: Identifier
-
 AttributeName: !Sequence
   - token: LeftSquare
   - node: Signature
   - token: RightSquare
   - token: Tick
-  - node: AttributeDesignator
+  - token: Identifier
+    name: attribute_designator_token
   - token: LeftPar
   - node: Expression
   - token: RightPar

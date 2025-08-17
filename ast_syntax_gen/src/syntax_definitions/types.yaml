@@ -6,10 +6,7 @@ AccessTypeDefinition: !Sequence
 
 ArrayConstraint: !Sequence
   - node: IndexConstraint
-  - node: ArrayElementConstraint
-
-ArrayElementConstraint: !Alias
-  node: ElementConstraint
+  - node: ElementConstraint
 
 ArrayTypeDefinition: !Choice
   - node: UnboundedArrayDefinition
@@ -40,11 +37,8 @@ OpenRange: !Sequence
 ElementDeclaration: !Sequence
   - node: IdentifierList
   - token: Colon
-  - node: ElementSubtypeDefinition
+  - node: SubtypeIndication
   - token: SemiColon
-
-ElementSubtypeDefinition: !Alias
-  node: SubtypeIndication
 
 EnumerationTypeDefinition: !Sequence
   - token: LeftPar
@@ -57,10 +51,7 @@ EnumerationTypeDefinition: !Sequence
 FileTypeDefinition: !Sequence
   - keyword: File
   - keyword: Of
-  - node: TypeMark
-
-FloatingTypeDefinition: !Alias
-  node: RangeConstraint
+  - node: Name
 
 IdentifierList: !Sequence
   - token: Identifier
@@ -72,12 +63,9 @@ IncompleteTypeDeclaration: !Sequence
   - token: SemiColon
 
 IndexSubtypeDefinition: !Sequence
-  - node: TypeMark
+  - node: Name
   - keyword: Range
   - token: BOX
-
-IntegerTypeDefinition: !Alias
-  node: RangeConstraint
 
 PhysicalLiteral: !Sequence
   - token: AbstractLiteral
@@ -163,8 +151,7 @@ RecordTypeDefinition: !Sequence
 
 ScalarTypeDefinition: !Choice
   - node: EnumerationTypeDefinition
-  - node: IntegerTypeDefinition
-  - node: FloatingTypeDefinition
+  - node: RangeConstraint
   - node: PhysicalTypeDefinition
 
 SecondaryUnitDeclaration: !Sequence
