@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::node::{AliasNode, ChoiceNode, Model, Node, NodeRef, SequenceNode, TokenOrNode};
+use crate::node::{ChoiceNode, Model, Node, NodeRef, SequenceNode, TokenOrNode};
 use crate::serialize::{NodeContents, NodeOrToken};
 use crate::token::{Keyword, Token, TokenKind};
 
@@ -21,7 +21,6 @@ impl Model {
                 self.insert_ser_seq(category, node.name, seq);
             }
             NodeContents::Choice(choice) => self.insert_ser_choice(category, node.name, choice),
-            NodeContents::Alias(alias) => self.insert_alias(category, node.name, alias),
             NodeContents::Builtin => self.push_builtin(node.name),
         }
     }
@@ -217,10 +216,5 @@ impl Model {
             panic!("Heterogeneous Tokens / Nodes not allowed (node {name})");
         };
         self.push_node(category.to_owned(), node);
-    }
-
-    pub fn insert_alias(&mut self, category: &str, name: String, node_or_token: NodeOrToken) {
-        let item = self.ser_token_or_node_to_node_or_token(category, &[], node_or_token);
-        self.push_node(category.to_owned(), Node::Alias(AliasNode { name, item }))
     }
 }

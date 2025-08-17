@@ -80,7 +80,6 @@ impl<'de> Deserialize<'de> for Nodes {
 pub enum NodeContents {
     Sequence(Vec<NodeOrToken>),
     Choice(Vec<NodeOrToken>),
-    Alias(NodeOrToken),
     Builtin,
 }
 
@@ -206,23 +205,4 @@ ArchitectureBody: !Sequence
     .unwrap();
 
     println!("{deserialized:?}")
-}
-
-#[test]
-fn alias() {
-    let deserialized: Nodes = serde_yml::from_str(
-        "\
-Foo: !Alias
-  node: Bar
-    ",
-    )
-    .unwrap();
-
-    assert_eq!(
-        deserialized,
-        Nodes(vec![Node::new(
-            "Foo",
-            NodeContents::Alias(NodeOrToken::Node(NodeRef::from("Bar".to_string())))
-        )])
-    );
 }
