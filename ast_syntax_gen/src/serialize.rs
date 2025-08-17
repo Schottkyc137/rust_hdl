@@ -81,6 +81,7 @@ pub enum NodeContents {
     Sequence(Vec<NodeOrToken>),
     Choice(Vec<NodeOrToken>),
     Alias(NodeOrToken),
+    Builtin,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]

@@ -8,9 +8,9 @@ ArchitectureBody: !Sequence
   - node: Name
     name: entity_name
   - keyword: Is
-  - node: DeclarativePart
+  - node: Declarations
   - keyword: Begin
-  - node: StatementPart
+  - node: ConcurrentStatements
   - keyword: End
   - keyword: Architecture
     name: trailing_architecture
@@ -38,14 +38,13 @@ BlockSpecification: !Sequence
 GenerateSpecification: !Choice
   - node: DiscreteRange
   - node: Expression
-  - node: Identifier
 
 ComponentConfiguration: !Sequence
   - keyword: For
   - node: ComponentSpecification
   - node: BindingIndication
     terminated: SemiColon
-  - node: VUnitBindingIndication
+  - node: VerificationUnitBindingIndication
     terminated: SemiColon
     repeated: true
   - node: BlockConfiguration
@@ -62,8 +61,8 @@ ConfigurationDeclaration: !Sequence
   - node: Name
     name: entity_name
   - keyword: Is
-  - node: DeclarativePart
-  - node: VUnitBindingIndication
+  - node: Declarations
+  - node: VerificationUnitBindingIndication
     terminated: SemiColon
     repeated: true
   - node: BlockConfiguration
@@ -84,9 +83,9 @@ EntityDeclaration: !Sequence
     name: name
   - keyword: Is
   - node: EntityHeader
-  - node: DeclarativePart
+  - node: Declarations
   - keyword: Begin
-  - node: StatementPart
+  - node: ConcurrentStatements
   - keyword: End
   - keyword: Entity
     name: trailing_entity

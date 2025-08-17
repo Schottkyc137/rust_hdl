@@ -1,5 +1,33 @@
 # §6: Declarations
 
+Declaration: !Choice
+  - node: SubprogramDeclaration
+  - node: SubprogramBody
+  - node: SubprogramInstantiationDeclaration
+  - node: PackageDeclaration
+  - node: PackageBody
+  - node: PackageInstantiationDeclaration
+  - node: TypeDeclaration
+  - node: SubtypeDeclaration
+  - node: FileDeclaration
+  - node: AliasDeclaration
+  - node: ComponentDeclaration
+  - node: AttributeDeclaration
+  - node: AttributeSpecification
+  - node: ConfigurationSpecification
+  - node: DisconnectionSpecification
+  - node: UseClause
+  - node: GroupTemplateDeclaration
+  - node: GroupDeclaration
+  - node: ObjectDeclaration
+  - node: PSL_Property_Declaration
+  - node: PSL_Sequence_Declaration
+  - node: PSL_Clock_Declaration
+
+Declarations: !Sequence
+  - node: Declaration
+    repeated: true
+
 InertialExpression: !Sequence
   - keyword: Inertial
     optional: true
@@ -106,7 +134,7 @@ EntityClassEntry: !Sequence
     optional: true
 
 EntityClassEntryList: !Sequence
-  - node: EntityClass
+  - node: EntityClassEntry
     repeated: true
   - token: Comma
     repeated: true
@@ -151,13 +179,13 @@ GenericClause: !Sequence
   - token: SemiColon
 
 GenericList: !Alias
-  node: GenericInterfaceList
+  node: InterfaceList
 
 GenericMapAspect: !Sequence
   - keyword: Generic
   - keyword: Map
   - token: LeftPar
-  - node: GenericAssociationList
+  - node: AssociationList
   - token: RightPar
 
 GroupConstituent: !Alias
@@ -218,7 +246,7 @@ InterfaceFunctionSpecification: !Sequence
   - node: Designator
   - keyword: Parameter
   - token: LeftPar
-  - node: FormalParameterList
+  - node: InterfaceList
   - keyword: Return
   - node: TypeMark
 
@@ -244,7 +272,7 @@ InterfacePackageDeclaration: !Sequence
   - token: Identifier
   - keyword: Is
   - keyword: New
-  - node: UninstantiatedPackageName
+  - node: Name
   - node: InterfacePackageGenericMapAspect
   - token: SemiColon
 
@@ -271,7 +299,7 @@ InterfaceProcedureSpecification: !Sequence
   - node: Designator
   - keyword: Parameter
   - token: LeftPar
-  - node: FormalParameterList
+  - node: InterfaceList
   - token: RightPar
 
 InterfaceSignalDeclaration: !Sequence
@@ -286,7 +314,7 @@ InterfaceSignalDeclaration: !Sequence
     optional: true
   - token: ColonEq
     optional: true
-  - node: StaticExpression
+  - node: Expression
     optional: true
   - token: SemiColon
 
@@ -334,6 +362,7 @@ ObjectDeclaration: !Choice
   - node: ConstantDeclaration
   - node: SignalDeclaration
   - node: VariableDeclaration
+  - node: SharedVariableDeclaration
   - node: FileDeclaration
 
 PortClause: !Sequence
@@ -404,6 +433,7 @@ TypeDeclaration: !Choice
 
 TypeDefinition: !Choice
   - node: ScalarTypeDefinition
+  - node: CompositeTypeDefinition
   - node: AccessTypeDefinition
   - node: FileTypeDefinition
   - node: ProtectedTypeDefinition
@@ -412,8 +442,18 @@ TypeMark: !Alias
   node: Name
 
 VariableDeclaration: !Sequence
-  - keyword: Shared
+  - keyword: Variable
+  - node: IdentifierList
+  - token: Colon
+  - node: SubtypeIndication
+  - token: ColonEq
     optional: true
+  - node: Expression
+    optional: true
+  - token: SemiColon
+
+SharedVariableDeclaration: !Sequence
+  - keyword: Shared
   - keyword: Variable
   - node: IdentifierList
   - token: Colon

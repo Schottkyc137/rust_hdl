@@ -28,7 +28,7 @@ CaseStatementAlternative: !Sequence
   - keyword: When
   - node: Choices
   - token: RightArrow
-  - node: SequenceOfStatements
+  - node: SequentialStatements
 
 CaseStatement: !Sequence
   - token: Identifier
@@ -112,11 +112,6 @@ ConditionalWaveformAssignment: !Sequence
   - node: ConditionalWaveforms
   - token: SemiColon
 
-ConditionalWaveformItem: !Sequence
-  - node: Waveform
-  - keyword: When
-  - node: Condition
-
 ConditionalWaveformWhenExpression: !Sequence
   - node: Waveform
   - keyword: When
@@ -146,7 +141,7 @@ TransportDelayMechanism: !Sequence
 InertialDelayMechanism: !Sequence
   - keyword: Reject
     optional: true
-  - node: TimeExpression
+  - node: Expression
     optional: true
   - keyword: Inertial
 
@@ -179,11 +174,11 @@ IfStatementElsif: !Sequence
   - keyword: Elsif
   - node: Condition
   - keyword: Then
-  - node: SequenceOfStatements
+  - node: SequentialStatements
 
 IfStatementElse: !Sequence
   - keyword: Else
-  - node: SequenceOfStatements
+  - node: SequentialStatements
 
 IfStatement: !Sequence
   - token: Identifier
@@ -194,7 +189,7 @@ IfStatement: !Sequence
   - keyword: If
   - node: Condition
   - keyword: Then
-  - node: SequenceOfStatements
+  - node: SequentialStatements
   - node: IfStatementElsif
     repeated: true
   - node: IfStatementElse
@@ -213,7 +208,7 @@ WhileIterationScheme: !Sequence
 
 ForIterationScheme: !Sequence
   - keyword: For
-  - node: LoopParameterSpecification
+  - node: ParameterSpecification
 
 IterationScheme: !Choice
   - node: WhileIterationScheme
@@ -224,7 +219,7 @@ LoopStatement: !Sequence
   - node: IterationScheme
     optional: true
   - keyword: Loop
-  - node: SequenceOfStatements
+  - node: SequentialStatements
   - keyword: End
   - keyword: Loop
     name: trailing_loop_token
@@ -245,14 +240,10 @@ NextStatement: !Sequence
     optional: true
   - token: SemiColon
 
-# NullStatement: !Sequence
-#   - token: Identifier
-#     name: label
-#     optional: true
-#   - token: Colon
-#     optional: true
-#   - keyword: Null
-#   - token: SemiColon
+NullStatement: !Sequence
+  - node: Label
+  - keyword: "Null"
+  - token: SemiColon
 
 ParameterSpecification: !Sequence
   - token: Identifier
@@ -260,7 +251,7 @@ ParameterSpecification: !Sequence
   - node: DiscreteRange
 
 ProcedureCall: !Sequence
-  - node: ProcedureName
+  - node: Name
   - token: LeftPar
     optional: true
   - node: ActualParameterPart
@@ -365,7 +356,7 @@ SensitivityClause: !Sequence
 SensitivityList: !Alias
   node: NameList
 
-SequenceOfStatements: !Sequence
+SequentialStatements: !Sequence
   - node: SequentialStatement
     repeated: true
 
@@ -435,7 +426,7 @@ Target: !Choice
 
 TimeoutClause: !Sequence
   - keyword: For
-  - node: TimeExpression
+  - node: Expression
 
 VariableAssignmentStatement: !Choice
   - node: SimpleVariableAssignment
@@ -469,7 +460,7 @@ WaveformElements: !Sequence
   - token: Comma
     repeated: true
 
-UnaffectedWaveformElements: !Sequence
+UnaffectedWaveform: !Sequence
   - keyword: Unaffected
 
 Waveform: !Choice

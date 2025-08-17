@@ -76,11 +76,44 @@ PartialPathname: !Sequence
 NameList: !Sequence
   - node: Name
     repeated: true
-  - node: Comma
+  - token: Comma
     repeated: true
 
 Label: !Sequence
   - token: Identifier
   - token: Colon
 
-# Name is a special node
+Designator: !Choice
+  - token: Identifier
+  - token: StringLiteral
+
+NameDesignator: !Choice
+  - token: Identifier
+  - token: StringLiteral
+  - token: CharacterLiteral
+
+Name: !Sequence
+  - node: NamePrefix
+  - node: NameTail
+    repeated: true
+
+NamePrefix: !Choice
+  - node: ExternalName
+  - node: NameDesignator
+
+Suffix: !Choice
+  - token: Identifier
+  - token: StringLiteral
+  - token: CharacterLiteral
+  - keyword: All
+
+SelectedName: !Sequence
+  - token: Dot
+  - node: Suffix
+
+NameTail: !Choice
+  - node: SelectedName
+  - node: RawTokens
+  - node: AttributeName
+
+RawTokens: !Builtin

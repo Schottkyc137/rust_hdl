@@ -1,9 +1,5 @@
 # § 11: Concurrent Statements
 
-BlockDeclarativePart: !Sequence
-  - node: BlockDeclarativeItem
-    repeated: true
-
 BlockHeader: !Sequence
   - node: GenericClause
     optional: true
@@ -23,15 +19,16 @@ BlockHeader: !Sequence
 BlockStatement: !Sequence
   - node: Label
   - keyword: Block
-  - node: GuardCondition
+  - node: Expression
     parenthesized: true
     optional: true
+    name: condition
   - keyword: Is
     optional: true
   - node: BlockHeader
-  - node: BlockDeclarativePart
+  - node: Declarations
   - keyword: Begin
-  - node: BlockStatementPart
+  - node: ConcurrentStatements
   - keyword: End
   - keyword: Block
     name: trailing_block
@@ -40,7 +37,7 @@ BlockStatement: !Sequence
     optional: true
   - token: SemiColon
 
-BlockStatementPart: !Sequence
+ConcurrentStatements: !Sequence
   - node: ConcurrentStatement
     repeated: true
 
@@ -148,7 +145,7 @@ ConcurrentStatement: !Choice
 ForGenerateStatement: !Sequence
   - node: Label
   - keyword: For
-  - node: GenerateParameterSpecification
+  - node: ParameterSpecification
   - keyword: Generate
   - node: GenerateStatementBody
   - keyword: End
@@ -165,7 +162,7 @@ GenerateStatement: !Choice
   - node: CaseGenerateStatement
 
 GenerateStatementBody: !Sequence
-  - node: BlockDeclarativePart
+  - node: Declarations
     optional: true
   - keyword: Begin
     optional: true
@@ -222,24 +219,24 @@ InstantiatedUnit: !Choice
 ComponentInstantiatedUnit: !Sequence
   - keyword: Component
     optional: true
-  - node: ComponentName
+  - node: Name
 
 EntityInstantiatedUnit: !Sequence
   - keyword: Entity
-  - node: EntityName
+  - node: Name
   - token: LeftPar
     optional: true
-  - node: ArchitectureIdentifier
+  - token: Identifier
     optional: true
   - token: RightPar
     optional: true
 
 ConfigurationInstantiatedUnit: !Sequence
   - keyword: Configuration
-  - node: ConfigurationName
+  - node: Name
 
 Label: !Alias
-  node: Identifier
+  token: Identifier
 
 AllSensitivityList: !Sequence
   - keyword: All
@@ -258,9 +255,9 @@ ProcessStatement: !Sequence
     optional: true
   - keyword: Is
     optional: true
-  - node: DeclarativePart
+  - node: Declarations
   - keyword: Begin
-  - node: StatementPart
+  - node: ConcurrentStatements
   - keyword: End
   - keyword: Postponed
     optional: true

@@ -23,14 +23,14 @@ ConstrainedArrayDefinition: !Sequence
   - keyword: Array
   - node: IndexConstraint
   - keyword: Of
-  - node: ElementSubtypeIndication
+  - node: SubtypeIndication
 
 Direction: !Choice
   - keyword: To
   - keyword: Downto
 
 DiscreteRange: !Choice
-  - node: DiscreteSubtypeIndication
+  - node: SubtypeIndication
   - node: Range
   - node: OpenRange
 
@@ -45,10 +45,6 @@ ElementDeclaration: !Sequence
 
 ElementSubtypeDefinition: !Alias
   node: SubtypeIndication
-
-EnumerationLiteral: !Choice
-  - token: Identifier
-  - token: CharacterLiteral
 
 EnumerationTypeDefinition: !Sequence
   - token: LeftPar
@@ -67,7 +63,7 @@ FloatingTypeDefinition: !Alias
   node: RangeConstraint
 
 IdentifierList: !Sequence
-  - node: Identifier
+  - token: Identifier
   - token: Comma
 
 IncompleteTypeDeclaration: !Sequence
@@ -84,8 +80,8 @@ IntegerTypeDefinition: !Alias
   node: RangeConstraint
 
 PhysicalLiteral: !Sequence
-  - node: AbstractLiteral
-  - node: UnitName
+  - token: AbstractLiteral
+  - node: Name
 
 PhysicalTypeDefinition: !Sequence
   - node: RangeConstraint
@@ -106,7 +102,7 @@ PrimaryUnitDeclaration: !Sequence
 ProtectedTypeBody: !Sequence
   - keyword: Protected
   - keyword: Body
-  - node: DeclarativePart
+  - node: Declarations
   - keyword: End
   - keyword: Protected
     name: trailing_protected
@@ -117,7 +113,7 @@ ProtectedTypeBody: !Sequence
 
 ProtectedTypeDeclaration: !Sequence
   - keyword: Protected
-  - node: DeclarativePart
+  - node: Declarations
   - keyword: End
   - keyword: Protected
     name: trailing_protected
@@ -162,7 +158,7 @@ RecordTypeDefinition: !Sequence
   - keyword: End
   - keyword: Record
     name: trailing_record
-  - node: Identifier
+  - token: Identifier
     name: trailing_name
 
 ScalarTypeDefinition: !Choice
@@ -176,3 +172,25 @@ SecondaryUnitDeclaration: !Sequence
   - token: EQ
   - node: PhysicalLiteral
   - token: SemiColon
+
+IndexConstraint: !Sequence
+  - token: LeftPar
+  - node: DiscreteRange
+    repeated: true
+  - token: Comma
+    repeated: true
+  - token: RightPar
+
+IndexSubtypeDefinitionList: !Sequence
+  - node: IndexSubtypeDefinition
+    repeated: true
+  - token: Comma
+    repeated: true
+
+UnboundedArrayDefinition: !Sequence
+  - keyword: Array
+  - token: LeftPar
+  - node: IndexSubtypeDefinitionList
+  - token: RightPar
+  - keyword: Of
+  - node: SubtypeIndication

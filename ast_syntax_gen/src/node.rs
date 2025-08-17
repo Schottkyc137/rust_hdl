@@ -384,6 +384,7 @@ impl Node {
 #[derive(Debug, Default)]
 pub struct Model {
     sections: HashMap<String, Vec<Node>>,
+    builtins: HashSet<String>,
 }
 
 impl Model {
@@ -391,8 +392,17 @@ impl Model {
         self.sections.entry(section).or_default().push(node.into())
     }
 
+    pub fn push_builtin(&mut self, node: String) {
+        self.builtins.insert(node);
+    }
+
     pub fn into_sections(self) -> HashMap<String, Vec<Node>> {
         self.sections
+    }
+
+    pub fn do_checks(&self) {
+        self.check_no_duplicates();
+        self.check_all_nodes_exist();
     }
 
     pub fn check_no_duplicates(&self) {
@@ -442,6 +452,74 @@ impl Model {
                     Node::Alias(_) => {}
                 }
             }
+        }
+    }
+
+    fn collect_all_node_names(&self) -> HashSet<String> {
+        self.sections
+            .values()
+            .flatten()
+            .map(|node| node.name())
+            .collect()
+    }
+
+    fn collect_referenced_nodes(&self) -> HashSet<String> {
+        let mut referenced = HashSet::new();
+        for node in self.sections.values().flatten() {
+            match node {
+                Node::Items(seq_node) => {
+                    for item in &seq_node.items {
+                        if let TokenOrNode::Node(node_ref) = item {
+                            referenced.insert(node_ref.kind.clone());
+                        }
+                    }
+                }
+                Node::Choices(choices_node) => {
+                    if let NodesOrTokens::Nodes(nodes) = &choices_node.items {
+                        for node_ref in nodes {
+                            referenced.insert(node_ref.kind.clone());
+                        }
+                    }
+                }
+                Node::Alias(alias_node) => {
+                    if let TokenOrNode::Node(node_ref) = &alias_node.item {
+                        referenced.insert(node_ref.kind.clone());
+                    }
+                }
+            }
+        }
+        referenced
+    }
+
+    pub fn check_all_nodes_exist(&self) {
+        let mut defined = self.collect_all_node_names();
+        defined.extend(self.builtins.clone());
+        let referenced = self.collect_referenced_nodes();
+
+        let referenced_not_defined: Vec<_> = referenced.difference(&defined).to_owned().collect();
+        if !referenced_not_defined.is_empty() {
+            println!("The following nodes are referenced, but not defined:");
+            for node in referenced_not_defined {
+                println!("{node}");
+            }
+            panic!()
+        }
+
+        let mut defined_not_referenced: HashSet<_> =
+            defined.difference(&referenced).to_owned().collect();
+        let top_node = "DesignFile".to_owned();
+        // The top node should not be referenced
+        assert!(
+            defined_not_referenced.contains(&top_node),
+            "'DesignFile' is not the top node (was referenced by some other production)"
+        );
+        defined_not_referenced.remove(&"DesignFile".to_owned());
+        if !defined_not_referenced.is_empty() {
+            println!("The following nodes are defined, but never referenced:");
+            for node in defined_not_referenced {
+                println!("{node}");
+            }
+            panic!()
         }
     }
 }

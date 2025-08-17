@@ -91,13 +91,6 @@ impl<T: TokenStream> Parser<T> {
         self.expression_inner(0);
     }
 
-    pub fn simple_expression(&mut self) {
-        self.start_node(SimpleExpression);
-        // TODO: Expecting these literals is just a placeholder
-        self.expect_one_of_tokens([CharacterLiteral, StringLiteral, Identifier, AbstractLiteral]);
-        self.end_node();
-    }
-
     pub fn expression_list(&mut self) {
         self.start_node(ExpressionList);
         self.separated_list(Parser::expression, Comma);

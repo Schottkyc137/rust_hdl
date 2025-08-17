@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    model.check_no_duplicates();
+    model.do_checks();
 
     for (category, nodes) in model.into_sections() {
         let path = PathBuf::from(format!("{category}.rs"));

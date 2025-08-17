@@ -57,9 +57,9 @@ impl<T: TokenStream> Parser<T> {
             .is_ok();
 
         if is_range_expression {
-            self.simple_expression();
+            self.expression();
             self.expect_one_of_tokens([Keyword(Kw::To), Keyword(Kw::Downto)]);
-            self.simple_expression();
+            self.expression();
         } else {
             self.name_bounded(max_index);
         }

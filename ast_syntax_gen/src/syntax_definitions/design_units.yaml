@@ -50,7 +50,7 @@ LibraryUnit: !Choice
   - node: SecondaryUnit
 
 LogicalName: !Alias
-  node: Identifier
+  token: Identifier
 
 LogicalNameList: !Sequence
   - node: LogicalName
@@ -72,6 +72,3 @@ SecondaryUnit: !Choice
 
 SelectedName: !Alias
   node: Name
-
-UseClause: !Alias
-  node: UseClauseDefinition

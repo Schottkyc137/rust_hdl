@@ -22,6 +22,7 @@ impl Model {
             }
             NodeContents::Choice(choice) => self.insert_ser_choice(category, node.name, choice),
             NodeContents::Alias(alias) => self.insert_alias(category, node.name, alias),
+            NodeContents::Builtin => self.push_builtin(node.name),
         }
     }
 

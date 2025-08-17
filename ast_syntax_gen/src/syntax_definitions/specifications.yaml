@@ -22,7 +22,7 @@ BindingIndication: !Sequence
 ComponentSpecification: !Sequence
   - node: InstantiationList
   - token: Colon
-  - node: ComponentName
+  - node: Name
 
 CompoundConfigurationSpecification: !Sequence
   - keyword: For
@@ -62,7 +62,7 @@ EntityEntityAspect: !Sequence
 
 EntityConfigurationAspect: !Sequence
   - keyword: Configuration
-  - node: ConfigurationName
+  - node: Name
 
 EntityOpenAspect: !Sequence
   - keyword: Open
@@ -98,8 +98,6 @@ EntityDesignator: !Sequence
   - node: Signature
     optional: true
 
-# Bis hier
-
 OthersDesignator: !Sequence
   - keyword: All
 
@@ -109,11 +107,11 @@ AllDesignator: !Sequence
 EntityNameListList: !Sequence
   - node: EntityDesignator
     repeated: true
-  - node: Comma
+  - token: Comma
     repeated: true
 
 EntityNameList: !Choice
-  - node: EntityNameList
+  - node: EntityNameListList
   - node: AllDesignator
   - node: OthersDesignator
 
@@ -133,9 +131,9 @@ GuardedSignalSpecification: !Sequence
   - node: TypeMark
 
 InstantiationListList: !Sequence
-  - node: InstantiationLabel
+  - token: Identifier
     repeated: true
-  - node: Comma
+  - token: Comma
     repeated: true
 
 InstantiationList: !Choice
@@ -146,7 +144,7 @@ InstantiationList: !Choice
 SignalListList: !Sequence
   - node: Name
     repeated: true
-  - node: Comma
+  - token: Comma
     repeated: true
 
 SignalList: !Choice
@@ -174,7 +172,7 @@ VerificationUnitBindingIndication: !Sequence
   - node: VerificationUnitList
 
 VerificationUnitList: !Sequence
-  - node: VerificationUnitName
+  - node: Name
     repeated: true
   - token: Comma
     repeated: true

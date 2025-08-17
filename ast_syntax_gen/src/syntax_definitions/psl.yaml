@@ -1,0 +1,12 @@
+# PSL directives
+# Currently, PSL is not supported, but will produce some tokens.
+
+PSL_PSL_Directive: !Builtin
+
+PSL_Property_Declaration: !Builtin
+
+PSL_Sequence_Declaration: !Builtin
+
+PSL_Clock_Declaration: !Builtin
+
+PSLVerificationUnit: !Builtin

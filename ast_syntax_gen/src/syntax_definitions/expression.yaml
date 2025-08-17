@@ -75,13 +75,13 @@ BinaryExpression: !Sequence
 
 Expression: !Choice
   - node: Literal
+  - node: PhysicalLiteral
   - node: UnaryExpression
-
-SimpleExpression: !Choice
-  - token: CharacterLiteral
-  - token: StringLiteral
-  - token: Identifier
-  - token: AbstractLiteral
+  - node: BinaryExpression
+  - node: ParenthesizedExpressionOrAggregate
+  - node: Allocator
+  - node: QualifiedExpression
+  - node: TypeConversion
 
 ActualParameterPart: !Alias
   node: AssociationList
@@ -98,9 +98,13 @@ SubtypeIndicationAllocator: !Sequence
   - keyword: New
   - node: SubtypeIndication
 
-SubtypeIndicationQualifiedExpression: !Sequence
+QualifiedExpressionAllocator: !Sequence
   - keyword: New
   - node: QualifiedExpression
+
+Allocator: !Choice
+  - node: SubtypeIndicationAllocator
+  - node: QualifiedExpressionAllocator
 
 OthersChoice: !Sequence
   - keyword: Others
@@ -120,12 +124,6 @@ ElementAssociation: !Sequence
   - node: Choice
   - token: RightArrow
   - node: Expression
-
-FunctionCall: !Sequence
-  - node: Name
-  - token: LeftPar
-  - node: ActualParameterPart
-  - token: RightPar
 
 QualifiedExpression: !Sequence
   - node: Name
