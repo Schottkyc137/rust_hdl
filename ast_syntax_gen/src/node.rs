@@ -53,6 +53,7 @@ pub struct NodeRef {
     pub builtin: bool,
     pub repeated: bool,
     pub name: String,
+    pub is_token_node: bool,
 }
 
 impl From<String> for NodeRef {
@@ -63,6 +64,7 @@ impl From<String> for NodeRef {
             builtin: false,
             repeated: false,
             name: value,
+            is_token_node: false,
         }
     }
 }
@@ -88,6 +90,11 @@ impl NodeRef {
         let fn_name = self.getter_name();
         let syntax_name = self.syntax_name();
         let nth = Literal::usize_unsuffixed(self.nth);
+        let getter_fn_name = if self.is_token_node {
+            quote! {tokens}
+        } else {
+            quote! {children}
+        };
         if self.repeated {
             assert_eq!(
                 self.nth, 0,
@@ -95,13 +102,13 @@ impl NodeRef {
             );
             quote! {
                 pub fn #fn_name(&self) -> impl Iterator<Item = #syntax_name>  + use<'_> {
-                    self.0.children().filter_map(#syntax_name::cast)
+                    self.0.#getter_fn_name().filter_map(#syntax_name::cast)
                 }
             }
         } else {
             quote! {
                 pub fn #fn_name(&self) -> Option<#syntax_name> {
-                    self.0.children().filter_map(#syntax_name::cast).nth(#nth)
+                    self.0.#getter_fn_name().filter_map(#syntax_name::cast).nth(#nth)
                 }
             }
         }
@@ -120,6 +127,16 @@ impl Node {
             Node::Items(items) => items.name.clone(),
             Node::Choices(choices) => choices.name.clone(),
         }
+    }
+
+    pub fn is_all_token_choices(&self) -> bool {
+        matches!(
+            self,
+            Node::Choices(ChoiceNode {
+                name: _,
+                items: NodesOrTokens::Tokens(_)
+            })
+        )
     }
 }
 
@@ -179,7 +196,7 @@ impl SequenceNode {
         }
     }
 
-    pub fn generate_rust_impl_getters(&self) -> proc_macro2::TokenStream {
+    pub fn generate_rust_impl_getters(&self) -> TokenStream {
         let items: TokenStream = self
             .items
             .iter()
@@ -325,13 +342,13 @@ impl ChoiceNode {
                     .collect();
                 quote! {
                     impl #enum_name {
-                        fn cast(token: SyntaxToken) -> Option<Self> {
+                        pub fn cast(token: SyntaxToken) -> Option<Self> {
                             match token.kind() {
                                 #(#cast_branches ,)*
                                 _ => None,
                             }
                         }
-                        fn raw(&self) -> SyntaxToken {
+                        pub fn raw(&self) -> SyntaxToken {
                              match self {
                                 #(#raw_branches ,)*
                             }
@@ -374,7 +391,17 @@ pub struct Model {
 
 impl Model {
     pub fn push_node(&mut self, section: String, node: impl Into<Node>) {
-        self.sections.entry(section).or_default().push(node.into())
+        let new_node = node.into();
+        if let Some(old_node) = self.all_nodes().find(|node| node.name() == new_node.name()) {
+            assert_eq!(
+                &new_node,
+                old_node,
+                "Node {} defined multiple, non-identical times",
+                new_node.name()
+            );
+            return;
+        }
+        self.sections.entry(section).or_default().push(new_node);
     }
 
     pub fn push_builtin(&mut self, node: String) {
@@ -388,6 +415,42 @@ impl Model {
     pub fn do_checks(&self) {
         self.check_no_duplicates();
         self.check_all_nodes_exist();
+    }
+
+    pub fn do_postprocessing(&mut self) {
+        self.patch_all_token_choices();
+    }
+
+    pub fn patch_all_token_choices(&mut self) {
+        let to_patch = self
+            .all_nodes()
+            .filter(|node| node.is_all_token_choices())
+            .map(|node| node.name())
+            .collect::<HashSet<_>>();
+        for node in self.all_nodes_mut() {
+            match node {
+                Node::Items(sequence) => {
+                    for item in &mut sequence.items {
+                        match item {
+                            TokenOrNode::Node(node_ref) if to_patch.contains(&node_ref.kind) => {
+                                node_ref.is_token_node = true
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                Node::Choices(choice) => match &mut choice.items {
+                    NodesOrTokens::Nodes(nodes) => {
+                        for node_ref in nodes {
+                            if to_patch.contains(&node_ref.name) {
+                                node_ref.is_token_node = true
+                            }
+                        }
+                    }
+                    NodesOrTokens::Tokens(_) => {}
+                },
+            }
+        }
     }
 
     pub fn check_no_duplicates(&self) {
@@ -463,8 +526,7 @@ impl Model {
     }
 
     pub fn check_all_nodes_exist(&self) {
-        let mut defined = self.collect_all_node_kinds();
-        defined.extend(self.builtins.clone());
+        let defined = self.collect_all_node_kinds();
         let referenced = self.collect_referenced_nodes();
 
         let referenced_not_defined: Vec<_> = referenced.difference(&defined).to_owned().collect();
@@ -515,11 +577,15 @@ impl Model {
     }
 
     pub fn collect_all_node_kinds(&self) -> HashSet<String> {
-        self.sections
-            .values()
-            .flatten()
-            .map(|node| node.name())
-            .collect()
+        self.all_nodes().map(|node| node.name()).collect()
+    }
+
+    pub fn all_nodes(&self) -> impl Iterator<Item = &Node> {
+        self.sections.values().flatten()
+    }
+
+    pub fn all_nodes_mut(&mut self) -> impl Iterator<Item = &mut Node> {
+        self.sections.values_mut().flatten()
     }
 
     pub fn generate_node_kind_enum(&self) -> TokenStream {
@@ -567,6 +633,7 @@ mod tests {
                     repeated: false,
                     name: "entity_header".to_string(),
                     builtin: false,
+                    is_token_node: false,
                 }),
             ],
         });

@@ -73,8 +73,12 @@ BinaryExpression: !Sequence
   - node: Expression
     name: rhs
 
-Expression: !Choice
+# TODO: These wrappers are really unintuitive
+LiteralExpression: !Sequence
   - node: Literal
+
+Expression: !Choice
+  - node: LiteralExpression
   - node: PhysicalLiteral
   - node: UnaryExpression
   - node: BinaryExpression

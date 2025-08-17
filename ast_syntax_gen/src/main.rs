@@ -74,8 +74,7 @@ fn new_rust_file(name: impl Into<PathBuf>) -> io::Result<RustFile> {
 fn main() -> Result<(), Box<dyn Error>> {
     let mut syntax_definitions = std::env::current_dir()?;
 
-    syntax_definitions.push("src");
-    syntax_definitions.push("syntax_definitions");
+    syntax_definitions.extend(["src", "syntax_definitions"]);
 
     let mut model = Model::default();
 
@@ -84,15 +83,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         let path = entry.path();
         if let Some(extension) = path.extension() {
             if extension == "yaml" {
-                let file = std::fs::File::open(&path)?;
+                let file = File::open(&path)?;
                 let nodes: serialize::Nodes = serde_yml::from_reader(file)
                     .map_err(|err| format!("{err} while processing {}", path.display()))?;
-                model.insert_ser_nodes(path.file_stem().unwrap().to_str().unwrap(), nodes);
+                let section = path.file_stem().unwrap().to_str().unwrap();
+                model.insert_ser_nodes(section, nodes);
             }
         }
     }
 
     model.do_checks();
+    model.do_postprocessing();
 
     // Generate output files
     for (category, nodes) in model.sections() {

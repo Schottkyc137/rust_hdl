@@ -20,9 +20,9 @@ Declaration: !Choice
   - node: GroupTemplateDeclaration
   - node: GroupDeclaration
   - node: ObjectDeclaration
-  - node: PSLPropertyDeclaration
-  - node: PSLSequenceDeclaration
-  - node: PSLClockDeclaration
+  - node: PslPropertyDeclaration
+  - node: PslSequenceDeclaration
+  - node: PslClockDeclaration
 
 Declarations: !Sequence
   - node: Declaration

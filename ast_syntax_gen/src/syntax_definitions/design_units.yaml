@@ -61,7 +61,7 @@ PrimaryUnit: !Choice
   - node: PackageDeclaration
   - node: PackageInstantiationDeclaration
   - node: ContextDeclaration
-  - node: PSLVerificationUnit
+  - node: PslVerificationUnit
 
 SecondaryUnit: !Choice
   - node: ArchitectureBody

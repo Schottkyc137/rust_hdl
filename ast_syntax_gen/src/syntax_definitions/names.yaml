@@ -95,9 +95,12 @@ Name: !Sequence
   - node: NameTail
     repeated: true
 
+NameDesignatorPrefix: !Sequence
+  - node: NameDesignator
+
 NamePrefix: !Choice
   - node: ExternalName
-  - node: NameDesignator
+  - node: NameDesignatorPrefix
 
 Suffix: !Choice
   - token: Identifier
@@ -114,4 +117,4 @@ NameTail: !Choice
   - node: RawTokens
   - node: AttributeName
 
-RawTokens: !Builtin
+RawTokens: !Sequence [ ]

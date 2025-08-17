@@ -140,7 +140,7 @@ ConcurrentStatement: !Choice
   - node: ConcurrentSignalAssignmentStatement
   - node: ComponentInstantiationStatement
   - node: GenerateStatement
-  - node: PSLDirective
+  - node: PslDirective
 
 ForGenerateStatement: !Sequence
   - node: Label

@@ -101,6 +101,8 @@ impl Model {
             repeated: node.repeated,
             nth,
             builtin: false,
+            // will be patched later
+            is_token_node: false,
         }
     }
 
