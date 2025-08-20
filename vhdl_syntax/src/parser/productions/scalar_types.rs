@@ -23,10 +23,8 @@ impl<T: TokenStream> Parser<T> {
             }
             self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Units)]);
             self.opt_identifier();
-        } else {
-            self.start_node_at(checkpoint, NumericTypeDefinition);
+            self.end_node();
         }
-        self.end_node();
     }
 
     pub fn enumeration_type_definition(&mut self) {
@@ -104,14 +102,13 @@ TypeDeclaration
   Keyword(Type)
   Identifier 'positive_t'
   Keyword(Is)
-  NumericTypeDefinition
-    Keyword(Range)
-    Range
-      SimpleExpression
-        AbstractLiteral '0'
-      Keyword(To)
-      SimpleExpression
-        Identifier 'C_MAX'
+  Keyword(Range)
+  Range
+    Literal
+      AbstractLiteral '0'
+    Keyword(To)
+    Name
+      Identifier 'C_MAX'
   SemiColon
 ",
         );
@@ -127,14 +124,13 @@ TypeDeclaration
   Keyword(Type)
   Identifier 'some_float_t'
   Keyword(Is)
-  NumericTypeDefinition
-    Keyword(Range)
-    Range
-      SimpleExpression
-        Identifier 'C_MAX'
-      Keyword(Downto)
-      SimpleExpression
-        AbstractLiteral '3.141592654'
+  Keyword(Range)
+  Range
+    Name
+      Identifier 'C_MAX'
+    Keyword(Downto)
+    Literal
+      AbstractLiteral '3.141592654'
   SemiColon
 ",
         );
@@ -159,10 +155,10 @@ TypeDeclaration
   PhysicalTypeDefinition
     Keyword(Range)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '1e10'
     Keyword(Units)
     PrimaryUnitDeclaration
@@ -208,10 +204,10 @@ TypeDeclaration
   PhysicalTypeDefinition
     Keyword(Range)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '10'
     Keyword(Units)
     PrimaryUnitDeclaration
@@ -288,10 +284,10 @@ TypeDeclaration
             "100 downto 10",
             "\
 Range
-  SimpleExpression
+  Literal
     AbstractLiteral '100'
   Keyword(Downto)
-  SimpleExpression
+  Literal
     AbstractLiteral '10'
 ",
         );
@@ -301,10 +297,10 @@ Range
             "0 to 0",
             "\
 Range
-  SimpleExpression
+  Literal
     AbstractLiteral '0'
   Keyword(To)
-  SimpleExpression
+  Literal
     AbstractLiteral '0'
 ",
         );

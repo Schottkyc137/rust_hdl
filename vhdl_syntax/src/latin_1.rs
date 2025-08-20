@@ -60,7 +60,7 @@ impl Latin1String {
         }
     }
 
-    pub fn chars(&self) -> slice::Iter<u8> {
+    pub fn chars(&self) -> slice::Iter<'_, u8> {
         self.bytes.iter()
     }
 

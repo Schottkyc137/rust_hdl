@@ -35,10 +35,10 @@ impl<T: TokenStream> Parser<T> {
     pub fn entity_name_list(&mut self) {
         self.start_node(EntityNameList);
         match_next_token!(self,
-            Keyword(Kw::All) => self.skip(),
-            Keyword(Kw::Others) => self.skip(),
+            Keyword(Kw::All) => self.skip_into_node(AllDesignator),
+            Keyword(Kw::Others) => self.skip_into_node(OthersDesignator),
             Identifier, StringLiteral, CharacterLiteral => {
-                self.start_node(DesignatorList);
+                self.start_node(EntityDesignatorList);
                 self.separated_list(Parser::entity_designator, Comma);
                 self.end_node();
             }
@@ -83,7 +83,7 @@ impl<T: TokenStream> Parser<T> {
         self.expect_one_of_tokens([Identifier, CharacterLiteral, StringLiteral])
     }
 
-    pub(crate) fn attribute(&mut self) {
+    pub(crate) fn attribute_declaration(&mut self) {
         self.start_node(AttributeDeclaration);
         self.expect_kw(Kw::Attribute);
         self.identifier();
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn parse_simple_attribute_declaration() {
         check(
-            Parser::attribute,
+            Parser::attribute_declaration,
             "attribute foo : lib.name;",
             "\
 AttributeDeclaration
@@ -130,7 +130,7 @@ AttributeSpecification
   Keyword(Of)
   EntitySpecification
     EntityNameList
-      DesignatorList
+      EntityDesignatorList
         EntityDesignator
           Identifier 'foo'
     Colon
@@ -159,7 +159,7 @@ AttributeSpecification
   Keyword(Of)
   EntitySpecification
     EntityNameList
-      DesignatorList
+      EntityDesignatorList
         EntityDesignator
           StringLiteral '\"**\"'
     Colon
@@ -188,7 +188,7 @@ AttributeSpecification
   Keyword(Of)
   EntitySpecification
     EntityNameList
-      DesignatorList
+      EntityDesignatorList
         EntityDesignator
           Identifier 'foo'
         Comma
@@ -220,7 +220,8 @@ AttributeSpecification
   Keyword(Of)
   EntitySpecification
     EntityNameList
-      Keyword(All)
+      AllDesignator
+        Keyword(All)
     Colon
     Keyword(Signal)
   Keyword(Is)
@@ -247,7 +248,8 @@ AttributeSpecification
   Keyword(Of)
   EntitySpecification
     EntityNameList
-      Keyword(Others)
+      OthersDesignator
+        Keyword(Others)
     Colon
     Keyword(Signal)
   Keyword(Is)
@@ -274,7 +276,7 @@ AttributeSpecification
   Keyword(Of)
   EntitySpecification
     EntityNameList
-      DesignatorList
+      EntityDesignatorList
         EntityDesignator
           Identifier 'foo'
           Signature

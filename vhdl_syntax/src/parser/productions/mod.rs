@@ -7,7 +7,7 @@ mod alias_declaration;
 mod association_lists;
 mod attributes;
 mod component_declaration;
-mod compositve_types;
+mod composite_types;
 mod concurrent_statement;
 mod declarations;
 mod design;

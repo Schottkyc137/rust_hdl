@@ -15,7 +15,7 @@ impl<T: TokenStream> Parser<T> {
     pub fn alias_declaration(&mut self) {
         self.start_node(AliasDeclaration);
         self.expect_kw(Kw::Alias);
-        self.designator();
+        self.alias_designator();
         if self.opt_token(Colon) {
             self.subtype_indication();
         }
@@ -26,6 +26,10 @@ impl<T: TokenStream> Parser<T> {
         }
         self.expect_token(SemiColon);
         self.end_node();
+    }
+
+    pub fn alias_designator(&mut self) {
+        self.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
     }
 }
 

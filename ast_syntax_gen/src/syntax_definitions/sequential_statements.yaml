@@ -31,11 +31,7 @@ CaseStatementAlternative: !Sequence
   - node: SequentialStatements
 
 CaseStatement: !Sequence
-  - token: Identifier
-    name: case_label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Case
   - token: Que
     optional: true
@@ -59,12 +55,6 @@ ConditionClause: !Sequence
   - keyword: Until
   - node: Expression
 
-ConditionalWhenExpression: !Sequence
-  - node: Expression
-  - keyword: When
-  - node: Expression
-    name: condition
-
 ConditionalElseWhenExpression: !Sequence
   - keyword: Else
   - node: Expression
@@ -77,7 +67,10 @@ ConditionalElseItem: !Sequence
   - node: Expression
 
 ConditionalExpressions: !Sequence
-  - node: ConditionalWhenExpression
+  - node: Expression
+  - keyword: When
+  - node: Expression
+    name: condition
   - node: ConditionalElseWhenExpression
     repeated: true
   - node: ConditionalElseItem
@@ -109,12 +102,6 @@ ConditionalWaveformAssignment: !Sequence
   - node: ConditionalWaveforms
   - token: SemiColon
 
-ConditionalWaveformWhenExpression: !Sequence
-  - node: Waveform
-  - keyword: When
-  - node: Expression
-    name: condition
-
 ConditionalWaveformElseWhenExpression: !Sequence
   - keyword: Else
   - node: Waveform
@@ -127,7 +114,10 @@ ConditionalWaveformElseItem: !Sequence
   - node: Waveform
 
 ConditionalWaveforms: !Sequence
-  - node: ConditionalWaveformWhenExpression
+  - node: Waveform
+  - keyword: When
+  - node: Expression
+    name: condition
   - node: ConditionalWaveformElseWhenExpression
     repeated: true
   - node: ConditionalWaveformElseItem
@@ -282,14 +272,12 @@ SelectedExpressionItem: !Sequence
   - node: Expression
   - keyword: When
   - node: Choices
-  - token: Comma
-    optional: true
 
 SelectedExpressions: !Sequence
   - node: SelectedExpressionItem
     repeated: true
-  - node: Expression
-    optional: true
+  - token: Comma
+    repeated: true
 
 SelectedForceAssignment: !Sequence
   - keyword: With
@@ -309,14 +297,12 @@ SelectedWaveformItem: !Sequence
   - node: Waveform
   - keyword: When
   - node: Choices
-  - token: Comma
-    optional: true
 
 SelectedWaveforms: !Sequence
   - node: SelectedWaveformItem
     repeated: true
-  - node: Waveform
-    optional: true
+  - token: Comma
+    repeated: true
 
 SelectedSignalAssignment: !Choice
   - node: SelectedWaveformAssignment
@@ -428,11 +414,7 @@ VariableAssignmentStatement: !Choice
   - node: SelectedVariableAssignment
 
 WaitStatement: !Sequence
-  - token: Identifier
-    name: label
-    optional: true
-  - token: Colon
-    optional: true
+  - node: Label
   - keyword: Wait
   - node: SensitivityClause
     optional: true

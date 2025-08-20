@@ -90,7 +90,8 @@ PrimaryUnitDeclaration: !Sequence
 ProtectedTypeBody: !Sequence
   - keyword: Protected
   - keyword: Body
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: End
   - keyword: Protected
     name: trailing_protected
@@ -101,7 +102,8 @@ ProtectedTypeBody: !Sequence
 
 ProtectedTypeDeclaration: !Sequence
   - keyword: Protected
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: End
   - keyword: Protected
     name: trailing_protected

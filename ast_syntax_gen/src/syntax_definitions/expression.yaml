@@ -86,6 +86,7 @@ Expression: !Choice
   - node: Allocator
   - node: QualifiedExpression
   - node: TypeConversion
+  - node: Name
 
 Aggregate: !Sequence
   - token: LeftPar

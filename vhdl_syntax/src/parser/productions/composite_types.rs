@@ -183,10 +183,10 @@ TypeDeclaration
     IndexConstraint
       LeftPar
       Range
-        SimpleExpression
+        Literal
           AbstractLiteral '0'
         Keyword(To)
-        SimpleExpression
+        Literal
           AbstractLiteral '1'
       RightPar
     Keyword(Of)
@@ -208,17 +208,17 @@ TypeDeclaration
     IndexConstraint
       LeftPar
       Range
-        SimpleExpression
+        Literal
           AbstractLiteral '10'
         Keyword(Downto)
-        SimpleExpression
+        Literal
           AbstractLiteral '5'
       Comma
       Range
-        SimpleExpression
+        Literal
           CharacterLiteral ''A''
         Keyword(To)
-        SimpleExpression
+        Literal
           CharacterLiteral ''B''
       Comma
       RawTokens

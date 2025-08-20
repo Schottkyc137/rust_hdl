@@ -19,14 +19,13 @@ Declaration: !Choice
   - node: UseClause
   - node: GroupTemplateDeclaration
   - node: GroupDeclaration
-  - node: ObjectDeclaration
+  - node: ConstantDeclaration
+  - node: SignalDeclaration
+  - node: VariableDeclaration
+  - node: SharedVariableDeclaration
   - node: PslPropertyDeclaration
   - node: PslSequenceDeclaration
   - node: PslClockDeclaration
-
-Declarations: !Sequence
-  - node: Declaration
-    repeated: true
 
 InertialExpression: !Sequence
   - keyword: Inertial
@@ -338,13 +337,6 @@ Mode: !Choice
   - keyword: Inout
   - keyword: Buffer
   - keyword: Linkage
-
-ObjectDeclaration: !Choice
-  - node: ConstantDeclaration
-  - node: SignalDeclaration
-  - node: VariableDeclaration
-  - node: SharedVariableDeclaration
-  - node: FileDeclaration
 
 PortClause: !Sequence
   - keyword: Port

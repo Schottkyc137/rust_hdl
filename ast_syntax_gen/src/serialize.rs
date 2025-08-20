@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use convert_case::{Case, Casing};
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
@@ -106,7 +107,13 @@ pub struct NodeRef {
 
 impl NodeRef {
     pub fn name(&self) -> String {
-        self.name.clone().unwrap_or_else(|| self.node.clone())
+        if self.name.is_none() && self.repeated {
+            format!("{}s", self.node.to_case(Case::Snake))
+        } else {
+            self.name
+                .clone()
+                .unwrap_or_else(|| self.node.to_case(Case::Snake))
+        }
     }
 
     pub fn kind(&self) -> String {

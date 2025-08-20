@@ -91,12 +91,6 @@ impl<T: TokenStream> Parser<T> {
         self.expression_inner(0);
     }
 
-    pub fn expression_list(&mut self) {
-        self.start_node(ExpressionList);
-        self.separated_list(Parser::expression, Comma);
-        self.end_node();
-    }
-
     pub fn condition(&mut self) {
         self.expression()
     }
@@ -385,7 +379,7 @@ ParenthesizedExpressionOrAggregate
             "\
 ParenthesizedExpressionOrAggregate
   LeftPar
-  ElementAssociationWithChoices
+  ElementAssociation
     Choices
       Literal
         AbstractLiteral '1'
@@ -403,7 +397,7 @@ ParenthesizedExpressionOrAggregate
             "\
 ParenthesizedExpressionOrAggregate
   LeftPar
-  ElementAssociationWithChoices
+  ElementAssociation
     Choices
       Literal
         AbstractLiteral '1'
@@ -424,7 +418,7 @@ ParenthesizedExpressionOrAggregate
             "\
 ParenthesizedExpressionOrAggregate
   LeftPar
-  ElementAssociationWithChoices
+  ElementAssociation
     Choices
       Keyword(Others)
     RightArrow
@@ -447,14 +441,14 @@ ParenthesizedExpressionOrAggregate
             "\
 ParenthesizedExpressionOrAggregate
   LeftPar
-  ElementAssociationWithChoices
+  ElementAssociation
     Choices
       Keyword(Others)
     RightArrow
     Literal
       AbstractLiteral '1'
   Comma
-  ElementAssociationWithChoices
+  ElementAssociation
     Choices
       Keyword(Others)
     RightArrow
@@ -471,7 +465,7 @@ ParenthesizedExpressionOrAggregate
             "\
 ParenthesizedExpressionOrAggregate
   LeftPar
-  ElementAssociationWithChoices
+  ElementAssociation
     Choices
       Literal
         AbstractLiteral '1'

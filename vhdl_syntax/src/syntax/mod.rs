@@ -9,8 +9,8 @@ pub mod child;
 mod generated;
 pub(crate) mod green;
 pub mod node;
-pub mod node_kind;
 pub mod rewrite;
+mod tests;
 pub mod visitor;
 
 use crate::parser::diagnostics::ParserDiagnostic;

@@ -45,11 +45,7 @@ end no_longer_foo;
     let new_file = file.raw().rewrite(|node| match node {
         SyntaxElement::Node(node) => match EntityDeclarationSyntax::cast(node.clone()) {
             // If the syntax node is an entity and is named 'foo', replace it with the replacement entity.
-            Some(ent)
-                if ent
-                    .identifier_token()
-                    .is_some_and(|tok| tok.text() == "foo") =>
-            {
+            Some(ent) if ent.name_token().is_some_and(|tok| tok.text() == "foo") => {
                 RewriteAction::Change(SyntaxElement::Node(replacement_entity.clone()))
             }
             // If the syntax node is not an entity, or the name of the entity is not 'foo', leave the node as-is

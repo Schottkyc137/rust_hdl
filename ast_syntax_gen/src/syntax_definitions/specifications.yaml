@@ -105,14 +105,14 @@ OthersDesignator: !Sequence
 AllDesignator: !Sequence
   - keyword: All
 
-EntityNameListList: !Sequence
+EntityDesignatorList: !Sequence
   - node: EntityDesignator
     repeated: true
   - token: Comma
     repeated: true
 
 EntityNameList: !Choice
-  - node: EntityNameListList
+  - node: EntityDesignatorList
   - node: AllDesignator
   - node: OthersDesignator
 

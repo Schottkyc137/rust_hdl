@@ -44,9 +44,11 @@ SubprogramHeader: !Sequence
 SubprogramBody: !Sequence
   - node: SubprogramSpecification
   - keyword: Is
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: Begin
-  - node: ConcurrentStatements
+  - node: ConcurrentStatement
+    repeated: true
   - keyword: End
   - node: SubprogramKind
     optional: true
@@ -77,7 +79,8 @@ PackageDeclaration: !Sequence
     name: name
   - keyword: Is
   - node: PackageHeader
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: End
   - keyword: Package
     optional: true
@@ -101,7 +104,8 @@ PackageBody: !Sequence
   - token: Identifier
     name: name
   - keyword: Is
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: End
   - keyword: Package
     optional: true

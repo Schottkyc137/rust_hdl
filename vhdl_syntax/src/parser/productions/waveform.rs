@@ -41,7 +41,7 @@ impl<T: TokenStream> Parser<T> {
     }
 
     fn selected_waveform(&mut self) {
-        self.start_node(SelectedWaveform);
+        self.start_node(SelectedWaveformItem);
         self.waveform();
         self.expect_kw(Kw::When);
         self.choices();

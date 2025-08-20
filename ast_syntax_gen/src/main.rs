@@ -9,21 +9,6 @@ use std::io::BufWriter;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn write_header<W: Write>(write: &mut W) -> Result<(), io::Error> {
-    let current_date = chrono::Utc::now();
-    write!(
-        write,
-        "\
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this file,
-// You can obtain one at http://mozilla.org/MPL/2.0/.
-//
-// Copyright (c) {}, Lukas Scheller lukasscheller@icloud.com
-",
-        current_date.year()
-    )
-}
-
 mod node;
 mod serialize;
 mod serialized_to_model;
@@ -54,6 +39,20 @@ impl Write for RustFile {
     fn flush(&mut self) -> io::Result<()> {
         self.inner.flush()
     }
+}
+
+fn write_header(write: &mut impl Write) -> io::Result<()> {
+    write!(
+        write,
+        "\
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) {}, Lukas Scheller lukasscheller@icloud.com
+",
+        chrono::Utc::now().year()
+    )
 }
 
 fn new_rust_file(name: impl Into<PathBuf>) -> io::Result<RustFile> {

@@ -23,7 +23,7 @@ ExternalName: !Choice
 ExternalConstantName: !Sequence
   - token: LtLt
   - keyword: Constant
-  - node: ExternalPathname
+  - node: ExternalPathName
   - token: Colon
   - node: SubtypeIndication
   - token: GtGt
@@ -31,7 +31,7 @@ ExternalConstantName: !Sequence
 ExternalSignalName: !Sequence
   - token: LtLt
   - keyword: Signal
-  - node: ExternalPathname
+  - node: ExternalPathName
   - token: Colon
   - node: SubtypeIndication
   - token: GtGt
@@ -39,12 +39,12 @@ ExternalSignalName: !Sequence
 ExternalVariableName: !Sequence
   - token: LtLt
   - keyword: Variable
-  - node: ExternalPathname
+  - node: ExternalPathName
   - token: Colon
   - node: SubtypeIndication
   - token: GtGt
 
-ExternalPathname: !Choice
+ExternalPathName: !Choice
   - node: PackagePathname
   - node: AbsolutePathname
   - node: RelativePathname

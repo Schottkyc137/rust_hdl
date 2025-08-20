@@ -14,7 +14,7 @@ impl<T: TokenStream> Parser<T> {
     fn block_statement_inner(&mut self) {
         self.expect_kw(Kw::Block);
         if self.next_is(LeftPar) {
-            self.start_node(Guard);
+            self.start_node(ParenthesizedExpression);
             self.skip();
             self.condition();
             self.expect_token(RightPar);
@@ -32,12 +32,18 @@ impl<T: TokenStream> Parser<T> {
     pub fn block_header(&mut self) {
         self.start_node(BlockHeader);
         self.opt_generic_clause();
+        let checkpoint = self.checkpoint();
         if self.opt_generic_map_aspect() {
-            self.expect_token(SemiColon)
+            self.start_node_at(checkpoint, SemiColonTerminatedGenericMapAspect);
+            self.expect_token(SemiColon);
+            self.end_node();
         }
         self.opt_port_clause();
+        let checkpoint = self.checkpoint();
         if self.opt_port_map_aspect() {
-            self.expect_token(SemiColon)
+            self.start_node_at(checkpoint, SemiColonTerminatedPortMapAspect);
+            self.expect_token(SemiColon);
+            self.end_node();
         }
         self.end_node();
     }
@@ -77,13 +83,13 @@ impl<T: TokenStream> Parser<T> {
                 self.instantiation_statement_inner();
             }
             Some(Keyword(Kw::Configuration)) => {
-                self.start_node_at(checkpoint, ConfigurationInstantiationStatement);
+                self.start_node_at(checkpoint, ConfigurationInstantiatedUnit);
                 self.skip();
                 self.name();
                 self.instantiation_statement_inner();
             }
             Some(Keyword(Kw::Entity)) => {
-                self.start_node_at(checkpoint, EntityInstantiationStatement);
+                self.start_node_at(checkpoint, EntityInstantiatedUnit);
                 self.skip();
                 self.name();
                 if self.opt_token(LeftPar) {
@@ -226,7 +232,7 @@ impl<T: TokenStream> Parser<T> {
         self.expect_kw(Kw::Generate);
         self.generate_statement_body();
         while self.next_is(Keyword(Kw::Elsif)) {
-            self.start_node(ElsifGenerateBranch);
+            self.start_node(IfGenerateElsif);
             self.skip();
             self.opt_label();
             self.condition();
@@ -235,7 +241,7 @@ impl<T: TokenStream> Parser<T> {
             self.end_node();
         }
         if self.next_is(Keyword(Kw::Else)) {
-            self.start_node(ElseGenerateBranch);
+            self.start_node(IfGenerateElse);
             self.skip();
             self.opt_label();
             self.expect_kw(Kw::Generate);
@@ -448,7 +454,7 @@ BlockStatement
     Identifier 'name'
     Colon
   Keyword(Block)
-  Guard
+  ParenthesizedExpression
     LeftPar
     BinaryExpression
       Name
@@ -479,7 +485,7 @@ BlockStatement
     Identifier 'name'
     Colon
   Keyword(Block)
-  Guard
+  ParenthesizedExpression
     LeftPar
     BinaryExpression
       Name
@@ -876,7 +882,7 @@ ConcurrentSelectedSignalAssignment
   DelayMechanism
     Keyword(Transport)
   SelectedWaveforms
-    SelectedWaveform
+    SelectedWaveformItem
       Waveform
         WaveformElement
           Name
@@ -931,7 +937,7 @@ ComponentInstantiationStatement
         check_stmt(
             "inst: configuration lib.foo.bar;",
             "\
-ConfigurationInstantiationStatement
+ConfigurationInstantiatedUnit
   Label
     Identifier 'inst'
     Colon
@@ -954,7 +960,7 @@ ConfigurationInstantiationStatement
         check_stmt(
             "inst: entity lib.foo.bar;",
             "\
-EntityInstantiationStatement
+EntityInstantiatedUnit
   Label
     Identifier 'inst'
     Colon
@@ -978,7 +984,7 @@ EntityInstantiationStatement
         check_stmt(
             "inst: entity lib.foo.bar(arch);",
             "\
-EntityInstantiationStatement
+EntityInstantiatedUnit
   Label
     Identifier 'inst'
     Colon
@@ -1151,10 +1157,10 @@ ForGenerateStatement
     Identifier 'idx'
     Keyword(In)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '1'
   Keyword(Generate)
   GenerateStatementBody
@@ -1182,10 +1188,10 @@ ForGenerateStatement
     Identifier 'idx'
     Keyword(In)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '1'
   Keyword(Generate)
   GenerateStatementBody
@@ -1223,10 +1229,10 @@ ForGenerateStatement
     Identifier 'idx'
     Keyword(In)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '1'
   Keyword(Generate)
   GenerateStatementBody
@@ -1261,10 +1267,10 @@ ForGenerateStatement
     Identifier 'idx'
     Keyword(In)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '1'
   Keyword(Generate)
   GenerateStatementBody
@@ -1300,10 +1306,10 @@ ForGenerateStatement
     Identifier 'idx'
     Keyword(In)
     Range
-      SimpleExpression
+      Literal
         AbstractLiteral '0'
       Keyword(To)
-      SimpleExpression
+      Literal
         AbstractLiteral '1'
   Keyword(Generate)
   GenerateStatementBody
@@ -1429,7 +1435,7 @@ IfGenerateStatement
       Identifier 'true'
   Keyword(Generate)
   GenerateStatementBody
-  ElsifGenerateBranch
+  IfGenerateElsif
     Keyword(Elsif)
     BinaryExpression
       Name
@@ -1439,7 +1445,7 @@ IfGenerateStatement
         Identifier 'true'
     Keyword(Generate)
     GenerateStatementBody
-  ElseGenerateBranch
+  IfGenerateElse
     Keyword(Else)
     Keyword(Generate)
     GenerateStatementBody
@@ -1532,7 +1538,7 @@ IfGenerateStatement
       Identifier 'true'
   Keyword(Generate)
   GenerateStatementBody
-  ElsifGenerateBranch
+  IfGenerateElsif
     Keyword(Elsif)
     BinaryExpression
       Name
@@ -1545,7 +1551,7 @@ IfGenerateStatement
       Keyword(End)
       Identifier 'alt2'
       SemiColon
-  ElseGenerateBranch
+  IfGenerateElse
     Keyword(Else)
     Label
       Identifier 'alt3'
@@ -1592,7 +1598,7 @@ IfGenerateStatement
     Keyword(End)
     Identifier 'alt1'
     SemiColon
-  ElsifGenerateBranch
+  IfGenerateElsif
     Keyword(Elsif)
     Label
       Identifier 'alt2'
@@ -1608,7 +1614,7 @@ IfGenerateStatement
       Keyword(End)
       Identifier 'alt2'
       SemiColon
-  ElseGenerateBranch
+  IfGenerateElse
     Keyword(Else)
     Label
       Identifier 'alt3'

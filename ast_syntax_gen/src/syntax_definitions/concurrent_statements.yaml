@@ -5,16 +5,14 @@ BlockHeader: !Sequence
     optional: true
   - node: GenericMapAspect
     optional: true
-  - token: SemiColon
-    optional: true
-    name: generic_semi_colon
+    terminated: SemiColon
+    name: generic_map_aspect
   - node: PortClause
     optional: true
   - node: PortMapAspect
     optional: true
-  - token: SemiColon
-    optional: true
-    name: port_semi_colon
+    terminated: SemiColon
+    name: port_map_aspect
 
 BlockStatement: !Sequence
   - node: Label
@@ -26,9 +24,11 @@ BlockStatement: !Sequence
   - keyword: Is
     optional: true
   - node: BlockHeader
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: Begin
-  - node: ConcurrentStatements
+  - node: ConcurrentStatement
+    repeated: true
   - keyword: End
   - keyword: Block
     name: trailing_block
@@ -37,13 +37,10 @@ BlockStatement: !Sequence
     optional: true
   - token: SemiColon
 
-ConcurrentStatements: !Sequence
-  - node: ConcurrentStatement
-    repeated: true
-
 CaseGenerateAlternative: !Sequence
   - keyword: When
   - node: Label
+    optional: true
   - node: Choices
   - token: RightArrow
   - node: GenerateStatementBody
@@ -79,16 +76,6 @@ ConcurrentAssertionStatement: !Sequence
   - node: Assertion
   - token: SemiColon
 
-ConcurrentConditionalSignalAssignment: !Sequence
-  - node: Target
-  - token: LTE
-  - keyword: Guarded
-    optional: true
-  - node: DelayMechanism
-    optional: true
-  - node: ConditionalWaveforms
-  - token: SemiColon
-
 ConcurrentProcedureCallStatement: !Sequence
   - node: Label
   - keyword: Postponed
@@ -96,7 +83,30 @@ ConcurrentProcedureCallStatement: !Sequence
   - node: ProcedureCall
   - token: SemiColon
 
+ConcurrentSimpleSignalAssignment: !Sequence
+  - node: Label
+  - keyword: Postponed
+    optional: true
+  - node: Target
+  - token: LTE
+  - keyword: Guarded
+    optional: true
+  - node: DelayMechanism
+    optional: true
+  - node: Waveform
+  - token: SemiColon
+
+ConcurrentConditionalSignalAssignment: !Sequence
+  - node: Label
+  - keyword: Postponed
+    optional: true
+  - node: Target
+  - node: ConditionalSignalAssignment
+
 ConcurrentSelectedSignalAssignment: !Sequence
+  - node: Label
+  - keyword: Postponed
+    optional: true
   - keyword: With
   - node: Expression
   - keyword: Select
@@ -111,35 +121,18 @@ ConcurrentSelectedSignalAssignment: !Sequence
   - node: SelectedWaveforms
   - token: SemiColon
 
-ConcurrentSignalAssignmentChoice: !Choice
-  - node: ConcurrentSimpleSignalAssignment
-  - node: ConcurrentConditionalSignalAssignment
-  - node: ConcurrentSelectedSignalAssignment
-
-ConcurrentSignalAssignmentStatement: !Sequence
-  - node: Label
-  - keyword: Postponed
-    optional: true
-  - node: ConcurrentSignalAssignmentChoice
-
-ConcurrentSimpleSignalAssignment: !Sequence
-  - node: Target
-  - token: LTE
-  - keyword: Guarded
-    optional: true
-  - node: DelayMechanism
-    optional: true
-  - node: Waveform
-  - token: SemiColon
-
 ConcurrentStatement: !Choice
   - node: BlockStatement
   - node: ProcessStatement
   - node: ConcurrentProcedureCallStatement
   - node: ConcurrentAssertionStatement
-  - node: ConcurrentSignalAssignmentStatement
   - node: ComponentInstantiationStatement
-  - node: GenerateStatement
+  - node: ConcurrentSelectedSignalAssignment
+  - node: ConcurrentConditionalSignalAssignment
+  - node: ConcurrentSimpleSignalAssignment
+  - node: ForGenerateStatement
+  - node: IfGenerateStatement
+  - node: CaseGenerateStatement
   - node: PslDirective
 
 ForGenerateStatement: !Sequence
@@ -156,13 +149,10 @@ ForGenerateStatement: !Sequence
     optional: true
   - token: SemiColon
 
-GenerateStatement: !Choice
-  - node: ForGenerateStatement
-  - node: IfGenerateStatement
-  - node: CaseGenerateStatement
 
 GenerateStatementBody: !Sequence
-  - node: Declarations
+  - node: Declaration
+    repeated: true
     optional: true
   - keyword: Begin
     optional: true
@@ -175,14 +165,6 @@ GenerateStatementBody: !Sequence
     optional: true
   - token: SemiColon
     optional: true
-
-IfGenerateIf: !Sequence
-  - keyword: If
-  - node: Label
-  - node: Expression
-    name: condition
-  - keyword: Generate
-  - node: GenerateStatementBody
 
 IfGenerateElsif: !Sequence
   - keyword: Elsif
@@ -199,13 +181,20 @@ IfGenerateElse: !Sequence
 
 IfGenerateStatement: !Sequence
   - node: Label
-  - node: IfGenerateIf
+  - keyword: If
+  - node: Label
+    name: alternative_label
+  - node: Expression
+    name: condition
+  - keyword: Generate
+  - node: GenerateStatementBody
   - node: IfGenerateElsif
     repeated: true
   - node: IfGenerateElse
     optional: true
   - keyword: End
   - keyword: Generate
+    name: trailing_generate
   - token: Identifier
     name: trailing_generate_label
     optional: true
@@ -252,9 +241,11 @@ ProcessStatement: !Sequence
     optional: true
   - keyword: Is
     optional: true
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: Begin
-  - node: ConcurrentStatements
+  - node: ConcurrentStatement
+    repeated: true
   - keyword: End
   - keyword: Postponed
     optional: true

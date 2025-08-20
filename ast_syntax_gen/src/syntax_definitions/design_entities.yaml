@@ -8,9 +8,11 @@ ArchitectureBody: !Sequence
   - node: Name
     name: entity_name
   - keyword: Is
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: Begin
-  - node: ConcurrentStatements
+  - node: ConcurrentStatement
+    repeated: true
   - keyword: End
   - keyword: Architecture
     name: trailing_architecture
@@ -61,7 +63,8 @@ ConfigurationDeclaration: !Sequence
   - node: Name
     name: entity_name
   - keyword: Is
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - node: VerificationUnitBindingIndication
     terminated: SemiColon
     repeated: true
@@ -83,9 +86,11 @@ EntityDeclaration: !Sequence
     name: name
   - keyword: Is
   - node: EntityHeader
-  - node: Declarations
+  - node: Declaration
+    repeated: true
   - keyword: Begin
-  - node: ConcurrentStatements
+  - node: ConcurrentStatement
+    repeated: true
   - keyword: End
   - keyword: Entity
     name: trailing_entity

@@ -51,23 +51,19 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn assert_statement(&mut self) {
-        self.any_sequential_statement(AssertStatement, Parser::assert_statement_inner);
+        self.any_sequential_statement(AssertionStatement, Parser::assert_statement_inner);
     }
 
     fn assert_statement_inner(&mut self) {
         self.expect_kw(Kw::Assert);
         self.condition();
         if self.next_is(Keyword(Kw::Report)) {
-            self.start_node(ReportExpression);
             self.skip();
             self.expression();
-            self.end_node();
         }
         if self.next_is(Keyword(Kw::Severity)) {
-            self.start_node(SeverityExpression);
             self.skip();
             self.expression();
-            self.end_node();
         }
     }
 
@@ -79,10 +75,8 @@ impl<T: TokenStream> Parser<T> {
         self.expect_kw(Kw::Report);
         self.expression();
         if self.next_is(Keyword(Kw::Severity)) {
-            self.start_node(SeverityExpression);
             self.skip();
             self.expression();
-            self.end_node();
         }
     }
 
@@ -94,10 +88,8 @@ impl<T: TokenStream> Parser<T> {
         self.expect_kw(kw);
         self.opt_identifier();
         if self.next_is(Keyword(Kw::When)) {
-            self.start_node(WhenExpression);
             self.skip();
             self.expression();
-            self.end_node();
         }
     }
 
@@ -134,7 +126,7 @@ impl<T: TokenStream> Parser<T> {
         self.expect_kw(Kw::Then);
         self.sequence_of_statements();
         while self.next_is(Keyword(Kw::Elsif)) {
-            self.start_node(ElsifBranch);
+            self.start_node(IfStatementElsif);
             self.skip();
             self.condition();
             self.expect_kw(Kw::Then);
@@ -142,7 +134,7 @@ impl<T: TokenStream> Parser<T> {
             self.end_node();
         }
         if self.next_is(Keyword(Kw::Else)) {
-            self.start_node(ElseBranch);
+            self.start_node(IfStatementElse);
             self.skip();
             self.sequence_of_statements();
             self.end_node();
@@ -199,7 +191,7 @@ impl<T: TokenStream> Parser<T> {
             Ok((RightArrow, _))
         );
         if has_choices {
-            self.start_node(ElementAssociationWithChoices);
+            self.start_node(ElementAssociation);
             self.choices();
             self.expect_token(RightArrow)
         }
@@ -244,7 +236,7 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn sequence_of_statements(&mut self) {
-        self.start_node(SequenceOfStatements);
+        self.start_node(SequentialStatements);
         loop {
             match self.peek_token() {
                 None | Some(Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When)) => break,
@@ -259,11 +251,13 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn selected_expressions(&mut self) {
+        self.start_node(SelectedExpressions);
         self.separated_list(Parser::selected_expression, Comma);
+        self.end_node();
     }
 
     fn selected_expression(&mut self) {
-        self.start_node(SelectedExpression);
+        self.start_node(SelectedExpressionItem);
         self.expression();
         self.expect_kw(Kw::When);
         self.choices();
@@ -279,7 +273,7 @@ impl<T: TokenStream> Parser<T> {
                 self.wait_statement_inner()
             }
             Some(Keyword(Kw::Assert)) => {
-                self.start_node_at(checkpoint, AssertStatement);
+                self.start_node_at(checkpoint, AssertionStatement);
                 self.assert_statement_inner()
             }
             Some(Keyword(Kw::Report)) => {
@@ -349,18 +343,15 @@ impl<T: TokenStream> Parser<T> {
                 match self.peek_token() {
                     Some(ColonEq) => {
                         self.skip();
-                        let checkpoint2 = self.checkpoint();
                         self.expression();
                         if self.next_is(Keyword(Kw::When)) {
                             self.start_node_at(checkpoint, ConditionalVariableAssignment);
-                            self.start_node_at(checkpoint2, ConditionalWhenExpression);
                             self.skip();
                             self.condition();
-                            self.end_node();
                             self.conditional_else(
                                 Parser::expression,
                                 ConditionalElseWhenExpression,
-                                ConditionalElseExpression,
+                                ConditionalElseItem,
                             );
                         } else {
                             self.start_node_at(checkpoint, SimpleVariableAssignment);
@@ -370,18 +361,15 @@ impl<T: TokenStream> Parser<T> {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
                             self.skip_n(2);
                             self.opt_force_mode();
-                            let checkpoint2 = self.checkpoint();
                             self.expression();
                             if self.next_is(Keyword(Kw::When)) {
                                 self.start_node_at(checkpoint, ConditionalForceAssignment);
-                                self.start_node_at(checkpoint2, ConditionalWhenExpression);
                                 self.skip();
                                 self.condition();
-                                self.end_node();
                                 self.conditional_else(
                                     Parser::waveform,
                                     ConditionalElseWhenExpression,
-                                    ConditionalElseExpression,
+                                    ConditionalElseItem,
                                 );
                             } else {
                                 self.start_node_at(checkpoint, SimpleForceAssignment);
@@ -393,18 +381,15 @@ impl<T: TokenStream> Parser<T> {
                         } else {
                             self.skip();
                             self.opt_delay_mechanism();
-                            let checkpoint2 = self.checkpoint();
                             self.waveform();
                             if self.next_is(Keyword(Kw::When)) {
                                 self.start_node_at(checkpoint, ConditionalWaveformAssignment);
-                                self.start_node_at(checkpoint2, ConditionalWhenWaveform);
                                 self.skip();
                                 self.condition();
-                                self.end_node();
                                 self.conditional_else(
                                     Parser::waveform,
-                                    ConditionalElseWhenWaveform,
-                                    ConditionalElseWaveform,
+                                    ConditionalWaveformElseWhenExpression,
+                                    ConditionalWaveformElseItem,
                                 );
                             } else {
                                 self.start_node_at(checkpoint, SimpleWaveformAssignment);
@@ -576,7 +561,7 @@ WaitStatement
             Parser::assert_statement,
             "assert false;",
             "\
-AssertStatement
+AssertionStatement
   Keyword(Assert)
   Name
     Identifier 'false'
@@ -590,18 +575,16 @@ AssertStatement
             Parser::assert_statement,
             "assert false report \"message\" severity error;",
             "\
-AssertStatement
+AssertionStatement
   Keyword(Assert)
   Name
     Identifier 'false'
-  ReportExpression
-    Keyword(Report)
-    Literal
-      StringLiteral '\"message\"'
-  SeverityExpression
-    Keyword(Severity)
-    Name
-      Identifier 'error'
+  Keyword(Report)
+  Literal
+    StringLiteral '\"message\"'
+  Keyword(Severity)
+  Name
+    Identifier 'error'
   SemiColon",
         )
     }
@@ -616,10 +599,9 @@ ReportStatement
   Keyword(Report)
   Literal
     StringLiteral '\"message\"'
-  SeverityExpression
-    Keyword(Severity)
-    Name
-      Identifier 'error'
+  Keyword(Severity)
+  Name
+    Identifier 'error'
   SemiColon",
         )
     }
@@ -659,10 +641,9 @@ NextStatement
             "\
 NextStatement
   Keyword(Next)
-  WhenExpression
-    Keyword(When)
-    Name
-      Identifier 'condition'
+  Keyword(When)
+  Name
+    Identifier 'condition'
   SemiColon
         ",
         );
@@ -677,10 +658,9 @@ NextStatement
 NextStatement
   Keyword(Next)
   Identifier 'foo'
-  WhenExpression
-    Keyword(When)
-    Name
-      Identifier 'condition'
+  Keyword(When)
+  Name
+    Identifier 'condition'
   SemiColon
         ",
         );
@@ -721,10 +701,9 @@ ExitStatement
             "\
 ExitStatement
   Keyword(Exit)
-  WhenExpression
-    Keyword(When)
-    Name
-      Identifier 'condition'
+  Keyword(When)
+  Name
+    Identifier 'condition'
   SemiColon
         ",
         );
@@ -739,10 +718,9 @@ ExitStatement
 ExitStatement
   Keyword(Exit)
   Identifier 'foo'
-  WhenExpression
-    Keyword(When)
-    Name
-      Identifier 'condition'
+  Keyword(When)
+  Name
+    Identifier 'condition'
   SemiColon
         ",
         );
@@ -810,7 +788,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
   Keyword(End)
   Keyword(If)
   SemiColon
@@ -837,7 +815,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'foo'
@@ -884,7 +862,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'foo'
@@ -930,7 +908,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'foo'
@@ -941,9 +919,9 @@ IfStatement
           AbstractLiteral '2'
           RightPar
       SemiColon
-  ElseBranch
+  IfStatementElse
     Keyword(Else)
-    SequenceOfStatements
+    SequentialStatements
       SimpleVariableAssignment
         Name
           Identifier 'x'
@@ -981,7 +959,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'foo'
@@ -992,9 +970,9 @@ IfStatement
           AbstractLiteral '2'
           RightPar
       SemiColon
-  ElseBranch
+  IfStatementElse
     Keyword(Else)
-    SequenceOfStatements
+    SequentialStatements
       SimpleVariableAssignment
         Name
           Identifier 'x'
@@ -1032,7 +1010,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'foo'
@@ -1043,7 +1021,7 @@ IfStatement
           AbstractLiteral '2'
           RightPar
       SemiColon
-  ElsifBranch
+  IfStatementElsif
     Keyword(Elsif)
     BinaryExpression
       Name
@@ -1052,7 +1030,7 @@ IfStatement
       Name
         Identifier 'false'
     Keyword(Then)
-    SequenceOfStatements
+    SequentialStatements
       SimpleVariableAssignment
         Name
           Identifier 'y'
@@ -1060,9 +1038,9 @@ IfStatement
         Literal
           AbstractLiteral '2'
         SemiColon
-  ElseBranch
+  IfStatementElse
     Keyword(Else)
-    SequenceOfStatements
+    SequentialStatements
       SimpleVariableAssignment
         Name
           Identifier 'x'
@@ -1102,7 +1080,7 @@ IfStatement
     Name
       Identifier 'true'
   Keyword(Then)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'foo'
@@ -1113,7 +1091,7 @@ IfStatement
           AbstractLiteral '2'
           RightPar
       SemiColon
-  ElsifBranch
+  IfStatementElsif
     Keyword(Elsif)
     BinaryExpression
       Name
@@ -1122,7 +1100,7 @@ IfStatement
       Name
         Identifier 'false'
     Keyword(Then)
-    SequenceOfStatements
+    SequentialStatements
       SimpleVariableAssignment
         Name
           Identifier 'y'
@@ -1130,9 +1108,9 @@ IfStatement
         Literal
           AbstractLiteral '2'
         SemiColon
-  ElseBranch
+  IfStatementElse
     Keyword(Else)
-    SequenceOfStatements
+    SequentialStatements
       SimpleVariableAssignment
         Name
           Identifier 'x'
@@ -1180,7 +1158,7 @@ CaseStatement
       Literal
         AbstractLiteral '2'
     RightArrow
-    SequenceOfStatements
+    SequentialStatements
       ProcedureCallStatement
         Name
           Identifier 'stmt1'
@@ -1194,7 +1172,7 @@ CaseStatement
     Choices
       Keyword(Others)
     RightArrow
-    SequenceOfStatements
+    SequentialStatements
       ProcedureCallStatement
         Name
           Identifier 'stmt3'
@@ -1234,7 +1212,7 @@ CaseStatement
     Choices
       Keyword(Others)
     RightArrow
-    SequenceOfStatements
+    SequentialStatements
       NullStatement
         Keyword(Null)
         SemiColon
@@ -1261,7 +1239,7 @@ LoopStatement
     Identifier 'lbl'
     Colon
   Keyword(Loop)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'stmt1'
@@ -1298,7 +1276,7 @@ LoopStatement
       Name
         Identifier 'true'
   Keyword(Loop)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'stmt1'
@@ -1331,13 +1309,13 @@ LoopStatement
       Identifier 'idx'
       Keyword(In)
       Range
-        SimpleExpression
+        Literal
           AbstractLiteral '0'
         Keyword(To)
-        SimpleExpression
+        Literal
           AbstractLiteral '3'
   Keyword(Loop)
-  SequenceOfStatements
+  SequentialStatements
     ProcedureCallStatement
       Name
         Identifier 'stmt1'
@@ -1568,7 +1546,7 @@ SimpleVariableAssignment
     Name
       Identifier 'foo'
     Comma
-    ElementAssociationWithChoices
+    ElementAssociation
       Choices
         Literal
           AbstractLiteral '1'
@@ -1598,7 +1576,7 @@ SimpleVariableAssignment
     Name
       Identifier 'foo'
     Comma
-    ElementAssociationWithChoices
+    ElementAssociation
       Choices
         Literal
           AbstractLiteral '1'
@@ -1673,29 +1651,30 @@ SelectedVariableAssignment
       AbstractLiteral '0'
       RightPar
   ColonEq
-  SelectedExpression
-    Name
-      Identifier 'bar'
-      RawTokens
-        LeftPar
-        AbstractLiteral '1'
-        Comma
-        AbstractLiteral '2'
-        RightPar
-    Keyword(When)
-    Choices
-      Literal
-        AbstractLiteral '0'
-      Bar
-      Literal
-        AbstractLiteral '1'
-  Comma
-  SelectedExpression
-    Name
-      Identifier 'def'
-    Keyword(When)
-    Choices
-      Keyword(Others)
+  SelectedExpressions
+    SelectedExpressionItem
+      Name
+        Identifier 'bar'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      Keyword(When)
+      Choices
+        Literal
+          AbstractLiteral '0'
+        Bar
+        Literal
+          AbstractLiteral '1'
+    Comma
+    SelectedExpressionItem
+      Name
+        Identifier 'def'
+      Keyword(When)
+      Choices
+        Keyword(Others)
   SemiColon
             ",
         );
@@ -1754,18 +1733,17 @@ ConditionalForceAssignment
       RightPar
   LTE
   Keyword(Force)
-  ConditionalWhenExpression
-    Name
-      Identifier 'bar'
-      RawTokens
-        LeftPar
-        AbstractLiteral '1'
-        Comma
-        AbstractLiteral '2'
-        RightPar
-    Keyword(When)
-    Name
-      Identifier 'cond'
+  Name
+    Identifier 'bar'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  Keyword(When)
+  Name
+    Identifier 'cond'
   SemiColon",
         );
     }
@@ -1786,22 +1764,21 @@ ConditionalVariableAssignment
       AbstractLiteral '0'
       RightPar
   ColonEq
-  ConditionalWhenExpression
+  Name
+    Identifier 'bar'
+    RawTokens
+      LeftPar
+      AbstractLiteral '1'
+      Comma
+      AbstractLiteral '2'
+      RightPar
+  Keyword(When)
+  BinaryExpression
     Name
-      Identifier 'bar'
-      RawTokens
-        LeftPar
-        AbstractLiteral '1'
-        Comma
-        AbstractLiteral '2'
-        RightPar
-    Keyword(When)
-    BinaryExpression
-      Name
-        Identifier 'cond'
-      EQ
-      Name
-        Identifier 'true'
+      Identifier 'cond'
+    EQ
+    Name
+      Identifier 'true'
   ConditionalElseWhenExpression
     Keyword(Else)
     Name
@@ -1925,7 +1902,7 @@ SelectedWaveformAssignment
   DelayMechanism
     Keyword(Transport)
   SelectedWaveforms
-    SelectedWaveform
+    SelectedWaveformItem
       Waveform
         WaveformElement
           Name
@@ -1949,7 +1926,7 @@ SelectedWaveformAssignment
         Literal
           AbstractLiteral '1'
     Comma
-    SelectedWaveform
+    SelectedWaveformItem
       Waveform
         WaveformElement
           Name
@@ -1992,29 +1969,30 @@ SelectedForceAssignment
       RightPar
   LTE
   Keyword(Force)
-  SelectedExpression
-    Name
-      Identifier 'bar'
-      RawTokens
-        LeftPar
-        AbstractLiteral '1'
-        Comma
-        AbstractLiteral '2'
-        RightPar
-    Keyword(When)
-    Choices
-      Literal
-        AbstractLiteral '0'
-      Bar
-      Literal
-        AbstractLiteral '1'
-  Comma
-  SelectedExpression
-    Name
-      Identifier 'def'
-    Keyword(When)
-    Choices
-      Keyword(Others)
+  SelectedExpressions
+    SelectedExpressionItem
+      Name
+        Identifier 'bar'
+        RawTokens
+          LeftPar
+          AbstractLiteral '1'
+          Comma
+          AbstractLiteral '2'
+          RightPar
+      Keyword(When)
+      Choices
+        Literal
+          AbstractLiteral '0'
+        Bar
+        Literal
+          AbstractLiteral '1'
+    Comma
+    SelectedExpressionItem
+      Name
+        Identifier 'def'
+      Keyword(When)
+      Choices
+        Keyword(Others)
   SemiColon
             ",
         );
