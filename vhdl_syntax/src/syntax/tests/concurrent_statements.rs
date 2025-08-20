@@ -9,7 +9,8 @@ use crate::parser::Parser;
 use crate::syntax::tests::{check_nodes, node};
 use crate::syntax::{
     BlockHeaderSyntax, BlockStatementSyntax, CaseGenerateAlternativeSyntax,
-    CaseGenerateStatementSyntax,
+    CaseGenerateStatementSyntax, ComponentInstantiationStatementSyntax,
+    ConcurrentProcedureCallOrComponentInstantiationStatementSyntax,
 };
 
 #[test]
@@ -181,5 +182,51 @@ fn case_generate_statement() {
     check_nodes(
         syntax_node.case_generate_alternatives(),
         "when 1 => x <= 2;",
+    );
+}
+
+#[test]
+fn component_instantiation_statement() {
+    let syntax_node = node::<ComponentInstantiationStatementSyntax>(
+        Parser::concurrent_statement,
+        r#"
+        foo: bar
+            generic map (baz => 1)
+            port map (foobar => '1');
+    "#,
+    );
+    check!(syntax_node,
+        label => "foo:",
+        instantiated_unit => "bar",
+        generic_map_aspect => "generic map (baz => 1)",
+        port_map_aspect => "port map (foobar => '1')",
+        semi_colon_token => ";"
+    );
+
+    let syntax_node = node::<ComponentInstantiationStatementSyntax>(
+        Parser::concurrent_statement,
+        r#"
+        foo: bar
+            port map (foobar => '1');
+    "#,
+    );
+    check!(syntax_node,
+        label => "foo:",
+        instantiated_unit => "bar",
+        generic_map_aspect => None,
+        port_map_aspect => "port map (foobar => '1')",
+        semi_colon_token => ";"
+    );
+
+    let syntax_node = node::<ConcurrentProcedureCallOrComponentInstantiationStatementSyntax>(
+        Parser::concurrent_statement,
+        r#"
+        foo: bar;
+    "#,
+    );
+    check!(syntax_node,
+        label => "foo:",
+        name => "bar",
+        semi_colon_token => ";"
     );
 }

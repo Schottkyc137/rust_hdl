@@ -361,6 +361,41 @@ impl ComponentInstantiationStatementSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct ConcurrentProcedureCallOrComponentInstantiationStatementSyntax(pub(crate) SyntaxNode);
+impl AstNode for ConcurrentProcedureCallOrComponentInstantiationStatementSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement => {
+                Some(ConcurrentProcedureCallOrComponentInstantiationStatementSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ConcurrentProcedureCallOrComponentInstantiationStatementSyntax {
+    pub fn label(&self) -> Option<LabelSyntax> {
+        self.0.children().filter_map(LabelSyntax::cast).nth(0)
+    }
+    pub fn postponed_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == Keyword(Kw::Postponed))
+            .nth(0)
+    }
+    pub fn name(&self) -> Option<NameSyntax> {
+        self.0.children().filter_map(NameSyntax::cast).nth(0)
+    }
+    pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == SemiColon)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct ConcurrentAssertionStatementSyntax(pub(crate) SyntaxNode);
 impl AstNode for ConcurrentAssertionStatementSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -420,11 +455,8 @@ impl ConcurrentProcedureCallStatementSyntax {
             .filter(|token| token.kind() == Keyword(Kw::Postponed))
             .nth(0)
     }
-    pub fn procedure_call(&self) -> Option<ProcedureCallSyntax> {
-        self.0
-            .children()
-            .filter_map(ProcedureCallSyntax::cast)
-            .nth(0)
+    pub fn name(&self) -> Option<NameSyntax> {
+        self.0.children().filter_map(NameSyntax::cast).nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
@@ -605,6 +637,9 @@ pub enum ConcurrentStatementSyntax {
     ConcurrentSelectedSignalAssignment(ConcurrentSelectedSignalAssignmentSyntax),
     ConcurrentConditionalSignalAssignment(ConcurrentConditionalSignalAssignmentSyntax),
     ConcurrentSimpleSignalAssignment(ConcurrentSimpleSignalAssignmentSyntax),
+    ConcurrentProcedureCallOrComponentInstantiationStatement(
+        ConcurrentProcedureCallOrComponentInstantiationStatementSyntax,
+    ),
     ForGenerateStatement(ForGenerateStatementSyntax),
     IfGenerateStatement(IfGenerateStatementSyntax),
     CaseGenerateStatement(CaseGenerateStatementSyntax),
@@ -649,6 +684,12 @@ impl AstNode for ConcurrentStatementSyntax {
                     ConcurrentSimpleSignalAssignmentSyntax::cast(node).unwrap(),
                 ))
             }
+            NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement => Some(
+                ConcurrentStatementSyntax::ConcurrentProcedureCallOrComponentInstantiationStatement(
+                    ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::cast(node)
+                        .unwrap(),
+                ),
+            ),
             NodeKind::ForGenerateStatement => {
                 Some(ConcurrentStatementSyntax::ForGenerateStatement(
                     ForGenerateStatementSyntax::cast(node).unwrap(),
@@ -678,6 +719,9 @@ impl AstNode for ConcurrentStatementSyntax {
             ConcurrentStatementSyntax::ConcurrentSelectedSignalAssignment(inner) => inner.raw(),
             ConcurrentStatementSyntax::ConcurrentConditionalSignalAssignment(inner) => inner.raw(),
             ConcurrentStatementSyntax::ConcurrentSimpleSignalAssignment(inner) => inner.raw(),
+            ConcurrentStatementSyntax::ConcurrentProcedureCallOrComponentInstantiationStatement(
+                inner,
+            ) => inner.raw(),
             ConcurrentStatementSyntax::ForGenerateStatement(inner) => inner.raw(),
             ConcurrentStatementSyntax::IfGenerateStatement(inner) => inner.raw(),
             ConcurrentStatementSyntax::CaseGenerateStatement(inner) => inner.raw(),

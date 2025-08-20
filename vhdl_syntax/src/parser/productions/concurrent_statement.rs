@@ -134,6 +134,7 @@ impl<T: TokenStream> Parser<T> {
                 self.concurrent_selected_signal_assignment_inner();
             }
             Some(Identifier | LtLt | StringLiteral | CharacterLiteral) => {
+                let checkpoint2 = self.checkpoint();
                 self.name();
                 match self.peek_token() {
                     Some(LTE) => {
@@ -144,10 +145,17 @@ impl<T: TokenStream> Parser<T> {
                         self.waveform();
                     }
                     Some(Keyword(Kw::Port | Kw::Generic)) => {
+                        self.start_node_at(checkpoint2, ComponentInstantiatedUnit);
+                        self.end_node();
                         self.start_node_at(checkpoint, ComponentInstantiationStatement);
                         self.instantiation_statement_inner();
                     }
-                    _ => self.start_node_at(checkpoint, ProcedureCallStatement),
+                    // Could be an instantiated unit without ports and generics
+                    // or a procedure call
+                    _ => self.start_node_at(
+                        checkpoint,
+                        ConcurrentProcedureCallOrComponentInstantiationStatement,
+                    ),
                 }
             }
             tok => todo!("token_kind={tok:?}"),
@@ -392,7 +400,6 @@ ProcedureCallStatement
     }
 
     #[test]
-    #[ignore]
     fn block() {
         check_stmt(
             "\
@@ -407,12 +414,33 @@ BlockStatement
     Identifier 'name'
     Colon
   Keyword(Block)
-    TODO
+  BlockHeader
+  ConstantDeclaration
+    Keyword(Constant)
+    IdentifierList
+      Identifier 'const'
+    Colon
+    Identifier 'natural'
+    ColonEq
+    Literal
+      AbstractLiteral '0'
+    SemiColon
   Keyword(Begin)
-    TODO
+  ProcedureCallStatement
+    Label
+      Identifier 'name2'
+      Colon
+    Name
+      Identifier 'foo'
+      RawTokens
+        LeftPar
+        Identifier 'clk'
+        RightPar
+    SemiColon
   Keyword(End)
   Keyword(Block)
   SemiColon
+
         ",
         );
     }

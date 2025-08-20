@@ -237,18 +237,9 @@ ParameterSpecification: !Sequence
   - keyword: In
   - node: DiscreteRange
 
-ProcedureCall: !Sequence
-  - node: Name
-  - token: LeftPar
-    optional: true
-  - node: AssociationList
-    optional: true
-  - token: RightPar
-    optional: true
-
 ProcedureCallStatement: !Sequence
   - node: Label
-  - node: ProcedureCall
+  - node: Name
   - token: SemiColon
 
 ReportStatement: !Sequence

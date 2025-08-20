@@ -4,42 +4,38 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+#![cfg(test)]
+
 use crate::parser::{CanParse, Parser};
 use crate::syntax::node::{SyntaxNode, SyntaxToken};
 use crate::syntax::AstNode;
 use crate::tokens::Token;
 use std::collections::VecDeque;
 
-#[cfg(test)]
 mod concurrent_statements;
 
-#[cfg(test)]
 fn node<T: AstNode>(func: impl FnOnce(&mut Parser<VecDeque<Token>>), input: &str) -> T {
     let (entity, diagnostics) = input.parse_syntax(func);
     assert!(diagnostics.is_empty(), "got diagnostics: {:?}", diagnostics);
     T::cast(entity).unwrap()
 }
 
-#[cfg(test)]
 trait TestToString {
     fn debug_to_string(&self) -> String;
 }
 
-#[cfg(test)]
 impl TestToString for SyntaxToken {
     fn debug_to_string(&self) -> String {
         self.to_string()
     }
 }
 
-#[cfg(test)]
 impl TestToString for SyntaxNode {
     fn debug_to_string(&self) -> String {
         self.to_string()
     }
 }
 
-#[cfg(test)]
 impl<T> TestToString for T
 where
     T: AstNode,
@@ -49,7 +45,6 @@ where
     }
 }
 
-#[cfg(test)]
 impl<T> TestToString for Option<T>
 where
     T: TestToString,
@@ -59,12 +54,6 @@ where
     }
 }
 
-#[cfg(test)]
-fn check_node(child: impl TestToString, expected: &str) {
-    assert_eq!(child.debug_to_string().trim(), expected);
-}
-
-#[cfg(test)]
 fn check_nodes<T: AstNode>(nodes: impl Iterator<Item = T>, expected: &str) {
     assert_eq!(
         nodes
@@ -75,7 +64,6 @@ fn check_nodes<T: AstNode>(nodes: impl Iterator<Item = T>, expected: &str) {
     );
 }
 
-#[cfg(test)]
 #[macro_export]
 macro_rules! check {
     // Base case: single field checking for None

@@ -1099,42 +1099,6 @@ impl ParameterSpecificationSyntax {
     }
 }
 #[derive(Debug, Clone)]
-pub struct ProcedureCallSyntax(pub(crate) SyntaxNode);
-impl AstNode for ProcedureCallSyntax {
-    fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::ProcedureCall => Some(ProcedureCallSyntax(node)),
-            _ => None,
-        }
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl ProcedureCallSyntax {
-    pub fn name(&self) -> Option<NameSyntax> {
-        self.0.children().filter_map(NameSyntax::cast).nth(0)
-    }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == LeftPar)
-            .nth(0)
-    }
-    pub fn association_list(&self) -> Option<AssociationListSyntax> {
-        self.0
-            .children()
-            .filter_map(AssociationListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == RightPar)
-            .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
 pub struct ProcedureCallStatementSyntax(pub(crate) SyntaxNode);
 impl AstNode for ProcedureCallStatementSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -1151,11 +1115,8 @@ impl ProcedureCallStatementSyntax {
     pub fn label(&self) -> Option<LabelSyntax> {
         self.0.children().filter_map(LabelSyntax::cast).nth(0)
     }
-    pub fn procedure_call(&self) -> Option<ProcedureCallSyntax> {
-        self.0
-            .children()
-            .filter_map(ProcedureCallSyntax::cast)
-            .nth(0)
+    pub fn name(&self) -> Option<NameSyntax> {
+        self.0.children().filter_map(NameSyntax::cast).nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
