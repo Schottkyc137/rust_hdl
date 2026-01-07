@@ -1,6 +1,21 @@
 # §3: Design entities and configuration
 
 ArchitectureBody: !Sequence
+  - node: ArchitectureHeader
+  - node: ArchitectureDeclarativePart
+  - keyword: Begin
+  - node: ArchitectureStatementPart
+  - node: ArchitectureEnd
+
+ArchitectureDeclarativePart: !Sequence
+  - node: Declaration
+    repeated: true
+
+ArchitectureStatementPart: !Sequence
+  - node: ConcurrentStatement
+    repeated: true
+
+ArchitectureHeader: !Sequence
   - keyword: Architecture
   - token: Identifier
     name: name
@@ -8,11 +23,8 @@ ArchitectureBody: !Sequence
   - node: Name
     name: entity_name
   - keyword: Is
-  - node: Declaration
-    repeated: true
-  - keyword: Begin
-  - node: ConcurrentStatement
-    repeated: true
+
+ArchitectureEnd: !Sequence
   - keyword: End
   - keyword: Architecture
     name: trailing_architecture

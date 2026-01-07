@@ -27,6 +27,100 @@ impl AstNode for ArchitectureBodySyntax {
     }
 }
 impl ArchitectureBodySyntax {
+    pub fn architecture_header(&self) -> Option<ArchitectureHeaderSyntax> {
+        self.0
+            .children()
+            .filter_map(ArchitectureHeaderSyntax::cast)
+            .nth(0)
+    }
+    pub fn architecture_declarative_part(&self) -> Option<ArchitectureDeclarativePartSyntax> {
+        self.0
+            .children()
+            .filter_map(ArchitectureDeclarativePartSyntax::cast)
+            .nth(0)
+    }
+    pub fn begin_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .nth(0)
+    }
+    pub fn architecture_statement_part(&self) -> Option<ArchitectureStatementPartSyntax> {
+        self.0
+            .children()
+            .filter_map(ArchitectureStatementPartSyntax::cast)
+            .nth(0)
+    }
+    pub fn architecture_end(&self) -> Option<ArchitectureEndSyntax> {
+        self.0
+            .children()
+            .filter_map(ArchitectureEndSyntax::cast)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ArchitectureDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ArchitectureDeclarativePartSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ArchitectureDeclarativePart => Some(ArchitectureDeclarativePartSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ArchitectureDeclarativePart)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ArchitectureDeclarativePartSyntax {
+    pub fn declarations(&self) -> impl Iterator<Item = DeclarationSyntax> + use<'_> {
+        self.0.children().filter_map(DeclarationSyntax::cast)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ArchitectureStatementPartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ArchitectureStatementPartSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ArchitectureStatementPart => Some(ArchitectureStatementPartSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ArchitectureStatementPart)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ArchitectureStatementPartSyntax {
+    pub fn concurrent_statements(
+        &self,
+    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ConcurrentStatementSyntax::cast)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ArchitectureHeaderSyntax(pub(crate) SyntaxNode);
+impl AstNode for ArchitectureHeaderSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ArchitectureHeader => Some(ArchitectureHeaderSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ArchitectureHeader)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ArchitectureHeaderSyntax {
     pub fn architecture_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
@@ -54,22 +148,24 @@ impl ArchitectureBodySyntax {
             .filter(|token| token.kind() == Keyword(Kw::Is))
             .nth(0)
     }
-    pub fn declarations(&self) -> impl Iterator<Item = DeclarationSyntax> + use<'_> {
-        self.0.children().filter_map(DeclarationSyntax::cast)
+}
+#[derive(Debug, Clone)]
+pub struct ArchitectureEndSyntax(pub(crate) SyntaxNode);
+impl AstNode for ArchitectureEndSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ArchitectureEnd => Some(ArchitectureEndSyntax(node)),
+            _ => None,
+        }
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
-            .nth(0)
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ArchitectureEnd)
     }
-    pub fn concurrent_statements(
-        &self,
-    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
-        self.0
-            .children()
-            .filter_map(ConcurrentStatementSyntax::cast)
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
     }
+}
+impl ArchitectureEndSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
@@ -80,13 +176,13 @@ impl ArchitectureBodySyntax {
         self.0
             .tokens()
             .filter(|token| token.kind() == Keyword(Kw::Architecture))
-            .nth(1)
+            .nth(0)
     }
     pub fn trailing_name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
             .filter(|token| token.kind() == Identifier)
-            .nth(1)
+            .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0

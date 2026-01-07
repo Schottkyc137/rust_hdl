@@ -48,7 +48,6 @@ impl<T: ?Sized + AsRef<[TriviaPiece]>> From<&T> for Trivia {
     }
 }
 
-
 impl Trivia {
     pub fn byte_len(&self) -> usize {
         self.pieces
@@ -58,6 +57,10 @@ impl Trivia {
 
     pub fn push(&mut self, piece: TriviaPiece) {
         self.pieces.push(piece)
+    }
+
+    pub fn pop(&mut self) -> Option<TriviaPiece> {
+        self.pieces.pop()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -76,6 +79,52 @@ impl Trivia {
     }
 }
 
+impl Trivia {
+    pub fn clone_without_leading_spaces_or_tabs(&self) -> Trivia {
+        let mut trivia = self.pieces.as_slice();
+        while !trivia.is_empty() {
+            if trivia[0].is_space_or_tab() {
+                trivia = &trivia[1..];
+            } else {
+                break;
+            }
+        }
+        Trivia::from(trivia)
+    }
+
+    pub fn clone_without_leading_whitespaces(&self) -> Trivia {
+        let mut trivia = self.pieces.as_slice();
+        while !trivia.is_empty() {
+            if trivia[0].is_whitespace() {
+                trivia = &trivia[1..];
+            } else {
+                break;
+            }
+        }
+        Trivia::from(trivia)
+    }
+
+    pub fn remove_trailing_whitespaces(&mut self) {
+        while self.last().is_some_and(TriviaPiece::is_whitespace) {
+            self.pop();
+        }
+    }
+
+    pub fn remove_trailing_spaces_or_tabs(&mut self) {
+        while self.last().is_some_and(TriviaPiece::is_space_or_tab) {
+            self.pop();
+        }
+    }
+
+    pub fn has_newline(&self) -> bool {
+        self.pieces.iter().any(TriviaPiece::is_newline)
+    }
+
+    pub fn has_spaces_or_tabs(&self) -> bool {
+        self.pieces.iter().any(TriviaPiece::is_space_or_tab)
+    }
+}
+
 impl Deref for Trivia {
     type Target = [TriviaPiece];
 
@@ -88,6 +137,14 @@ impl FromIterator<TriviaPiece> for Trivia {
     fn from_iter<T: IntoIterator<Item = TriviaPiece>>(iter: T) -> Self {
         Trivia {
             pieces: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl<'a> FromIterator<&'a TriviaPiece> for Trivia {
+    fn from_iter<T: IntoIterator<Item = &'a TriviaPiece>>(iter: T) -> Self {
+        Trivia {
+            pieces: iter.into_iter().cloned().collect(),
         }
     }
 }

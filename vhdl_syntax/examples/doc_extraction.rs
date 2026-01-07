@@ -12,7 +12,6 @@ use vhdl_syntax::syntax::AstNode;
 use vhdl_syntax::syntax::EntityDeclarationSyntax;
 use vhdl_syntax::tokens::{Trivia, TriviaPiece};
 
-// TODO: Example is currently broken
 fn main() {
     let vhdl = "\
 --- This is the foo entity
@@ -44,7 +43,7 @@ end bar;
         if let Some(token) = entity.entity_token() {
             // The trivia is where all auxiliary information concerning a token is stored,
             // for example, comments, whitespaces or newlines.
-            let comment = extract_doc_from_trivia(token.leading_trivia());
+            let comment = extract_doc_from_trivia(token.all_leading_trivia());
             // If the entity has a name token, add the extracted documentation to the map
             if let Some(ident) = entity.name_token() {
                 if !comment.is_empty() {

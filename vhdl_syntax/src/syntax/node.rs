@@ -54,6 +54,7 @@ use crate::syntax::green::{GreenChild, GreenNode, GreenToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::rewrite::{RewriteAction, Rewriter};
 use crate::tokens::{Token, TokenKind, Trivia};
+use std::fmt::Debug;
 use std::io::{self, Write};
 use std::iter;
 use std::sync::Arc;
@@ -71,8 +72,19 @@ impl SyntaxElement {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SyntaxToken(Arc<SyntaxTokenData>);
+
+impl Debug for SyntaxToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SyntaxToken")
+            .field("kind", &self.green().kind())
+            .field("leading_trivia", &self.green().leading_trivia())
+            .field("text", &self.green().text())
+            .field("trailing_trivia", &self.green().trailing_trivia())
+            .finish()
+    }
+}
 
 impl SyntaxToken {
     pub(crate) fn new(
@@ -107,7 +119,7 @@ impl SyntaxToken {
 
     /// Returns all trivia between this token and the previous one, resp. only the leading trivia
     /// of this token, if there is no previous token.
-    pub fn leading_trivia(&self) -> Trivia {
+    pub fn all_leading_trivia(&self) -> Trivia {
         let mut trivia = self
             .prev_token()
             .map(|trivia| trivia.green().trailing_trivia().clone())
@@ -116,9 +128,13 @@ impl SyntaxToken {
         trivia
     }
 
+    pub fn leading_trivia(&self) -> Trivia {
+        self.green().leading_trivia().clone()
+    }
+
     /// Returns all trailing trivia between this token and the next one, resp. only the trailing
     /// trivia of this token, if there is no next token.
-    pub fn trailing_trivia(&self) -> Trivia {
+    pub fn all_trailing_trivia(&self) -> Trivia {
         let mut trivia = self.green().trailing_trivia().clone();
         trivia.append(
             &mut self
@@ -127,6 +143,10 @@ impl SyntaxToken {
                 .unwrap_or_default(),
         );
         trivia
+    }
+
+    pub fn trailing_trivia(&self) -> Trivia {
+        self.green().trailing_trivia().clone()
     }
 
     pub fn text(&self) -> &Latin1Str {
@@ -187,6 +207,31 @@ impl SyntaxToken {
         self.clone_with_token(token)
     }
 
+    pub fn clone_with_trailing_trivia(&self, trivia: Trivia) -> SyntaxToken {
+        let token = Token::new(
+            self.kind(),
+            self.green().text(),
+            self.green().leading_trivia().clone(),
+            trivia,
+        );
+        self.clone_with_token(token)
+    }
+
+    pub fn clone_with_leading_trivia(&self, trivia: Trivia) -> SyntaxToken {
+        let token = Token::new(
+            self.kind(),
+            self.green().text(),
+            trivia,
+            self.green().trailing_trivia().clone(),
+        );
+        self.clone_with_token(token)
+    }
+
+    pub fn clone_with_trivia(&self, leading: Trivia, trailing: Trivia) -> SyntaxToken {
+        let token = Token::new(self.kind(), self.green().text(), leading, trailing);
+        self.clone_with_token(token)
+    }
+
     /// Clones all content (trivia, kind) of this token but changes the textual representation.
     ///
     /// If the text is not valid `Latin1`, a `Utf8ToLatin1Error` will be returned.
@@ -213,6 +258,16 @@ impl SyntaxToken {
     pub fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         self.green().write_to(writer)
     }
+
+    /// Returns `true` when this token is the last child of its parent
+    pub fn is_first_sibling(&self) -> bool {
+        self.prev_sibling_or_token().is_none()
+    }
+
+    /// Returns `true` when this token is the last child of its parent
+    pub fn is_last_sibling(&self) -> bool {
+        self.next_sibling_or_token().is_none()
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -223,8 +278,17 @@ pub struct SyntaxTokenData {
     green: GreenToken,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SyntaxNode(Arc<SyntaxNodeData>);
+
+impl Debug for SyntaxNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SyntaxNode")
+            .field("kind", &self.kind())
+            .field("children", &self.children_with_tokens().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SyntaxNodeData {
@@ -282,7 +346,10 @@ impl SyntaxNode {
 
     pub fn first_token(&self) -> Option<SyntaxToken> {
         self.children_with_tokens()
-            .filter_map(|child| child.as_token())
+            .filter_map(|node| match node {
+                SyntaxElement::Node(n) => n.first_token(),
+                SyntaxElement::Token(t) => Some(t),
+            })
             .next()
     }
 
@@ -424,9 +491,9 @@ impl SyntaxElement {
 
 #[cfg(test)]
 mod tests {
-    use crate::syntax::green::{GreenNode, GreenNodeData};
+    use crate::syntax::green::{GreenChild, GreenNode, GreenNodeData};
     use crate::syntax::node::{SyntaxElement, SyntaxNode};
-    use crate::syntax::node_kind::NodeKind::EntityDeclaration;
+    use crate::syntax::node_kind::NodeKind::*;
     use crate::syntax::rewrite::RewriteAction;
     use crate::tokens::Tokenize;
     use crate::tokens::{Keyword, Token, TokenKind, Trivia, TriviaPiece};
@@ -592,5 +659,32 @@ mod tests {
             .map(|syntax_token| syntax_token.token().clone())
             .collect::<VecDeque<_>>();
         assert_eq!(new_tokens, orig_tokens);
+    }
+
+    #[test]
+    fn next_token() {
+        let mut top = GreenNodeData::new(DesignFile);
+        let mut n1 = GreenNodeData::new(EntityDeclaration);
+        n1.push_tokens(0, "entity foo".tokenize());
+        let n1 = GreenNode::new(n1);
+        let mut n2 = GreenNodeData::new(ArchitectureBody);
+        n2.push_tokens(0, "architecture end;".tokenize());
+        let n2 = GreenNode::new(n2);
+
+        top.push_children([GreenChild::Node((0, n1)), GreenChild::Node((0, n2))]);
+
+        let s = SyntaxNode::new_root(GreenNode::new(top));
+        let first_token = s.first_token().expect("Node must have first token");
+        assert!(first_token.kind() == TokenKind::Keyword(Keyword::Entity));
+        // Same node
+        let second_token = first_token
+            .next_token()
+            .expect("Node must have second token");
+        assert!(second_token.kind() == TokenKind::Identifier);
+        // Neighbor node
+        let third_token = second_token
+            .next_token()
+            .expect("Node must have second token");
+        assert!(third_token.kind() == TokenKind::Keyword(Keyword::Architecture));
     }
 }

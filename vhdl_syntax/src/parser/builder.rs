@@ -49,8 +49,13 @@ impl NodeBuilder {
         let (kind, first_child) = self.parents.pop().unwrap();
         let mut data = GreenNodeData::new(kind);
         data.push_children(self.children.drain(first_child..));
-        self.children
-            .push(GreenChild::Node((0, GreenNode::new(data))));
+        // Do not push empty children
+        // TODO: This is a required invariant, but enforcing it here is brittle.
+        // Instead, we should move to a event-based API for parser <-> builder
+        if !data.is_empty() {
+            self.children
+                .push(GreenChild::Node((0, GreenNode::new(data))));
+        }
     }
 
     pub fn end(mut self) -> GreenNode {

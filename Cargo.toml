@@ -12,7 +12,7 @@ members = [
     "vhdl_ls",
     "vhdl_syntax",
     "ast_syntax_gen",
-    "vhdl-dump-ast",
+    "vhdl-dump-ast", "vhdl-fmt",
 ]
 
 # By default, do not include members that are only needed at build-time

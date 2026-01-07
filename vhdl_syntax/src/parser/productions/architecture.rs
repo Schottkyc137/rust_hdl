@@ -6,18 +6,42 @@ use crate::tokens::token_kind::TokenKind::*;
 impl Parser {
     pub fn architecture(&mut self) {
         self.start_node(ArchitectureBody);
+        self.architecture_header();
+        self.architecture_declarative_part();
+        self.expect_kw(Kw::Begin);
+        self.architecture_statement_part();
+        self.architecture_end();
+        self.end_node();
+    }
+
+    fn architecture_header(&mut self) {
+        self.start_node(ArchitectureHeader);
         self.expect_kw(Kw::Architecture);
         self.identifier();
         self.expect_kw(Kw::Of);
         self.name();
         self.expect_kw(Kw::Is);
-        self.declarative_part();
-        self.expect_kw(Kw::Begin);
-        self.concurrent_statements();
+        self.end_node();
+    }
+
+    fn architecture_end(&mut self) {
+        self.start_node(ArchitectureEnd);
         self.opt_token(Keyword(Kw::End));
         self.opt_token(Keyword(Kw::Architecture));
         self.opt_identifier();
         self.expect_token(SemiColon);
+        self.end_node();
+    }
+
+    fn architecture_declarative_part(&mut self) {
+        self.start_node(ArchitectureDeclarativePart);
+        self.declarative_part();
+        self.end_node();
+    }
+
+    fn architecture_statement_part(&mut self) {
+        self.start_node(ArchitectureStatementPart);
+        self.concurrent_statements();
         self.end_node();
     }
 }
