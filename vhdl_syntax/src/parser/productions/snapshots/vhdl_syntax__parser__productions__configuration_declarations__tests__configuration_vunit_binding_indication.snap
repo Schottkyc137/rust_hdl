@@ -3,12 +3,13 @@ source: vhdl_syntax/src/parser/productions/configuration_declarations.rs
 expression: "to_test_text(Parser::configuration_declaration,\n\"\\\nconfiguration cfg of entity_name is\n  use lib.foo.bar;\n  use vunit baz.foobar;\n  for rtl(0)\n  end for;\nend configuration cfg;\",)"
 ---
 ConfigurationDeclaration
-  Keyword(Configuration)
-  Identifier 'cfg'
-  Keyword(Of)
-  Name
-    Identifier 'entity_name'
-  Keyword(Is)
+  ConfigurationDeclarationPreamble
+    Keyword(Configuration)
+    Identifier 'cfg'
+    Keyword(Of)
+    Name
+      Identifier 'entity_name'
+    Keyword(Is)
   UseClauseDeclaration
     UseClause
       Keyword(Use)
@@ -34,17 +35,20 @@ ConfigurationDeclaration
             Identifier 'foobar'
     SemiColon
   BlockConfiguration
-    Keyword(For)
-    Name
-      Identifier 'rtl'
-      RawTokens
-        LeftPar
-        AbstractLiteral '0'
-        RightPar
+    BlockConfigurationPreamble
+      Keyword(For)
+      Name
+        Identifier 'rtl'
+        RawTokens
+          LeftPar
+          AbstractLiteral '0'
+          RightPar
+    BlockConfigurationEpilogue
+      Keyword(End)
+      Keyword(For)
+      SemiColon
+  ConfigurationDeclarationEpilogue
     Keyword(End)
-    Keyword(For)
+    Keyword(Configuration)
+    Identifier 'cfg'
     SemiColon
-  Keyword(End)
-  Keyword(Configuration)
-  Identifier 'cfg'
-  SemiColon

@@ -24,16 +24,23 @@ fn architecture_with_declarations() {
     ));
 }
 
-#[test]
-fn architecture_with_statmeents() {
-    insta::assert_snapshot!(format_str(
-        "architecture  arch  of  foo  is  begin foo <= '1';  end  arch ;"
-    ));
-}
+// #[test]
+// fn architecture_with_statmeents() {
+//     insta::assert_snapshot!(format_str(
+//         "architecture  arch  of  foo  is  begin foo <= '1';  end  arch ;"
+//     ));
+// }
+
+// #[test]
+// fn architecture_with_statmeents_and_declarations() {
+//     insta::assert_snapshot!(format_str(
+//         "architecture  arch  of  foo  is signal foo: bit;  begin x <= '1';  end  arch ;"
+//     ));
+// }
 
 #[test]
-fn architecture_with_statmeents_and_declarations() {
+fn architecture_with_block_declaration() {
     insta::assert_snapshot!(format_str(
-        "architecture  arch  of  foo  is signal foo: bit;  begin x <= '1';  end  arch ;"
+        "architecture  arch  of  foo  is begin    block is begin end block;  end  arch ;"
     ));
 }

@@ -3,11 +3,12 @@ source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
 expression: "stmt_to_test_text(\"\\\nname: block is\n  generic(gen: integer := 1);\n  generic map(gen => 1);\n  port(prt: integer := 1);\n  port map(prt => 2);\nbegin\nend block;\",)"
 ---
 BlockStatement
-  Label
-    Identifier 'name'
-    Colon
-  Keyword(Block)
-  Keyword(Is)
+  BlockPreamble
+    Label
+      Identifier 'name'
+      Colon
+    Keyword(Block)
+    Keyword(Is)
   BlockHeader
     GenericClause
       Keyword(Generic)
@@ -72,6 +73,7 @@ BlockStatement
         RightPar
       SemiColon
   Keyword(Begin)
-  Keyword(End)
-  Keyword(Block)
-  SemiColon
+  BlockEpilogue
+    Keyword(End)
+    Keyword(Block)
+    SemiColon

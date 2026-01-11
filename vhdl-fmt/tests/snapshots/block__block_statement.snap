@@ -1,0 +1,7 @@
+---
+source: vhdl-fmt/tests/block.rs
+expression: "format_str(\"block is begin end block ;\")"
+---
+block is
+begin
+end block;

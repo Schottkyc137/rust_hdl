@@ -18,6 +18,7 @@ FullTypeDeclaration
     PrimaryUnitDeclaration
       Identifier 'm'
       SemiColon
-    Keyword(End)
-    Keyword(Units)
+    PhysicalTypeDefinitionEpilogue
+      Keyword(End)
+      Keyword(Units)
   SemiColon

@@ -549,7 +549,7 @@ mod tests {
         green_node.push_tokens(0, tokens);
         let node = SyntaxNode::new_root(GreenNode::new(green_node));
         assert_eq!(
-            node.tokens().nth(1).unwrap().leading_trivia(),
+            node.tokens().nth(1).unwrap().all_leading_trivia(),
             Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
         );
     }
@@ -603,7 +603,7 @@ mod tests {
         green_node.push_tokens(0, tokens);
         let node = SyntaxNode::new_root(GreenNode::new(green_node));
         assert_eq!(
-            node.first_token().unwrap().trailing_trivia(),
+            node.first_token().unwrap().all_trailing_trivia(),
             Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
         );
     }

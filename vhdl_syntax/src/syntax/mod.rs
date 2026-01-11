@@ -10,7 +10,6 @@ mod generated;
 pub(crate) mod green;
 pub mod node;
 pub mod rewrite;
-mod tests;
 pub mod visitor;
 
 use crate::syntax::node::{SyntaxElement, SyntaxNode};

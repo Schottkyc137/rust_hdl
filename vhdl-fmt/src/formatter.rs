@@ -101,16 +101,19 @@ impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
     // Add a leading trivia piece before the next token
     fn enter(&mut self, node: &SyntaxNode) {
         match node.kind() {
-            NodeKind::ArchitectureEnd => {
+            NodeKind::ArchitectureEpilogue | NodeKind::BlockEpilogue => {
                 self.set_pending_newline();
             }
-            NodeKind::ArchitectureStatementPart | NodeKind::ArchitectureDeclarativePart => {
+            NodeKind::ConcurrentStatements
+            | NodeKind::SequentialStatements
+            | NodeKind::Declarations => {
                 self.indent();
             }
             _ => {
-                if DeclarationSyntax::can_cast(node)
+                if (DeclarationSyntax::can_cast(node)
                     || ConcurrentStatementSyntax::can_cast(node)
-                    || SequentialStatementSyntax::can_cast(node)
+                    || SequentialStatementSyntax::can_cast(node))
+                    && node.parent().is_some()
                 {
                     self.set_pending_newline();
                 }
@@ -130,18 +133,18 @@ impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
     fn exit(&mut self, node: &SyntaxNode) {
         // Add a leading trivia piece before the next token
         match node.kind() {
-            NodeKind::ArchitectureHeader => {
+            NodeKind::ArchitecturePreamble | NodeKind::BlockPreamble => {
                 self.set_pending_newline();
             }
-            NodeKind::ArchitectureDeclarativePart => {
+            NodeKind::Declarations
+            | NodeKind::ConcurrentStatements
+            | NodeKind::SequentialStatements => {
                 self.dedent();
                 self.set_pending_newline();
-            }
-            NodeKind::ArchitectureStatementPart => {
-                self.dedent();
             }
             NodeKind::Name => {
-                if node.parent().map(|parent| parent.kind()) == Some(NodeKind::ArchitectureHeader) {
+                if node.parent().map(|parent| parent.kind()) == Some(NodeKind::ArchitecturePreamble)
+                {
                     self.set_pending_space();
                 }
             }

@@ -23,11 +23,12 @@ DesignFile
               Keyword(All)
         SemiColon
     EntityDeclaration
-      Keyword(Entity)
-      Identifier 'my_ent'
-      Keyword(Is)
-      EntityHeader
+      EntityDeclarationPreamble
+        Keyword(Entity)
+        Identifier 'my_ent'
+        Keyword(Is)
       Keyword(Begin)
-      Keyword(End)
-      Identifier 'my_ent'
-      SemiColon
+      EntityDeclarationEpilogue
+        Keyword(End)
+        Identifier 'my_ent'
+        SemiColon

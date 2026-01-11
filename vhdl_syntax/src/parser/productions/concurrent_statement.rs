@@ -7,25 +7,41 @@
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
-use crate::tokens::TokenKind::*;
+use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
-    fn block_statement_inner(&mut self) {
+    pub fn block_statement(&mut self) {
+        self.start_node(BlockStatement);
+        self.block_preamble();
+        self.block_header();
+        self.declarations();
+        self.expect_kw(Kw::Begin);
+        self.concurrent_statements();
+        self.block_epilogue();
+        self.end_node();
+    }
+
+    pub fn block_preamble(&mut self) {
+        self.start_node(BlockPreamble);
+        self.opt_label();
         self.expect_kw(Kw::Block);
         if self.next_is(LeftPar) {
             self.start_node(ParenthesizedExpression);
             self.skip();
-            self.condition();
+            self.expression();
             self.expect_token(RightPar);
             self.end_node();
         }
         self.opt_token(Keyword(Kw::Is));
-        self.block_header();
-        self.block_declarative_part();
-        self.expect_kw(Kw::Begin);
-        self.concurrent_statements();
+        self.end_node();
+    }
+
+    pub fn block_epilogue(&mut self) {
+        self.start_node(BlockEpilogue);
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Block)]);
         self.opt_identifier();
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 
     pub fn block_header(&mut self) {
@@ -47,91 +63,155 @@ impl Parser {
         self.end_node();
     }
 
-    pub fn block_declarative_part(&mut self) {
-        self.declarative_part()
-    }
-
-    pub(crate) fn concurrent_statements(&mut self) {
+    pub fn concurrent_statements(&mut self) {
+        self.start_node(ConcurrentStatements);
         loop {
             match self.peek_token() {
                 Some(Keyword(Kw::End | Kw::Elsif | Kw::Else | Kw::When)) | None => {
-                    return;
+                    break;
                 }
                 _ => self.concurrent_statement(),
             }
         }
+        self.end_node();
     }
 
-    pub(crate) fn component_instantiated_unit(&mut self) {
+    pub fn component_instantiated_unit(&mut self) {
         self.start_node(ComponentInstantiatedUnit);
         self.opt_token(Keyword(Kw::Component));
         self.name();
         self.end_node();
     }
 
-    pub(crate) fn entity_instantiated_unit(&mut self) {
+    pub fn entity_instantiated_unit(&mut self) {
         self.start_node(EntityInstantiatedUnit);
         self.expect_kw(Kw::Entity);
         self.name();
         self.end_node();
     }
 
-    pub(crate) fn configuration_instantiated_unit(&mut self) {
+    pub fn configuration_instantiated_unit(&mut self) {
         self.start_node(ConfigurationInstantiatedUnit);
         self.expect_kw(Kw::Configuration);
         self.name();
         self.end_node();
     }
 
-    pub(crate) fn concurrent_statement(&mut self) {
-        let checkpoint = self.checkpoint();
+    fn peek_concurrent_statement_kind(&mut self) -> Option<TokenKind> {
+        // Has label?
+        let mut peek_idx = 0usize;
+        if self.next_is(Identifier) && self.next_nth_is(Colon, 1) {
+            peek_idx = 2;
+        }
+        // Has 'postpooned' keyword?
+        if self.next_nth_is(Keyword(Kw::Postponed), peek_idx) {
+            peek_idx += 1;
+        }
+        self.peek_nth_token(peek_idx)
+    }
+
+    // -        let checkpoint = self.checkpoint();
+    // -        self.opt_label();
+    // -        self.opt_token(Keyword(Kw::Postponed));
+    // -        match self.peek_token() {
+    // -            Some(Keyword(Kw::Component)) => {
+    // -                self.start_node_at(checkpoint, ComponentInstantiationStatement);
+    // -                self.component_instantiated_unit();
+    // -                self.instantiation_statement_inner();
+    // -            }
+    // -            Some(Keyword(Kw::Configuration)) => {
+    // -                self.start_node_at(checkpoint, ComponentInstantiationStatement);
+    // -                self.configuration_instantiated_unit();
+    // -                self.instantiation_statement_inner();
+    // -            }
+    // -            Some(Keyword(Kw::Entity)) => {
+    // -                self.start_node_at(checkpoint, ComponentInstantiationStatement);
+    // -                self.entity_instantiated_unit();
+    // -                self.instantiation_statement_inner();
+    // -            }
+    // -            Some(Keyword(Kw::Assert)) => {
+    // -                self.start_node_at(checkpoint, ConcurrentAssertionStatement);
+    // -                self.assertion();
+    // -            }
+    // -            Some(Identifier | LtLt | StringLiteral | CharacterLiteral) => {
+    // -                let checkpoint2 = self.checkpoint();
+    // -                self.name();
+    // -                match self.peek_token() {
+    // -                    Some(LTE) => {
+    // -                        self.start_node_at(checkpoint2, NameTarget);
+    // -                        self.end_node();
+    // -                        self.skip();
+    // -                        self.opt_token(Keyword(Kw::Guarded));
+    // -                        self.opt_delay_mechanism();
+    // -                        let waveform_checkpoint = self.checkpoint();
+    // -                        self.waveform();
+    // -                        if self.opt_token(Keyword(Kw::When)) {
+    // -                            self.start_node_at(checkpoint, ConcurrentConditionalSignalAssignment);
+    // -                            self.start_node_at(waveform_checkpoint, ConditionalWaveforms);
+    // -                            self.conditional_waveforms_after_first_when();
+    // -                            self.end_node();
+    // -                        } else {
+    // -                            self.start_node_at(checkpoint, ConcurrentSimpleSignalAssignment);
+    // -                        }
+    // -                    }
+    // -                    Some(Keyword(Kw::Port | Kw::Generic)) => {
+    // -                        self.start_node_at(checkpoint2, ComponentInstantiatedUnit);
+    // -                        self.end_node();
+    // -                        self.start_node_at(checkpoint, ComponentInstantiationStatement);
+    // -                        self.instantiation_statement_inner();
+    // -                    }
+    // -                    // Could be an instantiated unit without ports and generics
+    // -                    // or a procedure call
+    // -                    _ => self.start_node_at(
+    // -                        checkpoint,
+    // -                        ConcurrentProcedureCallOrComponentInstantiationStatement,
+    // -                    ),
+    // -                }
+    // -            }
+    // -            _ => self.expect_tokens_err([Keyword(Kw::Block)]),
+
+    pub fn instantiated_unit(&mut self) {
+        match self.peek_token() {
+            Some(Keyword(Kw::Entity)) => self.entity_instantiated_unit(),
+            Some(Keyword(Kw::Configuration)) => self.configuration_instantiated_unit(),
+            _ => self.component_instantiated_unit(),
+        }
+    }
+
+    pub fn component_instantiation_statement(&mut self) {
+        self.start_node(ComponentInstantiationStatement);
+        self.opt_label();
+        self.instantiated_unit();
+        self.instantiation_statement_inner();
+        self.expect_token(SemiColon);
+        self.end_node();
+    }
+
+    pub fn concurrent_assertion_statement(&mut self) {
+        self.start_node(ConcurrentAssertionStatement);
         self.opt_label();
         self.opt_token(Keyword(Kw::Postponed));
-        match self.peek_token() {
-            Some(Keyword(Kw::Block)) => {
-                self.start_node_at(checkpoint, BlockStatement);
-                self.block_statement_inner();
+        self.assertion();
+        self.expect_token(SemiColon);
+        self.end_node();
+    }
+
+    pub(crate) fn concurrent_statement(&mut self) {
+        match self.peek_concurrent_statement_kind() {
+            Some(Keyword(Kw::Block)) => self.block_statement(),
+            Some(Keyword(Kw::Process)) => self.process_statement(),
+            Some(Keyword(Kw::Component | Kw::Configuration | Kw::Entity)) => {
+                self.component_instantiation_statement()
             }
-            Some(Keyword(Kw::Process)) => {
-                self.start_node_at(checkpoint, ProcessStatement);
-                self.process_statement_inner();
-            }
-            Some(Keyword(Kw::Component)) => {
-                self.start_node_at(checkpoint, ComponentInstantiationStatement);
-                self.component_instantiated_unit();
-                self.instantiation_statement_inner();
-            }
-            Some(Keyword(Kw::Configuration)) => {
-                self.start_node_at(checkpoint, ComponentInstantiationStatement);
-                self.configuration_instantiated_unit();
-                self.instantiation_statement_inner();
-            }
-            Some(Keyword(Kw::Entity)) => {
-                self.start_node_at(checkpoint, ComponentInstantiationStatement);
-                self.entity_instantiated_unit();
-                self.instantiation_statement_inner();
-            }
-            Some(Keyword(Kw::For)) => {
-                self.start_node_at(checkpoint, ForGenerateStatement);
-                self.for_generate_statement_inner();
-            }
-            Some(Keyword(Kw::If)) => {
-                self.start_node_at(checkpoint, IfGenerateStatement);
-                self.if_generate_statement_inner();
-            }
-            Some(Keyword(Kw::Case)) => {
-                self.start_node_at(checkpoint, CaseGenerateStatement);
-                self.case_generate_statement_inner();
-            }
-            Some(Keyword(Kw::Assert)) => {
-                self.start_node_at(checkpoint, ConcurrentAssertionStatement);
-                self.assertion();
-            }
-            Some(Keyword(Kw::With)) => {
-                self.start_node_at(checkpoint, ConcurrentSelectedSignalAssignment);
-                self.concurrent_selected_signal_assignment_inner();
-            }
+            Some(Keyword(Kw::For)) => self.for_generate_statement(),
+            Some(Keyword(Kw::If)) => self.if_generate_statement(),
+            Some(Keyword(Kw::Case)) => self.case_generate_statement(),
+            Some(Keyword(Kw::Assert)) => self.concurrent_assertion_statement(),
+            Some(Keyword(Kw::With)) => self.concurrent_selected_signal_assignment(),
             Some(Identifier | LtLt | StringLiteral | CharacterLiteral) => {
+                let checkpoint = self.checkpoint();
+                self.opt_label();
+                self.opt_token(Keyword(Kw::Postponed));
                 let checkpoint2 = self.checkpoint();
                 self.name();
                 match self.peek_token() {
@@ -165,11 +245,11 @@ impl Parser {
                         ConcurrentProcedureCallOrComponentInstantiationStatement,
                     ),
                 }
+                self.expect_token(SemiColon);
+                self.end_node();
             }
             _ => self.expect_tokens_err([Keyword(Kw::Block)]),
         }
-        self.expect_token(SemiColon);
-        self.end_node();
     }
 
     /// Parse conditional waveforms, assuming the first `waveform when` is already parsed
@@ -191,17 +271,27 @@ impl Parser {
         }
     }
 
-    fn concurrent_selected_signal_assignment_inner(&mut self) {
-        self.opt_token(Keyword(Kw::Postponed));
-        self.expect_kw(Kw::With);
-        self.expression();
-        self.expect_kw(Kw::Select);
-        self.opt_token(Que);
+    pub fn concurrent_selected_signal_assignment(&mut self) {
+        self.start_node(ConcurrentSelectedSignalAssignment);
+        self.concurrent_selected_signal_assignment_preamble();
         self.target();
         self.expect_token(LTE);
         self.opt_token(Keyword(Kw::Guarded));
         self.opt_delay_mechanism();
         self.selected_waveforms();
+        self.expect_token(SemiColon);
+        self.end_node();
+    }
+
+    pub fn concurrent_selected_signal_assignment_preamble(&mut self) {
+        self.start_node(ConcurrentSelectedSignalAssignmentPreamble);
+        self.opt_label();
+        self.opt_token(Keyword(Kw::Postponed));
+        self.expect_kw(Kw::With);
+        self.expression();
+        self.expect_kw(Kw::Select);
+        self.opt_token(Que);
+        self.end_node();
     }
 
     pub fn target(&mut self) {
@@ -229,15 +319,31 @@ impl Parser {
         self.end_node();
     }
 
-    fn case_generate_statement_inner(&mut self) {
-        self.expect_kw(Kw::Case);
-        self.condition();
-        self.expect_kw(Kw::Generate);
+    pub fn case_generate_statement(&mut self) {
+        self.start_node(CaseGenerateStatement);
+        self.case_generate_preamble();
         while self.next_is(Keyword(Kw::When)) {
             self.case_generate_alternative();
         }
+        self.case_generate_epliogue();
+        self.end_node();
+    }
+
+    pub fn case_generate_preamble(&mut self) {
+        self.start_node(CaseGenerateStatementPreamble);
+        self.opt_label();
+        self.expect_kw(Kw::Case);
+        self.expression();
+        self.expect_kw(Kw::Generate);
+        self.end_node();
+    }
+
+    pub fn case_generate_epliogue(&mut self) {
+        self.start_node(CaseGenerateStatementEpilogue);
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
         self.opt_identifier();
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 
     pub fn case_generate_alternative(&mut self) {
@@ -250,13 +356,29 @@ impl Parser {
         self.end_node();
     }
 
-    fn for_generate_statement_inner(&mut self) {
+    pub fn for_generate_statement(&mut self) {
+        self.start_node(ForGenerateStatement);
+        self.for_generate_preamble();
+        self.generate_statement_body();
+        self.for_generate_epilogue();
+        self.end_node();
+    }
+
+    pub fn for_generate_preamble(&mut self) {
+        self.start_node(ForGenerateStatementPreamble);
+        self.opt_label();
         self.expect_kw(Kw::For);
         self.parameter_specification();
         self.expect_kw(Kw::Generate);
-        self.generate_statement_body();
+        self.end_node();
+    }
+
+    pub fn for_generate_epilogue(&mut self) {
+        self.start_node(ForGenerateStatementEpilogue);
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
         self.opt_identifier();
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 
     pub fn if_generate_elsif(&mut self) {
@@ -278,11 +400,9 @@ impl Parser {
         self.end_node();
     }
 
-    fn if_generate_statement_inner(&mut self) {
-        self.expect_kw(Kw::If);
-        self.opt_label();
-        self.condition();
-        self.expect_kw(Kw::Generate);
+    pub fn if_generate_statement(&mut self) {
+        self.start_node(IfGenerateStatement);
+        self.if_generate_statement_preamble();
         self.generate_statement_body();
         while self.next_is(Keyword(Kw::Elsif)) {
             self.if_generate_elsif();
@@ -290,8 +410,26 @@ impl Parser {
         if self.next_is(Keyword(Kw::Else)) {
             self.if_generate_else();
         }
+        self.if_generate_statement_epilogue();
+        self.end_node();
+    }
+
+    pub fn if_generate_statement_preamble(&mut self) {
+        self.start_node(IfGenerateStatementPreamble);
+        self.opt_label();
+        self.expect_kw(Kw::If);
+        self.opt_label();
+        self.expression();
+        self.expect_kw(Kw::Generate);
+        self.end_node();
+    }
+
+    pub fn if_generate_statement_epilogue(&mut self) {
+        self.start_node(IfGenerateStatementEpilogue);
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
         self.opt_identifier();
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 
     pub fn generate_statement_body(&mut self) {
@@ -300,10 +438,16 @@ impl Parser {
         self.opt_token(Keyword(Kw::Begin));
         self.concurrent_statements();
         if self.next_is(Keyword(Kw::End)) && !self.next_nth_is(Keyword(Kw::Generate), 1) {
-            self.skip();
-            self.opt_identifier();
-            self.expect_token(SemiColon);
+            self.generate_statement_body_epilogue();
         }
+        self.end_node();
+    }
+
+    pub fn generate_statement_body_epilogue(&mut self) {
+        self.start_node(GenerateStatementBodyEpilogue);
+        self.expect_kw(Kw::End);
+        self.opt_identifier();
+        self.expect_token(SemiColon);
         self.end_node();
     }
 
@@ -320,20 +464,36 @@ impl Parser {
         self.opt_port_map_aspect();
     }
 
-    fn process_statement_inner(&mut self) {
+    pub fn process_statement(&mut self) {
+        self.start_node(ProcessStatement);
+        self.process_statement_preamble();
+        self.declarations();
+        self.expect_token(Keyword(Kw::Begin));
+        self.sequential_statements();
+        self.process_statement_epilogue();
+        self.end_node();
+    }
+
+    pub fn process_statement_preamble(&mut self) {
+        self.start_node(ProcessStatementPreamble);
+        self.opt_label();
         self.opt_token(Keyword(Kw::Postponed));
         self.expect_token(Keyword(Kw::Process));
         if self.next_is(LeftPar) {
             self.process_sensitivity_list();
         }
         self.opt_token(Keyword(Kw::Is));
-        self.declarative_part();
-        self.expect_token(Keyword(Kw::Begin));
-        self.sequence_of_statements();
+        self.end_node();
+    }
+
+    pub fn process_statement_epilogue(&mut self) {
+        self.start_node(ProcessStatementEpilogue);
         self.expect_kw(Kw::End);
         self.opt_token(Keyword(Kw::Postponed));
         self.expect_token(Keyword(Kw::Process));
         self.opt_identifier();
+        self.expect_token(SemiColon);
+        self.end_node();
     }
 
     pub fn process_sensitivity_list(&mut self) {
@@ -524,6 +684,17 @@ begin
   foo <= true;
   wait;
 end process;",
+        ));
+    }
+
+    #[test]
+    fn process_statement_with_conditional_waveform_assignment() {
+        insta::assert_snapshot!(stmt_to_test_text(
+            "\
+main: process is
+begin
+    data_processing_state <= processing when processing_data else idle;
+end process main;",
         ));
     }
 

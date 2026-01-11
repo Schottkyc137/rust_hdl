@@ -1,21 +1,13 @@
 # §3: Design entities and configuration
 
 ArchitectureBody: !Sequence
-  - node: ArchitectureHeader
-  - node: ArchitectureDeclarativePart
+  - node: ArchitecturePreamble
+  - node: Declarations
   - keyword: Begin
-  - node: ArchitectureStatementPart
-  - node: ArchitectureEnd
+  - node: ConcurrentStatements
+  - node: ArchitectureEpilogue
 
-ArchitectureDeclarativePart: !Sequence
-  - node: Declaration
-    repeated: true
-
-ArchitectureStatementPart: !Sequence
-  - node: ConcurrentStatement
-    repeated: true
-
-ArchitectureHeader: !Sequence
+ArchitecturePreamble: !Sequence
   - keyword: Architecture
   - token: Identifier
     name: name
@@ -24,13 +16,11 @@ ArchitectureHeader: !Sequence
     name: entity_name
   - keyword: Is
 
-ArchitectureEnd: !Sequence
+ArchitectureEpilogue: !Sequence
   - keyword: End
   - keyword: Architecture
-    name: trailing_architecture
     optional: true
   - token: Identifier
-    name: trailing_name
     optional: true
   - token: SemiColon
 
@@ -39,23 +29,27 @@ BlockConfigurationItem: !Sequence
 
 ConfigurationItem: !Choice
   - node: BlockConfigurationItem
-  - node: ComponentConfigurationItem
+  - node: ComponentConfiguration
 
 BlockConfiguration: !Sequence
-  - keyword: For
-  - node: Name
+  - node: BlockConfigurationPreamble
   - node: UseClause
     repeated: true
   - node: ConfigurationItem
     repeated: true
+  - node: BlockConfigurationEpilogue
+
+BlockConfigurationPreamble: !Sequence
+  - keyword: For
+  - node: Name
+
+BlockConfigurationEpilogue: !Sequence
   - keyword: End
   - keyword: For
-    name: trailing_for
   - token: SemiColon
 
-ComponentConfigurationItem: !Sequence
-  - keyword: For
-  - node: ComponentSpecification
+ComponentConfiguration: !Sequence
+  - node: ComponentConfigurationPreamble
   - node: BindingIndication
     terminated: SemiColon
     optional: true
@@ -64,12 +58,27 @@ ComponentConfigurationItem: !Sequence
     repeated: true
   - node: BlockConfiguration
     optional: true
+  - node: ComponentConfigurationEpilogue
+
+ComponentConfigurationPreamble: !Sequence
+  - keyword: For
+  - node: ComponentSpecification
+
+ComponentConfigurationEpilogue: !Sequence
   - keyword: End
   - keyword: For
-    name: trailing_for
   - token: SemiColon
 
 ConfigurationDeclaration: !Sequence
+  - node: ConfigurationDeclarationPreamble
+  - node: Declarations
+  - node: VerificationUnitBindingIndication
+    terminated: SemiColon
+    repeated: true
+  - node: BlockConfiguration
+  - node: ConfigurationDeclarationEpilogue
+
+ConfigurationDeclarationPreamble: !Sequence
   - keyword: Configuration
   - token: Identifier
     name: name
@@ -77,37 +86,33 @@ ConfigurationDeclaration: !Sequence
   - node: Name
     name: entity_name
   - keyword: Is
-  - node: Declaration
-    repeated: true
-  - node: VerificationUnitBindingIndication
-    terminated: SemiColon
-    repeated: true
-  - node: BlockConfiguration
+
+ConfigurationDeclarationEpilogue: !Sequence
   - keyword: End
   - keyword: Configuration
-    name: trailing_configuration
     optional: true
   - token: Identifier
-    name: trailing_name
     optional: true
   - token: SemiColon
 
 EntityDeclaration: !Sequence
+  - node: EntityDeclarationPreamble
+  - node: EntityHeader
+  - node: Declarations
+  - keyword: Begin
+  - node: ConcurrentStatements
+  - node: EntityDeclarationEpilogue
+
+EntityDeclarationPreamble: !Sequence
   - keyword: Entity
   - token: Identifier
     name: name
   - keyword: Is
-  - node: EntityHeader
-  - node: Declaration
-    repeated: true
-  - keyword: Begin
-  - node: ConcurrentStatement
-    repeated: true
+
+EntityDeclarationEpilogue: !Sequence
   - keyword: End
   - keyword: Entity
-    name: trailing_entity
   - token: Identifier
-    name: trailing_name
   - token: SemiColon
 
 EntityHeader: !Sequence

@@ -59,6 +59,17 @@ impl NodeBuilder {
     }
 
     pub fn end(mut self) -> GreenNode {
+        // TODO: This is a dirty hack to enable empty files.
+        // We do not allow empty nodes in the parser (invariant, enables tree traversal and other things)
+        // but this deals with the special case that the entire file is empty.
+        // The fix is (likely) to introduce an EOF token.
+        // This fixes also the case of having an empty file with only trivia.
+        if self.children.len() == 0 {
+            self.children.push(GreenChild::Node((
+                0,
+                GreenNode::new(GreenNodeData::new(NodeKind::DesignFile)),
+            )));
+        }
         assert_eq!(self.children.len(), 1);
         match self.children.pop().unwrap() {
             GreenChild::Node((_, node)) => node,

@@ -7,7 +7,8 @@ FullTypeDeclaration
   Identifier 'rec_t'
   Keyword(Is)
   RecordTypeDefinition
-    Keyword(Record)
+    RecordTypeDefinitionPreamble
+      Keyword(Record)
     ElementDeclaration
       IdentifierList
         Identifier 's1'
@@ -26,6 +27,7 @@ FullTypeDeclaration
         Name
           Identifier 'std_ulogic'
       SemiColon
-    Keyword(End)
-    Keyword(Record)
+    RecordTypeDefinitionEpilogue
+      Keyword(End)
+      Keyword(Record)
   SemiColon
