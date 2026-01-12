@@ -25,7 +25,8 @@ FullTypeDeclaration
           ProcedureSpecification
             Identifier 'proc'
           Keyword(Is)
-        Keyword(Begin)
+        DeclarationStatementSeparator
+          Keyword(Begin)
         SubprogramBodyEpilogue
           Keyword(End)
           SemiColon

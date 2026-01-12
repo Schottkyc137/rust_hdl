@@ -23,7 +23,8 @@ SubprogramBody
       Name
         Identifier 'natural'
     Keyword(Is)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   SubprogramBodyEpilogue
     Keyword(End)
     Keyword(Function)

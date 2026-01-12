@@ -37,9 +37,11 @@ impl Parser {
         self.expect_kw(Kw::Record);
         self.end_node();
 
+        self.start_node(RecordElementDeclarations);
         while !self.next_is(Keyword(Kw::End)) {
             self.element_declaration();
         }
+        self.end_node();
 
         self.start_node(RecordTypeDefinitionEpilogue);
         self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Record)]);

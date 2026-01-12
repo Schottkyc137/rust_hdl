@@ -557,6 +557,38 @@ impl PhysicalTypeDefinitionSyntax {
             .filter_map(RangeConstraintSyntax::cast)
             .nth(0)
     }
+    pub fn unit_declarations(&self) -> Option<UnitDeclarationsSyntax> {
+        self.0
+            .children()
+            .filter_map(UnitDeclarationsSyntax::cast)
+            .nth(0)
+    }
+    pub fn physical_type_definition_epilogue(
+        &self,
+    ) -> Option<PhysicalTypeDefinitionEpilogueSyntax> {
+        self.0
+            .children()
+            .filter_map(PhysicalTypeDefinitionEpilogueSyntax::cast)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct UnitDeclarationsSyntax(pub(crate) SyntaxNode);
+impl AstNode for UnitDeclarationsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::UnitDeclarations => Some(UnitDeclarationsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::UnitDeclarations)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl UnitDeclarationsSyntax {
     pub fn units_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
@@ -575,14 +607,6 @@ impl PhysicalTypeDefinitionSyntax {
         self.0
             .children()
             .filter_map(SecondaryUnitDeclarationSyntax::cast)
-    }
-    pub fn physical_type_definition_epilogue(
-        &self,
-    ) -> Option<PhysicalTypeDefinitionEpilogueSyntax> {
-        self.0
-            .children()
-            .filter_map(PhysicalTypeDefinitionEpilogueSyntax::cast)
-            .nth(0)
     }
 }
 #[derive(Debug, Clone)]
@@ -1087,14 +1111,38 @@ impl RecordTypeDefinitionSyntax {
             .filter_map(RecordTypeDefinitionPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn element_declarations(&self) -> impl Iterator<Item = ElementDeclarationSyntax> + use<'_> {
-        self.0.children().filter_map(ElementDeclarationSyntax::cast)
+    pub fn record_element_declarations(&self) -> Option<RecordElementDeclarationsSyntax> {
+        self.0
+            .children()
+            .filter_map(RecordElementDeclarationsSyntax::cast)
+            .nth(0)
     }
     pub fn record_type_definition_epilogue(&self) -> Option<RecordTypeDefinitionEpilogueSyntax> {
         self.0
             .children()
             .filter_map(RecordTypeDefinitionEpilogueSyntax::cast)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct RecordElementDeclarationsSyntax(pub(crate) SyntaxNode);
+impl AstNode for RecordElementDeclarationsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::RecordElementDeclarations => Some(RecordElementDeclarationsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::RecordElementDeclarations)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl RecordElementDeclarationsSyntax {
+    pub fn element_declarations(&self) -> impl Iterator<Item = ElementDeclarationSyntax> + use<'_> {
+        self.0.children().filter_map(ElementDeclarationSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]

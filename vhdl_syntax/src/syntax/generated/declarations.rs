@@ -531,6 +531,36 @@ impl ComponentDeclarationSyntax {
             .filter_map(ComponentDeclarationPreambleSyntax::cast)
             .nth(0)
     }
+    pub fn component_declaration_items(&self) -> Option<ComponentDeclarationItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(ComponentDeclarationItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn component_declaration_epilogue(&self) -> Option<ComponentDeclarationEpilogueSyntax> {
+        self.0
+            .children()
+            .filter_map(ComponentDeclarationEpilogueSyntax::cast)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ComponentDeclarationItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ComponentDeclarationItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ComponentDeclarationItems => Some(ComponentDeclarationItemsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ComponentDeclarationItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ComponentDeclarationItemsSyntax {
     pub fn generic_clause(&self) -> Option<GenericClauseSyntax> {
         self.0
             .children()
@@ -539,12 +569,6 @@ impl ComponentDeclarationSyntax {
     }
     pub fn port_clause(&self) -> Option<PortClauseSyntax> {
         self.0.children().filter_map(PortClauseSyntax::cast).nth(0)
-    }
-    pub fn component_declaration_epilogue(&self) -> Option<ComponentDeclarationEpilogueSyntax> {
-        self.0
-            .children()
-            .filter_map(ComponentDeclarationEpilogueSyntax::cast)
-            .nth(0)
     }
 }
 #[derive(Debug, Clone)]

@@ -52,7 +52,8 @@ SubprogramBody
       LiteralExpression
         AbstractLiteral '0'
       SemiColon
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   SequentialStatements
     ReturnStatement
       Keyword(Return)

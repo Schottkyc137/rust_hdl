@@ -15,7 +15,9 @@ impl Parser {
         self.block_preamble();
         self.block_header();
         self.declarations();
+        self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
+        self.end_node();
         self.concurrent_statements();
         self.block_epilogue();
         self.end_node();
@@ -110,66 +112,6 @@ impl Parser {
         self.peek_nth_token(peek_idx)
     }
 
-    // -        let checkpoint = self.checkpoint();
-    // -        self.opt_label();
-    // -        self.opt_token(Keyword(Kw::Postponed));
-    // -        match self.peek_token() {
-    // -            Some(Keyword(Kw::Component)) => {
-    // -                self.start_node_at(checkpoint, ComponentInstantiationStatement);
-    // -                self.component_instantiated_unit();
-    // -                self.instantiation_statement_inner();
-    // -            }
-    // -            Some(Keyword(Kw::Configuration)) => {
-    // -                self.start_node_at(checkpoint, ComponentInstantiationStatement);
-    // -                self.configuration_instantiated_unit();
-    // -                self.instantiation_statement_inner();
-    // -            }
-    // -            Some(Keyword(Kw::Entity)) => {
-    // -                self.start_node_at(checkpoint, ComponentInstantiationStatement);
-    // -                self.entity_instantiated_unit();
-    // -                self.instantiation_statement_inner();
-    // -            }
-    // -            Some(Keyword(Kw::Assert)) => {
-    // -                self.start_node_at(checkpoint, ConcurrentAssertionStatement);
-    // -                self.assertion();
-    // -            }
-    // -            Some(Identifier | LtLt | StringLiteral | CharacterLiteral) => {
-    // -                let checkpoint2 = self.checkpoint();
-    // -                self.name();
-    // -                match self.peek_token() {
-    // -                    Some(LTE) => {
-    // -                        self.start_node_at(checkpoint2, NameTarget);
-    // -                        self.end_node();
-    // -                        self.skip();
-    // -                        self.opt_token(Keyword(Kw::Guarded));
-    // -                        self.opt_delay_mechanism();
-    // -                        let waveform_checkpoint = self.checkpoint();
-    // -                        self.waveform();
-    // -                        if self.opt_token(Keyword(Kw::When)) {
-    // -                            self.start_node_at(checkpoint, ConcurrentConditionalSignalAssignment);
-    // -                            self.start_node_at(waveform_checkpoint, ConditionalWaveforms);
-    // -                            self.conditional_waveforms_after_first_when();
-    // -                            self.end_node();
-    // -                        } else {
-    // -                            self.start_node_at(checkpoint, ConcurrentSimpleSignalAssignment);
-    // -                        }
-    // -                    }
-    // -                    Some(Keyword(Kw::Port | Kw::Generic)) => {
-    // -                        self.start_node_at(checkpoint2, ComponentInstantiatedUnit);
-    // -                        self.end_node();
-    // -                        self.start_node_at(checkpoint, ComponentInstantiationStatement);
-    // -                        self.instantiation_statement_inner();
-    // -                    }
-    // -                    // Could be an instantiated unit without ports and generics
-    // -                    // or a procedure call
-    // -                    _ => self.start_node_at(
-    // -                        checkpoint,
-    // -                        ConcurrentProcedureCallOrComponentInstantiationStatement,
-    // -                    ),
-    // -                }
-    // -            }
-    // -            _ => self.expect_tokens_err([Keyword(Kw::Block)]),
-
     pub fn instantiated_unit(&mut self) {
         match self.peek_token() {
             Some(Keyword(Kw::Entity)) => self.entity_instantiated_unit(),
@@ -248,7 +190,10 @@ impl Parser {
                 self.expect_token(SemiColon);
                 self.end_node();
             }
-            _ => self.expect_tokens_err([Keyword(Kw::Block)]),
+            _ => {
+                self.skip();
+                self.expect_tokens_err([Keyword(Kw::Block)])
+            },
         }
     }
 
@@ -435,7 +380,9 @@ impl Parser {
     pub fn generate_statement_body(&mut self) {
         self.start_node(GenerateStatementBody);
         self.opt_declarative_part();
-        self.opt_token(Keyword(Kw::Begin));
+        if self.next_is(Keyword(Kw::Begin)) {
+            self.skip_into_node(DeclarationStatementSeparator);
+        }
         self.concurrent_statements();
         if self.next_is(Keyword(Kw::End)) && !self.next_nth_is(Keyword(Kw::Generate), 1) {
             self.generate_statement_body_epilogue();
@@ -460,15 +407,19 @@ impl Parser {
     }
 
     fn instantiation_statement_inner(&mut self) {
+        self.start_node(ComponentInstantiationItems);
         self.opt_generic_map_aspect();
         self.opt_port_map_aspect();
+        self.end_node();
     }
 
     pub fn process_statement(&mut self) {
         self.start_node(ProcessStatement);
         self.process_statement_preamble();
         self.declarations();
-        self.expect_token(Keyword(Kw::Begin));
+        self.start_node(DeclarationStatementSeparator);
+        self.expect_kw(Kw::Begin);
+        self.end_node();
         self.sequential_statements();
         self.process_statement_epilogue();
         self.end_node();

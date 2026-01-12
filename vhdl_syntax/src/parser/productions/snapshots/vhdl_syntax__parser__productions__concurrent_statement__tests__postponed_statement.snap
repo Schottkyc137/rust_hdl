@@ -6,7 +6,8 @@ ProcessStatement
   ProcessStatementPreamble
     Keyword(Postponed)
     Keyword(Process)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   ProcessStatementEpilogue
     Keyword(End)
     Keyword(Process)

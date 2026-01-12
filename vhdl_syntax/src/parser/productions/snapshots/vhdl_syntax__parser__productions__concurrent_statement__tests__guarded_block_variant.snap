@@ -20,7 +20,8 @@ BlockStatement
             Identifier 'true'
       RightPar
     Keyword(Is)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   BlockEpilogue
     Keyword(End)
     Keyword(Block)

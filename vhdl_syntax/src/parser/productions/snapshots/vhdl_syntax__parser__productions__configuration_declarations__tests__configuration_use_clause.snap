@@ -10,45 +10,46 @@ ConfigurationDeclaration
     Name
       Identifier 'entity_name'
     Keyword(Is)
-  UseClauseDeclaration
-    UseClause
-      Keyword(Use)
-      NameList
+  ConfigurationDeclarationItems
+    UseClauseDeclaration
+      UseClause
+        Keyword(Use)
+        NameList
+          Name
+            Identifier 'lib'
+            SelectedName
+              Dot
+              Identifier 'foo'
+            SelectedName
+              Dot
+              Identifier 'bar'
+        SemiColon
+    UseClauseDeclaration
+      UseClause
+        Keyword(Use)
+        NameList
+          Name
+            Identifier 'lib2'
+            SelectedName
+              Dot
+              Identifier 'foo'
+            SelectedName
+              Dot
+              Identifier 'bar'
+        SemiColon
+    BlockConfiguration
+      BlockConfigurationPreamble
+        Keyword(For)
         Name
-          Identifier 'lib'
-          SelectedName
-            Dot
-            Identifier 'foo'
-          SelectedName
-            Dot
-            Identifier 'bar'
-      SemiColon
-  UseClauseDeclaration
-    UseClause
-      Keyword(Use)
-      NameList
-        Name
-          Identifier 'lib2'
-          SelectedName
-            Dot
-            Identifier 'foo'
-          SelectedName
-            Dot
-            Identifier 'bar'
-      SemiColon
-  BlockConfiguration
-    BlockConfigurationPreamble
-      Keyword(For)
-      Name
-        Identifier 'rtl'
-        RawTokens
-          LeftPar
-          AbstractLiteral '0'
-          RightPar
-    BlockConfigurationEpilogue
-      Keyword(End)
-      Keyword(For)
-      SemiColon
+          Identifier 'rtl'
+          RawTokens
+            LeftPar
+            AbstractLiteral '0'
+            RightPar
+      BlockConfigurationEpilogue
+        Keyword(End)
+        Keyword(For)
+        SemiColon
   ConfigurationDeclarationEpilogue
     Keyword(End)
     Keyword(Configuration)

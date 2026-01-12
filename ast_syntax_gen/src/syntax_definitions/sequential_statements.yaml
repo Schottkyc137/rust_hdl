@@ -357,16 +357,14 @@ SequentialStatement: !Choice
   - node: ReturnStatement
   - node: NullStatement
 
-SignalAssignmentStatement: !Sequence
-  - node: Label
+SignalAssignmentStatement: !Choice
   - node: SimpleSignalAssignment
-    optional: true
   - node: ConditionalSignalAssignment
-    optional: true
   - node: SelectedSignalAssignment
-    optional: true
 
 SimpleForceAssignment: !Sequence
+  - node: Label
+    optional: true
   - node: Target
   - token: LTE
   - keyword: Force
@@ -376,6 +374,8 @@ SimpleForceAssignment: !Sequence
   - token: SemiColon
 
 SimpleReleaseAssignment: !Sequence
+  - node: Label
+    optional: true
   - node: Target
   - token: LTE
   - keyword: Release
@@ -384,6 +384,8 @@ SimpleReleaseAssignment: !Sequence
   - token: SemiColon
 
 SimpleWaveformAssignment: !Sequence
+  - node: Label
+    optional: true
   - node: Target
   - token: LTE
   - node: DelayMechanism

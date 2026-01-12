@@ -9,7 +9,8 @@ BlockStatement
       Colon
     Keyword(Block)
     Keyword(Is)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   BlockEpilogue
     Keyword(End)
     Keyword(Block)

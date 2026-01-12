@@ -27,13 +27,16 @@ ComponentSpecification: !Sequence
 
 CompoundConfigurationSpecification: !Sequence
   - node: ComponentConfigurationPreamble
+  - node: CompoundConfigurationSpecificationItems
+  - node: ComponentConfigurationEpilogue  
+
+CompoundConfigurationSpecificationItems: !Sequence
   - node: BindingIndication
     terminated: SemiColon
   - node: VerificationUnitBindingIndication
     trailing: SemiColon
     repeated: true
     optional: true
-  - node: ComponentConfigurationEpilogue  
 
 ConfigurationSpecification: !Choice
   - node: SimpleConfigurationSpecification

@@ -353,10 +353,10 @@ impl SubprogramBodySyntax {
             .filter_map(DeclarationsSyntax::cast)
             .nth(0)
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
+    pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .children()
+            .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
     pub fn concurrent_statements(&self) -> Option<ConcurrentStatementsSyntax> {

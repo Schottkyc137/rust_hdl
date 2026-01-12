@@ -72,7 +72,8 @@ BlockStatement
               AbstractLiteral '2'
         RightPar
       SemiColon
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   BlockEpilogue
     Keyword(End)
     Keyword(Block)

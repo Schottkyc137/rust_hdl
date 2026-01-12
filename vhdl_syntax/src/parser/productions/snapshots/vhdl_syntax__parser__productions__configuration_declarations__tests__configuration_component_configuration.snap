@@ -10,100 +10,102 @@ ConfigurationDeclaration
     Name
       Identifier 'entity_name'
     Keyword(Is)
-  BlockConfiguration
-    BlockConfigurationPreamble
-      Keyword(For)
-      Name
-        Identifier 'rtl'
-        RawTokens
-          LeftPar
-          AbstractLiteral '0'
-          RightPar
-    ComponentConfiguration
-      ComponentConfigurationPreamble
+  ConfigurationDeclarationItems
+    BlockConfiguration
+      BlockConfigurationPreamble
         Keyword(For)
-        ComponentSpecification
-          InstantiationListList
-            Name
-              Identifier 'inst'
-          Colon
-          Name
-            Identifier 'lib'
-            SelectedName
-              Dot
-              Identifier 'pkg'
-            SelectedName
-              Dot
-              Identifier 'comp'
-      ComponentConfigurationEpilogue
+        Name
+          Identifier 'rtl'
+          RawTokens
+            LeftPar
+            AbstractLiteral '0'
+            RightPar
+      BlockConfigurationItems
+        ComponentConfiguration
+          ComponentConfigurationPreamble
+            Keyword(For)
+            ComponentSpecification
+              InstantiationListList
+                Name
+                  Identifier 'inst'
+              Colon
+              Name
+                Identifier 'lib'
+                SelectedName
+                  Dot
+                  Identifier 'pkg'
+                SelectedName
+                  Dot
+                  Identifier 'comp'
+          ComponentConfigurationEpilogue
+            Keyword(End)
+            Keyword(For)
+            SemiColon
+        ComponentConfiguration
+          ComponentConfigurationPreamble
+            Keyword(For)
+            ComponentSpecification
+              InstantiationListList
+                Identifier 'inst1'
+                Comma
+                Identifier 'inst2'
+                Comma
+                Identifier 'inst3'
+              Colon
+              Name
+                Identifier 'lib2'
+                SelectedName
+                  Dot
+                  Identifier 'pkg'
+                SelectedName
+                  Dot
+                  Identifier 'comp'
+          ComponentConfigurationEpilogue
+            Keyword(End)
+            Keyword(For)
+            SemiColon
+        ComponentConfiguration
+          ComponentConfigurationPreamble
+            Keyword(For)
+            ComponentSpecification
+              InstantiationListAll
+                Keyword(All)
+              Colon
+              Name
+                Identifier 'lib3'
+                SelectedName
+                  Dot
+                  Identifier 'pkg'
+                SelectedName
+                  Dot
+                  Identifier 'comp'
+          ComponentConfigurationEpilogue
+            Keyword(End)
+            Keyword(For)
+            SemiColon
+        ComponentConfiguration
+          ComponentConfigurationPreamble
+            Keyword(For)
+            ComponentSpecification
+              InstantiationListOthers
+                Keyword(Others)
+              Colon
+              Name
+                Identifier 'lib4'
+                SelectedName
+                  Dot
+                  Identifier 'pkg'
+                SelectedName
+                  Dot
+                  Identifier 'comp'
+          ComponentConfigurationEpilogue
+            Keyword(End)
+            Keyword(For)
+            SemiColon
+      BlockConfigurationEpilogue
         Keyword(End)
         Keyword(For)
         SemiColon
-    ComponentConfiguration
-      ComponentConfigurationPreamble
-        Keyword(For)
-        ComponentSpecification
-          InstantiationListList
-            Identifier 'inst1'
-            Comma
-            Identifier 'inst2'
-            Comma
-            Identifier 'inst3'
-          Colon
-          Name
-            Identifier 'lib2'
-            SelectedName
-              Dot
-              Identifier 'pkg'
-            SelectedName
-              Dot
-              Identifier 'comp'
-      ComponentConfigurationEpilogue
-        Keyword(End)
-        Keyword(For)
-        SemiColon
-    ComponentConfiguration
-      ComponentConfigurationPreamble
-        Keyword(For)
-        ComponentSpecification
-          InstantiationListAll
-            Keyword(All)
-          Colon
-          Name
-            Identifier 'lib3'
-            SelectedName
-              Dot
-              Identifier 'pkg'
-            SelectedName
-              Dot
-              Identifier 'comp'
-      ComponentConfigurationEpilogue
-        Keyword(End)
-        Keyword(For)
-        SemiColon
-    ComponentConfiguration
-      ComponentConfigurationPreamble
-        Keyword(For)
-        ComponentSpecification
-          InstantiationListOthers
-            Keyword(Others)
-          Colon
-          Name
-            Identifier 'lib4'
-            SelectedName
-              Dot
-              Identifier 'pkg'
-            SelectedName
-              Dot
-              Identifier 'comp'
-      ComponentConfigurationEpilogue
-        Keyword(End)
-        Keyword(For)
-        SemiColon
-    BlockConfigurationEpilogue
-      Keyword(End)
-      Keyword(For)
-      SemiColon
   ConfigurationDeclarationEpilogue
     Keyword(End)
     Keyword(Configuration)

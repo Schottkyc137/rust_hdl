@@ -18,7 +18,8 @@ IfGenerateStatement
           Identifier 'true'
     Keyword(Generate)
   GenerateStatementBody
-    Keyword(Begin)
+    DeclarationStatementSeparator
+      Keyword(Begin)
   IfGenerateStatementEpilogue
     Keyword(End)
     Keyword(Generate)

@@ -10,19 +10,20 @@ ConfigurationDeclaration
     Name
       Identifier 'entity_name'
     Keyword(Is)
-  BlockConfiguration
-    BlockConfigurationPreamble
-      Keyword(For)
-      Name
-        Identifier 'rtl'
-        RawTokens
-          LeftPar
-          AbstractLiteral '0'
-          RightPar
-    BlockConfigurationEpilogue
-      Keyword(End)
-      Keyword(For)
-      SemiColon
+  ConfigurationDeclarationItems
+    BlockConfiguration
+      BlockConfigurationPreamble
+        Keyword(For)
+        Name
+          Identifier 'rtl'
+          RawTokens
+            LeftPar
+            AbstractLiteral '0'
+            RightPar
+      BlockConfigurationEpilogue
+        Keyword(End)
+        Keyword(For)
+        SemiColon
   ConfigurationDeclarationEpilogue
     Keyword(End)
     Keyword(Configuration)

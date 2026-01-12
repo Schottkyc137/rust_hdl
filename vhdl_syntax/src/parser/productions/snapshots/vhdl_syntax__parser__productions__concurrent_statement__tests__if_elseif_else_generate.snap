@@ -28,7 +28,8 @@ IfGenerateStatement
           Name
             Identifier 'boolean'
         SemiColon
-    Keyword(Begin)
+    DeclarationStatementSeparator
+      Keyword(Begin)
     ConcurrentStatements
       ConcurrentProcedureCallOrComponentInstantiationStatement
         Name
@@ -60,7 +61,8 @@ IfGenerateStatement
             Name
               Identifier 'boolean'
           SemiColon
-      Keyword(Begin)
+      DeclarationStatementSeparator
+        Keyword(Begin)
       ConcurrentStatements
         ConcurrentProcedureCallOrComponentInstantiationStatement
           Name
@@ -84,7 +86,8 @@ IfGenerateStatement
             Name
               Identifier 'boolean'
           SemiColon
-      Keyword(Begin)
+      DeclarationStatementSeparator
+        Keyword(Begin)
       ConcurrentStatements
         ConcurrentProcedureCallOrComponentInstantiationStatement
           Name

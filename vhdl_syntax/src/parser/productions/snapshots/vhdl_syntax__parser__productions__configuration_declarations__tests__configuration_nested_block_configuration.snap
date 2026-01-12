@@ -10,41 +10,43 @@ ConfigurationDeclaration
     Name
       Identifier 'entity_name'
     Keyword(Is)
-  BlockConfiguration
-    BlockConfigurationPreamble
-      Keyword(For)
-      Name
-        Identifier 'rtl'
-        RawTokens
-          LeftPar
-          AbstractLiteral '0'
-          RightPar
-    BlockConfigurationItem
-      Keyword(For)
-      Name
-        Identifier 'name'
-        RawTokens
-          LeftPar
-          AbstractLiteral '0'
-          Keyword(To)
-          AbstractLiteral '3'
-          RightPar
+  ConfigurationDeclarationItems
+    BlockConfiguration
+      BlockConfigurationPreamble
+        Keyword(For)
+        Name
+          Identifier 'rtl'
+          RawTokens
+            LeftPar
+            AbstractLiteral '0'
+            RightPar
+      BlockConfigurationItems
+        BlockConfigurationItem
+          Keyword(For)
+          Name
+            Identifier 'name'
+            RawTokens
+              LeftPar
+              AbstractLiteral '0'
+              Keyword(To)
+              AbstractLiteral '3'
+              RightPar
+          BlockConfigurationEpilogue
+            Keyword(End)
+            Keyword(For)
+            SemiColon
+        BlockConfigurationItem
+          Keyword(For)
+          Name
+            Identifier 'other_name'
+          BlockConfigurationEpilogue
+            Keyword(End)
+            Keyword(For)
+            SemiColon
       BlockConfigurationEpilogue
         Keyword(End)
         Keyword(For)
         SemiColon
-    BlockConfigurationItem
-      Keyword(For)
-      Name
-        Identifier 'other_name'
-      BlockConfigurationEpilogue
-        Keyword(End)
-        Keyword(For)
-        SemiColon
-    BlockConfigurationEpilogue
-      Keyword(End)
-      Keyword(For)
-      SemiColon
   ConfigurationDeclarationEpilogue
     Keyword(End)
     Keyword(Configuration)

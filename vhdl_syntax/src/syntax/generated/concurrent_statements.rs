@@ -11,6 +11,32 @@ use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 #[derive(Debug, Clone)]
+pub struct DeclarationStatementSeparatorSyntax(pub(crate) SyntaxNode);
+impl AstNode for DeclarationStatementSeparatorSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::DeclarationStatementSeparator => {
+                Some(DeclarationStatementSeparatorSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::DeclarationStatementSeparator)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl DeclarationStatementSeparatorSyntax {
+    pub fn begin_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct SemiColonTerminatedGenericMapAspectSyntax(pub(crate) SyntaxNode);
 impl AstNode for SemiColonTerminatedGenericMapAspectSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -149,10 +175,10 @@ impl BlockStatementSyntax {
             .filter_map(DeclarationsSyntax::cast)
             .nth(0)
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
+    pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .children()
+            .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
     pub fn concurrent_statements(&self) -> Option<ConcurrentStatementsSyntax> {
@@ -471,6 +497,36 @@ impl ComponentInstantiationStatementSyntax {
             .filter_map(InstantiatedUnitSyntax::cast)
             .nth(0)
     }
+    pub fn component_instantiation_items(&self) -> Option<ComponentInstantiationItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(ComponentInstantiationItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == SemiColon)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ComponentInstantiationItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ComponentInstantiationItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ComponentInstantiationItems => Some(ComponentInstantiationItemsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ComponentInstantiationItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ComponentInstantiationItemsSyntax {
     pub fn generic_map_aspect(&self) -> Option<GenericMapAspectSyntax> {
         self.0
             .children()
@@ -481,12 +537,6 @@ impl ComponentInstantiationStatementSyntax {
         self.0
             .children()
             .filter_map(PortMapAspectSyntax::cast)
-            .nth(0)
-    }
-    pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == SemiColon)
             .nth(0)
     }
 }
@@ -1083,10 +1133,10 @@ impl GenerateStatementBodySyntax {
             .filter_map(DeclarationsSyntax::cast)
             .nth(0)
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
+    pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .children()
+            .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
     pub fn concurrent_statements(&self) -> Option<ConcurrentStatementsSyntax> {
@@ -1594,10 +1644,10 @@ impl ProcessStatementSyntax {
             .filter_map(DeclarationsSyntax::cast)
             .nth(0)
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
+    pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .children()
+            .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
     pub fn concurrent_statements(&self) -> Option<ConcurrentStatementsSyntax> {

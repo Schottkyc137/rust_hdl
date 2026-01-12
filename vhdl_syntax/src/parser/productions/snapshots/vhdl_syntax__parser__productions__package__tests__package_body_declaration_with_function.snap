@@ -15,7 +15,8 @@ PackageBody
         ProcedureSpecification
           Identifier 'foo'
         Keyword(Is)
-      Keyword(Begin)
+      DeclarationStatementSeparator
+        Keyword(Begin)
       SubprogramBodyEpilogue
         Keyword(End)
         Identifier 'foo'

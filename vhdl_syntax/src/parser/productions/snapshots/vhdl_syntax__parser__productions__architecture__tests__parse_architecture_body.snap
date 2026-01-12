@@ -10,7 +10,8 @@ ArchitectureBody
     Name
       Identifier 'myent'
     Keyword(Is)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   ArchitectureEpilogue
     Keyword(End)
     Keyword(Architecture)

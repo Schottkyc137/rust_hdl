@@ -9,7 +9,8 @@ ProcessStatement
       LeftPar
       RightPar
     Keyword(Is)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   ProcessStatementEpilogue
     Keyword(End)
     Keyword(Process)

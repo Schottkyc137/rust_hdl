@@ -25,12 +25,12 @@ impl Default for Indentation {
     fn default() -> Self {
         Self {
             style: IndentStyle::Spaces,
-            width: 4,
+            width: 2,
         }
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum NewlineStyle {
     #[default]
     LineFeed,

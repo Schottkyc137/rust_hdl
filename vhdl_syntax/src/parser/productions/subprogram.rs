@@ -127,7 +127,9 @@ impl Parser {
         self.expect_kw(Kw::Is);
         self.end_node();
         self.declarations();
+        self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
+        self.end_node();
         self.sequential_statements();
         self.subprogram_body_epilogue();
         self.end_node();

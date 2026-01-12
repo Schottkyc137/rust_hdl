@@ -21,7 +21,8 @@ ProcessStatement
         Name
           Identifier 'boolean'
       SemiColon
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   SequentialStatements
     SimpleWaveformAssignment
       NameTarget

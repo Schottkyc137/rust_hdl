@@ -3,7 +3,7 @@
 ArchitectureBody: !Sequence
   - node: ArchitecturePreamble
   - node: Declarations
-  - keyword: Begin
+  - node: DeclarationStatementSeparator
   - node: ConcurrentStatements
   - node: ArchitectureEpilogue
 
@@ -33,11 +33,14 @@ ConfigurationItem: !Choice
 
 BlockConfiguration: !Sequence
   - node: BlockConfigurationPreamble
+  - node: BlockConfigurationItems
+  - node: BlockConfigurationEpilogue
+
+BlockConfigurationItems: !Sequence
   - node: UseClause
     repeated: true
   - node: ConfigurationItem
     repeated: true
-  - node: BlockConfigurationEpilogue
 
 BlockConfigurationPreamble: !Sequence
   - keyword: For
@@ -50,6 +53,10 @@ BlockConfigurationEpilogue: !Sequence
 
 ComponentConfiguration: !Sequence
   - node: ComponentConfigurationPreamble
+  - node: ComponentConfigurationItems
+  - node: ComponentConfigurationEpilogue
+
+ComponentConfigurationItems: !Sequence
   - node: BindingIndication
     terminated: SemiColon
     optional: true
@@ -58,7 +65,6 @@ ComponentConfiguration: !Sequence
     repeated: true
   - node: BlockConfiguration
     optional: true
-  - node: ComponentConfigurationEpilogue
 
 ComponentConfigurationPreamble: !Sequence
   - keyword: For
@@ -71,12 +77,15 @@ ComponentConfigurationEpilogue: !Sequence
 
 ConfigurationDeclaration: !Sequence
   - node: ConfigurationDeclarationPreamble
+  - node: ConfigurationDeclarationItems
+  - node: ConfigurationDeclarationEpilogue
+
+ConfigurationDeclarationItems: !Sequence
   - node: Declarations
   - node: VerificationUnitBindingIndication
     terminated: SemiColon
     repeated: true
   - node: BlockConfiguration
-  - node: ConfigurationDeclarationEpilogue
 
 ConfigurationDeclarationPreamble: !Sequence
   - keyword: Configuration
@@ -99,7 +108,7 @@ EntityDeclaration: !Sequence
   - node: EntityDeclarationPreamble
   - node: EntityHeader
   - node: Declarations
-  - keyword: Begin
+  - node: DeclarationStatementSeparator
   - node: ConcurrentStatements
   - node: EntityDeclarationEpilogue
 

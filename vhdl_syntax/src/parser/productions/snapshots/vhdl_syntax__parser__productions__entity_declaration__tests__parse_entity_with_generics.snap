@@ -13,7 +13,8 @@ EntityDeclaration
       LeftPar
       RightPar
       SemiColon
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   EntityDeclarationEpilogue
     Keyword(End)
     Identifier 'my_ent'

@@ -81,11 +81,14 @@ AttributeDeclaration: !Sequence
 
 ComponentDeclaration: !Sequence
   - node: ComponentDeclarationPreamble
+  - node: ComponentDeclarationItems
+  - node: ComponentDeclarationEpilogue
+
+ComponentDeclarationItems: !Sequence
   - node: GenericClause
     optional: true
   - node: PortClause
     optional: true
-  - node: ComponentDeclarationEpilogue
 
 ComponentDeclarationPreamble: !Sequence
   - keyword: Component

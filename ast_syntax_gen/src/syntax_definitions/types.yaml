@@ -79,11 +79,14 @@ PhysicalLiteral: !Sequence
 
 PhysicalTypeDefinition: !Sequence
   - node: RangeConstraint
+  - node: UnitDeclarations
+  - node: PhysicalTypeDefinitionEpilogue
+
+UnitDeclarations: !Sequence
   - keyword: Units
   - node: PrimaryUnitDeclaration
   - node: SecondaryUnitDeclaration
     repeated: true
-  - node: PhysicalTypeDefinitionEpilogue
 
 PhysicalTypeDefinitionEpilogue: !Sequence
   - keyword: End
@@ -161,9 +164,12 @@ RecordElementConstraint: !Sequence
 
 RecordTypeDefinition: !Sequence
   - node: RecordTypeDefinitionPreamble
+  - node: RecordElementDeclarations
+  - node: RecordTypeDefinitionEpilogue
+
+RecordElementDeclarations: !Sequence
   - node: ElementDeclaration
     repeated: true
-  - node: RecordTypeDefinitionEpilogue
 
 RecordTypeDefinitionPreamble: !Sequence
   - keyword: Record

@@ -1,15 +1,14 @@
 use vhdl_syntax::{
     syntax::{
-        AstNode, ConcurrentStatementSyntax, DeclarationSyntax, NodeKind, SequentialStatementSyntax,
+        NodeKind,
         node::{SyntaxNode, SyntaxToken},
         rewrite::{TokenRewrite, TokenRewriteAction, TokenRewriter},
     },
-    tokens::TriviaPiece,
+    tokens::{Trivia, TriviaPiece},
 };
 
 use crate::{
-    config::Config,
-    rule::ALL_RULES,
+    config::{Config, NewlineStyle},
     state::{RegionSeparator, State},
 };
 
@@ -22,6 +21,47 @@ pub struct Formatter {
     state: State,
 }
 
+/// Normalizes trivia:
+///
+/// - No whitespace after newlines
+fn normalize_trivia(trivia: &Trivia) -> Trivia {
+    let mut new_trivia = Trivia::default();
+    for line in trivia.split_inclusive(TriviaPiece::is_newline) {
+        if line.last().is_some_and(TriviaPiece::is_newline) {
+            if let Some(pos) = line[..line.len()-1]
+                .iter()
+                .rposition(|item| !item.is_space_or_tab())
+            {
+                new_trivia.extend(line[..pos+1].to_owned());
+            }
+
+            new_trivia.push(line.last().unwrap().clone());
+        } else {
+            new_trivia.extend(line.to_owned());
+        }
+    }
+    new_trivia
+}
+
+fn ensure_newlines(trivia: &mut Trivia, n: usize, _newline_style: NewlineStyle) {
+    // TODO: respect newline style
+    let count_of_newlines: usize = trivia
+        .iter()
+        .filter_map(|piece| match piece {
+            TriviaPiece::CarriageReturnLineFeeds(n) => Some(n),
+            TriviaPiece::LineFeeds(n) => Some(n),
+            TriviaPiece::CarriageReturns(n) => Some(n),
+            TriviaPiece::FormFeeds(n) => Some(n),
+            TriviaPiece::VerticalTabs(n) => Some(n),
+            _ => None,
+        })
+        .copied()
+        .sum();
+    if count_of_newlines < n {
+        trivia.push(TriviaPiece::LineFeeds(n - count_of_newlines));
+    }
+}
+
 impl Formatter {
     pub fn new(config: Config) -> Formatter {
         Formatter {
@@ -31,24 +71,36 @@ impl Formatter {
     }
 
     fn format_token(&mut self, token: &SyntaxToken) -> SyntaxToken {
-        let mut tok = ALL_RULES.iter().fold(token.clone(), |token, rule| {
-            if (rule.applies)(&token, &mut self.state) {
-                (rule.apply)(&token, &mut self.state, &self.config)
-            } else {
-                token.clone()
-            }
-        });
+        // let mut tok = ALL_RULES.iter().fold(token.clone(), |token, rule| {
+        //     if (rule.applies)(&token, &mut self.state) {
+        //         (rule.apply)(&token, &mut self.state, &self.config)
+        //     } else {
+        //         token.clone()
+        //     }
+        // });
+        let mut tok = token.clone();
 
-        if let Some(separator) = self.state.get_and_reset_pending_separator() {
-            let mut trivia = tok.leading_trivia();
+        let mut leading_trivia = self
+            .state
+            .take_previoud_trailing_trivia()
+            .unwrap_or_default();
+
+        leading_trivia.append(&mut tok.leading_trivia());
+
+        leading_trivia = normalize_trivia(&leading_trivia);
+
+        if let Some(separator) = self.state.get_and_reset_pending_separator()
+            // prevent newlines at the beginning
+            && tok.prev_token().is_some()
+        {
             match separator {
                 RegionSeparator::Space => {
-                    trivia.push(TriviaPiece::Spaces(1));
+                    leading_trivia.push(TriviaPiece::Spaces(1));
                 }
                 RegionSeparator::Newline => {
-                    trivia.push(self.config.newline_style.to_trivia());
+                    ensure_newlines(&mut leading_trivia, 1, self.config.newline_style);
                     if self.state.current_indent() != 0 {
-                        trivia.push(
+                        leading_trivia.push(
                             self.config
                                 .indentationn
                                 .to_trivia(self.state.current_indent()),
@@ -56,8 +108,19 @@ impl Formatter {
                     }
                 }
             }
-            tok = tok.clone_with_leading_trivia(trivia);
         }
+
+        // Store the previous trivia and reset trailing trivia of the token.
+        // This means that for formatting, we only have to deal with trailing trivia.
+        // TODO: Improve this by introducing an EOF token.
+        if !tok.next_token().is_none() {
+            self.state
+                .set_previous_trailing_trivia(tok.trailing_trivia());
+            tok = tok.clone_with_trivia(leading_trivia, Trivia::default())
+        } else {
+            tok = tok.clone_with_leading_trivia(leading_trivia)
+        }
+
         tok
     }
 
@@ -97,27 +160,175 @@ impl<'a> FormattingTokenRewriter<'a> {
     }
 }
 
+/// All nodes that should be printed with an indent.
+fn indents(node_kind: NodeKind) -> bool {
+    use NodeKind::*;
+    matches!(
+        node_kind,
+        Declarations
+            | ConcurrentStatements
+            | SequentialStatements
+            | BlockConfigurationItems
+            | BlockHeader
+            | GenerateStatementBody
+            | CaseGenerateAlternative
+            | CaseStatementAlternative
+            | ComponentConfigurationItems
+            | ComponentDeclarationItems
+            | ComponentInstantiationItems
+            | CompoundConfigurationSpecificationItems
+            | ConfigurationDeclarationItems
+            | ContextClause
+            | EntityHeader
+            | PackageHeader
+            | UnitDeclarations
+            | RecordElementDeclarations
+            | InterfaceList
+    )
+}
+
+/// All nodes that require a single newline before them.
+fn wants_newline_before(node_kind: NodeKind) -> bool {
+    use NodeKind::*;
+    matches!(
+        node_kind,
+        AliasDeclaration
+            | DeclarationStatementSeparator
+            | SemiColonTerminatedBindingIndication
+            | UseClause
+            | SubprogramDeclaration
+            | SubprogramBody
+            | SubprogramInstantiationDeclaration
+            | PackageDeclaration
+            | PackageBody
+            | PackageInstantiationDeclaration
+            | FullTypeDeclaration
+            | IncompleteTypeDeclaration
+            | SubtypeDeclaration
+            | ConstantDeclaration
+            | SignalDeclaration
+            | VariableDeclaration
+            | SharedVariableDeclaration
+            | FileDeclaration
+            | ComponentDeclaration
+            | AttributeDeclaration
+            | GroupTemplateDeclaration
+            | GroupDeclaration
+            | AttributeSpecification
+            | SimpleConfigurationSpecification
+            | CompoundConfigurationSpecification
+            | DisconnectionSpecification
+            | PslPropertyDeclaration
+            | PslSequenceDeclaration
+            | PslClockDeclaration
+            | GenericClause
+            | PortClause
+            | GenericMapAspect
+            | PortMapAspect
+            | BlockHeader
+            | GenerateStatementBody
+            | CaseGenerateAlternative
+            | CaseStatementAlternative
+            | SemiColonTerminatedVerificationUnitBindingIndication
+            | BlockConfiguration
+            | BlockStatement
+            | ProcessStatement
+            | ConcurrentAssertionStatement
+            | ComponentInstantiationStatement
+            | ConcurrentSelectedSignalAssignment
+            | ConcurrentConditionalSignalAssignment
+            | ConcurrentSimpleSignalAssignment
+            | ConcurrentProcedureCallOrComponentInstantiationStatement
+            | ForGenerateStatement
+            | IfGenerateElsif
+            | IfGenerateElse
+            | CaseGenerateStatement
+            | PslDirective
+            | WaitStatement
+            | AssertionStatement
+            | ReportStatement
+            | ProcedureCallStatement
+            | SimpleVariableAssignment
+            | ConditionalVariableAssignment
+            | SelectedVariableAssignment
+            | IfStatement
+            | IfStatementElsif
+            | IfStatementElse
+            | CaseStatement
+            | LoopStatement
+            | NextStatement
+            | ExitStatement
+            | ReturnStatement
+            | NullStatement
+            | PackageBodyDeclaration
+            | BlockPreamble
+            | PackagePreamble
+            | IfStatementPreamble
+            | PackageBodyPreamble
+            | ArchitecturePreamble
+            | CaseStatementPreamble
+            | LoopStatementPreamble
+            | SubprogramBodyPreamble
+            | ProcessStatementPreamble
+            | EntityDeclarationPreamble
+            | ProtectedTypeBodyPreamble
+            | BlockConfigurationPreamble
+            | ContextDeclarationPreamble
+            | IfGenerateStatementPreamble
+            | ComponentDeclarationPreamble
+            | ForGenerateStatementPreamble
+            | RecordTypeDefinitionPreamble
+            | CaseGenerateStatementPreamble
+            | ComponentConfigurationPreamble
+            | ConfigurationDeclarationPreamble
+            | ProtectedTypeDeclarationPreamble
+            | BlockEpilogue
+            | PackageEpilogue
+            | IfStatementEpilogue
+            | PackageBodyEpilogue
+            | ArchitectureEpilogue
+            | CaseStatementEpilogue
+            | LoopStatementEpilogue
+            | SubprogramBodyEpilogue
+            | ProcessStatementEpilogue
+            | EntityDeclarationEpilogue
+            | ProtectedTypeBodyEpilogue
+            | BlockConfigurationEpilogue
+            | ContextDeclarationEpilogue
+            | IfGenerateStatementEpilogue
+            | ComponentDeclarationEpilogue
+            | ForGenerateStatementEpilogue
+            | RecordTypeDefinitionEpilogue
+            | CaseGenerateStatementEpilogue
+            | GenerateStatementBodyEpilogue
+            | ComponentConfigurationEpilogue
+            | PhysicalTypeDefinitionEpilogue
+            | ConfigurationDeclarationEpilogue
+            | ProtectedTypeDeclarationEpilogue
+            | PrimaryUnitDeclaration
+            | SecondaryUnitDeclaration
+            | ElementDeclaration
+            | SimpleWaveformAssignment
+            | SimpleForceAssignment
+            | SimpleReleaseAssignment
+            | InterfaceConstantDeclaration
+            | InterfaceSignalDeclaration
+            | InterfaceVariableDeclaration
+            | InterfaceFileDeclaration
+            | InterfaceIncompleteTypeDeclaration
+            | InterfaceSubprogramDeclaration
+            | InterfacePackageDeclaration
+    )
+}
+
 impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
     // Add a leading trivia piece before the next token
     fn enter(&mut self, node: &SyntaxNode) {
-        match node.kind() {
-            NodeKind::ArchitectureEpilogue | NodeKind::BlockEpilogue => {
-                self.set_pending_newline();
-            }
-            NodeKind::ConcurrentStatements
-            | NodeKind::SequentialStatements
-            | NodeKind::Declarations => {
-                self.indent();
-            }
-            _ => {
-                if (DeclarationSyntax::can_cast(node)
-                    || ConcurrentStatementSyntax::can_cast(node)
-                    || SequentialStatementSyntax::can_cast(node))
-                    && node.parent().is_some()
-                {
-                    self.set_pending_newline();
-                }
-            }
+        if indents(node.kind()) {
+            self.indent();
+        }
+        if wants_newline_before(node.kind()) {
+            self.set_pending_newline();
         }
     }
 
@@ -131,24 +342,8 @@ impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
     }
 
     fn exit(&mut self, node: &SyntaxNode) {
-        // Add a leading trivia piece before the next token
-        match node.kind() {
-            NodeKind::ArchitecturePreamble | NodeKind::BlockPreamble => {
-                self.set_pending_newline();
-            }
-            NodeKind::Declarations
-            | NodeKind::ConcurrentStatements
-            | NodeKind::SequentialStatements => {
-                self.dedent();
-                self.set_pending_newline();
-            }
-            NodeKind::Name => {
-                if node.parent().map(|parent| parent.kind()) == Some(NodeKind::ArchitecturePreamble)
-                {
-                    self.set_pending_space();
-                }
-            }
-            _ => {}
+        if indents(node.kind()) {
+            self.dedent();
         }
     }
 }

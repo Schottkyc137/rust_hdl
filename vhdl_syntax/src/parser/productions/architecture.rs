@@ -8,7 +8,9 @@ impl Parser {
         self.start_node(ArchitectureBody);
         self.architecture_preamble();
         self.declarations();
+        self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
+        self.end_node();
         self.concurrent_statements();
         self.architecture_epilogue();
         self.end_node();

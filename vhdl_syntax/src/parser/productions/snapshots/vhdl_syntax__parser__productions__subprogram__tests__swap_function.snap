@@ -43,7 +43,8 @@ SubprogramBody
         Name
           Identifier 'T'
       SemiColon
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   SequentialStatements
     SimpleVariableAssignment
       NameTarget

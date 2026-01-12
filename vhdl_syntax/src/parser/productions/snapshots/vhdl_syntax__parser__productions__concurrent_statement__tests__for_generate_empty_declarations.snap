@@ -17,7 +17,8 @@ ForGenerateStatement
         AbstractLiteral '1'
     Keyword(Generate)
   GenerateStatementBody
-    Keyword(Begin)
+    DeclarationStatementSeparator
+      Keyword(Begin)
     ConcurrentStatements
       ConcurrentSimpleSignalAssignment
         NameTarget

@@ -8,7 +8,7 @@ use crate::tokens::TriviaPiece;
 use core::slice;
 use std::{
     io::{self, Write},
-    ops::Deref,
+    ops::{Deref, DerefMut},
     vec,
 };
 
@@ -130,6 +130,18 @@ impl Deref for Trivia {
 
     fn deref(&self) -> &Self::Target {
         &self.pieces
+    }
+}
+
+impl DerefMut for Trivia {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.pieces
+    }
+}
+
+impl Extend<TriviaPiece> for Trivia {
+    fn extend<T: IntoIterator<Item = TriviaPiece>>(&mut self, iter: T) {
+        self.pieces.extend(iter);
     }
 }
 

@@ -39,10 +39,10 @@ impl ArchitectureBodySyntax {
             .filter_map(DeclarationsSyntax::cast)
             .nth(0)
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
+    pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .children()
+            .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
     pub fn concurrent_statements(&self) -> Option<ConcurrentStatementsSyntax> {
@@ -222,17 +222,41 @@ impl BlockConfigurationSyntax {
             .filter_map(BlockConfigurationPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn use_clauses(&self) -> impl Iterator<Item = UseClauseSyntax> + use<'_> {
-        self.0.children().filter_map(UseClauseSyntax::cast)
-    }
-    pub fn configuration_items(&self) -> impl Iterator<Item = ConfigurationItemSyntax> + use<'_> {
-        self.0.children().filter_map(ConfigurationItemSyntax::cast)
+    pub fn block_configuration_items(&self) -> Option<BlockConfigurationItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(BlockConfigurationItemsSyntax::cast)
+            .nth(0)
     }
     pub fn block_configuration_epilogue(&self) -> Option<BlockConfigurationEpilogueSyntax> {
         self.0
             .children()
             .filter_map(BlockConfigurationEpilogueSyntax::cast)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct BlockConfigurationItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for BlockConfigurationItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::BlockConfigurationItems => Some(BlockConfigurationItemsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::BlockConfigurationItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl BlockConfigurationItemsSyntax {
+    pub fn use_clauses(&self) -> impl Iterator<Item = UseClauseSyntax> + use<'_> {
+        self.0.children().filter_map(UseClauseSyntax::cast)
+    }
+    pub fn configuration_items(&self) -> impl Iterator<Item = ConfigurationItemSyntax> + use<'_> {
+        self.0.children().filter_map(ConfigurationItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -299,6 +323,42 @@ impl BlockConfigurationEpilogueSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct ComponentConfigurationSyntax(pub(crate) SyntaxNode);
+impl AstNode for ComponentConfigurationSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ComponentConfiguration => Some(ComponentConfigurationSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ComponentConfiguration)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ComponentConfigurationSyntax {
+    pub fn component_configuration_preamble(&self) -> Option<ComponentConfigurationPreambleSyntax> {
+        self.0
+            .children()
+            .filter_map(ComponentConfigurationPreambleSyntax::cast)
+            .nth(0)
+    }
+    pub fn component_configuration_items(&self) -> Option<ComponentConfigurationItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(ComponentConfigurationItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn component_configuration_epilogue(&self) -> Option<ComponentConfigurationEpilogueSyntax> {
+        self.0
+            .children()
+            .filter_map(ComponentConfigurationEpilogueSyntax::cast)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct SemiColonTerminatedVerificationUnitBindingIndicationSyntax(pub(crate) SyntaxNode);
 impl AstNode for SemiColonTerminatedVerificationUnitBindingIndicationSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -336,28 +396,22 @@ impl SemiColonTerminatedVerificationUnitBindingIndicationSyntax {
     }
 }
 #[derive(Debug, Clone)]
-pub struct ComponentConfigurationSyntax(pub(crate) SyntaxNode);
-impl AstNode for ComponentConfigurationSyntax {
+pub struct ComponentConfigurationItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ComponentConfigurationItemsSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
         match node.kind() {
-            NodeKind::ComponentConfiguration => Some(ComponentConfigurationSyntax(node)),
+            NodeKind::ComponentConfigurationItems => Some(ComponentConfigurationItemsSyntax(node)),
             _ => None,
         }
     }
     fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::ComponentConfiguration)
+        matches!(node.kind(), NodeKind::ComponentConfigurationItems)
     }
     fn raw(&self) -> SyntaxNode {
         self.0.clone()
     }
 }
-impl ComponentConfigurationSyntax {
-    pub fn component_configuration_preamble(&self) -> Option<ComponentConfigurationPreambleSyntax> {
-        self.0
-            .children()
-            .filter_map(ComponentConfigurationPreambleSyntax::cast)
-            .nth(0)
-    }
+impl ComponentConfigurationItemsSyntax {
     pub fn semi_colon_terminated_binding_indication(
         &self,
     ) -> Option<SemiColonTerminatedBindingIndicationSyntax> {
@@ -378,12 +432,6 @@ impl ComponentConfigurationSyntax {
         self.0
             .children()
             .filter_map(BlockConfigurationSyntax::cast)
-            .nth(0)
-    }
-    pub fn component_configuration_epilogue(&self) -> Option<ComponentConfigurationEpilogueSyntax> {
-        self.0
-            .children()
-            .filter_map(ComponentConfigurationEpilogueSyntax::cast)
             .nth(0)
     }
 }
@@ -482,6 +530,40 @@ impl ConfigurationDeclarationSyntax {
             .filter_map(ConfigurationDeclarationPreambleSyntax::cast)
             .nth(0)
     }
+    pub fn configuration_declaration_items(&self) -> Option<ConfigurationDeclarationItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(ConfigurationDeclarationItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn configuration_declaration_epilogue(
+        &self,
+    ) -> Option<ConfigurationDeclarationEpilogueSyntax> {
+        self.0
+            .children()
+            .filter_map(ConfigurationDeclarationEpilogueSyntax::cast)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ConfigurationDeclarationItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ConfigurationDeclarationItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ConfigurationDeclarationItems => {
+                Some(ConfigurationDeclarationItemsSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ConfigurationDeclarationItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ConfigurationDeclarationItemsSyntax {
     pub fn declarations(&self) -> Option<DeclarationsSyntax> {
         self.0
             .children()
@@ -500,14 +582,6 @@ impl ConfigurationDeclarationSyntax {
         self.0
             .children()
             .filter_map(BlockConfigurationSyntax::cast)
-            .nth(0)
-    }
-    pub fn configuration_declaration_epilogue(
-        &self,
-    ) -> Option<ConfigurationDeclarationEpilogueSyntax> {
-        self.0
-            .children()
-            .filter_map(ConfigurationDeclarationEpilogueSyntax::cast)
             .nth(0)
     }
 }
@@ -637,10 +711,10 @@ impl EntityDeclarationSyntax {
             .filter_map(DeclarationsSyntax::cast)
             .nth(0)
     }
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
+    pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Begin))
+            .children()
+            .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
     pub fn concurrent_statements(&self) -> Option<ConcurrentStatementsSyntax> {

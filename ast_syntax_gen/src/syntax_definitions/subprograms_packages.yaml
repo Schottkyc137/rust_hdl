@@ -50,7 +50,7 @@ SubprogramHeaderGenericClause: !Sequence
 SubprogramBody: !Sequence
   - node: SubprogramBodyPreamble
   - node: Declarations
-  - keyword: Begin
+  - node: DeclarationStatementSeparator
   - node: ConcurrentStatements
   - node: SubprogramBodyEpilogue
 

@@ -1984,44 +1984,46 @@ impl AstNode for SequentialStatementSyntax {
 }
 
 #[derive(Debug, Clone)]
-pub struct SignalAssignmentStatementSyntax(pub(crate) SyntaxNode);
+pub enum SignalAssignmentStatementSyntax {
+    SimpleSignalAssignment(SimpleSignalAssignmentSyntax),
+    ConditionalSignalAssignment(ConditionalSignalAssignmentSyntax),
+    SelectedSignalAssignment(SelectedSignalAssignmentSyntax),
+}
 impl AstNode for SignalAssignmentStatementSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::SignalAssignmentStatement => Some(SignalAssignmentStatementSyntax(node)),
-            _ => None,
-        }
+        if SimpleSignalAssignmentSyntax::can_cast(&node) {
+            return Some(SignalAssignmentStatementSyntax::SimpleSignalAssignment(
+                SimpleSignalAssignmentSyntax::cast(node).unwrap(),
+            ));
+        };
+        if ConditionalSignalAssignmentSyntax::can_cast(&node) {
+            return Some(
+                SignalAssignmentStatementSyntax::ConditionalSignalAssignment(
+                    ConditionalSignalAssignmentSyntax::cast(node).unwrap(),
+                ),
+            );
+        };
+        if SelectedSignalAssignmentSyntax::can_cast(&node) {
+            return Some(SignalAssignmentStatementSyntax::SelectedSignalAssignment(
+                SelectedSignalAssignmentSyntax::cast(node).unwrap(),
+            ));
+        };
+        None
     }
     fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::SignalAssignmentStatement)
+        SimpleSignalAssignmentSyntax::can_cast(node)
+            || ConditionalSignalAssignmentSyntax::can_cast(node)
+            || SelectedSignalAssignmentSyntax::can_cast(node)
     }
     fn raw(&self) -> SyntaxNode {
-        self.0.clone()
+        match self {
+            SignalAssignmentStatementSyntax::SimpleSignalAssignment(inner) => inner.raw(),
+            SignalAssignmentStatementSyntax::ConditionalSignalAssignment(inner) => inner.raw(),
+            SignalAssignmentStatementSyntax::SelectedSignalAssignment(inner) => inner.raw(),
+        }
     }
 }
-impl SignalAssignmentStatementSyntax {
-    pub fn label(&self) -> Option<LabelSyntax> {
-        self.0.children().filter_map(LabelSyntax::cast).nth(0)
-    }
-    pub fn simple_signal_assignment(&self) -> Option<SimpleSignalAssignmentSyntax> {
-        self.0
-            .children()
-            .filter_map(SimpleSignalAssignmentSyntax::cast)
-            .nth(0)
-    }
-    pub fn conditional_signal_assignment(&self) -> Option<ConditionalSignalAssignmentSyntax> {
-        self.0
-            .children()
-            .filter_map(ConditionalSignalAssignmentSyntax::cast)
-            .nth(0)
-    }
-    pub fn selected_signal_assignment(&self) -> Option<SelectedSignalAssignmentSyntax> {
-        self.0
-            .children()
-            .filter_map(SelectedSignalAssignmentSyntax::cast)
-            .nth(0)
-    }
-}
+
 #[derive(Debug, Clone)]
 pub struct SimpleForceAssignmentSyntax(pub(crate) SyntaxNode);
 impl AstNode for SimpleForceAssignmentSyntax {
@@ -2039,6 +2041,9 @@ impl AstNode for SimpleForceAssignmentSyntax {
     }
 }
 impl SimpleForceAssignmentSyntax {
+    pub fn label(&self) -> Option<LabelSyntax> {
+        self.0.children().filter_map(LabelSyntax::cast).nth(0)
+    }
     pub fn target(&self) -> Option<TargetSyntax> {
         self.0.children().filter_map(TargetSyntax::cast).nth(0)
     }
@@ -2081,6 +2086,9 @@ impl AstNode for SimpleReleaseAssignmentSyntax {
     }
 }
 impl SimpleReleaseAssignmentSyntax {
+    pub fn label(&self) -> Option<LabelSyntax> {
+        self.0.children().filter_map(LabelSyntax::cast).nth(0)
+    }
     pub fn target(&self) -> Option<TargetSyntax> {
         self.0.children().filter_map(TargetSyntax::cast).nth(0)
     }
@@ -2120,6 +2128,9 @@ impl AstNode for SimpleWaveformAssignmentSyntax {
     }
 }
 impl SimpleWaveformAssignmentSyntax {
+    pub fn label(&self) -> Option<LabelSyntax> {
+        self.0.children().filter_map(LabelSyntax::cast).nth(0)
+    }
     pub fn target(&self) -> Option<TargetSyntax> {
         self.0.children().filter_map(TargetSyntax::cast).nth(0)
     }

@@ -5,7 +5,8 @@ expression: "stmt_to_test_text(\"\\\nprocess\nbegin\nend process;\",)"
 ProcessStatement
   ProcessStatementPreamble
     Keyword(Process)
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   ProcessStatementEpilogue
     Keyword(End)
     Keyword(Process)

@@ -19,7 +19,8 @@ BlockStatement
           Name
             Identifier 'true'
       RightPar
-  Keyword(Begin)
+  DeclarationStatementSeparator
+    Keyword(Begin)
   BlockEpilogue
     Keyword(End)
     Keyword(Block)

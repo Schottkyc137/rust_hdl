@@ -1,0 +1,9 @@
+---
+source: vhdl-fmt/tests/architecture.rs
+assertion_line: 22
+expression: "format_str(\"architecture  arch  of  foo  is  signal foo: bit;  begin  end  arch ;\")"
+---
+architecture  arch  of  foo  is  
+    signal foo: bit;  
+begin  
+end  arch ;

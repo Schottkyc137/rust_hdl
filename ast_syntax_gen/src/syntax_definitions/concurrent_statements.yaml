@@ -1,5 +1,8 @@
 # § 11: Concurrent Statements
 
+DeclarationStatementSeparator: !Sequence
+  - keyword: Begin
+
 BlockHeader: !Sequence
   - node: GenericClause
     optional: true
@@ -16,7 +19,7 @@ BlockStatement: !Sequence
   - node: BlockPreamble
   - node: BlockHeader
   - node: Declarations
-  - keyword: Begin
+  - node: DeclarationStatementSeparator
   - node: ConcurrentStatements
   - node: BlockEpilogue
 
@@ -67,11 +70,14 @@ CaseGenerateStatementEpilogue: !Sequence
 ComponentInstantiationStatement: !Sequence
   - node: Label
   - node: InstantiatedUnit
+  - node: ComponentInstantiationItems
+  - token: SemiColon
+
+ComponentInstantiationItems: !Sequence
   - node: GenericMapAspect
     optional: true
   - node: PortMapAspect
     optional: true
-  - token: SemiColon
 
 ConcurrentProcedureCallOrComponentInstantiationStatement: !Sequence
   - node: Label
@@ -178,7 +184,7 @@ ForGenerateStatementEpilogue: !Sequence
 
 GenerateStatementBody: !Sequence
   - node: Declarations
-  - keyword: Begin
+  - node: DeclarationStatementSeparator
     optional: true
   - node: ConcurrentStatements
   - node: GenerateStatementBodyEpilogue
@@ -272,7 +278,7 @@ ProcessSensitivityList: !Choice
 ProcessStatement: !Sequence
   - node: ProcessStatementPreamble
   - node: Declarations
-  - keyword: Begin
+  - node: DeclarationStatementSeparator
   - node: ConcurrentStatements
   - node: ProcessStatementEpilogue
 

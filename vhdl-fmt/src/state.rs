@@ -1,5 +1,7 @@
 use std::mem::take;
 
+use vhdl_syntax::tokens::Trivia;
+
 pub enum RegionSeparator {
     /// Separate the next region with spaces
     Space,
@@ -10,6 +12,8 @@ pub enum RegionSeparator {
 pub struct State {
     indent: usize,
     pending_separator: Option<RegionSeparator>,
+    // Trailing trivia from the previous token.
+    previous_trailing_trivia: Option<Trivia>,
 }
 
 impl Default for State {
@@ -17,6 +21,7 @@ impl Default for State {
         Self {
             indent: 0,
             pending_separator: None,
+            previous_trailing_trivia: None,
         }
     }
 }
@@ -44,5 +49,13 @@ impl State {
 
     pub fn get_and_reset_pending_separator(&mut self) -> Option<RegionSeparator> {
         take(&mut self.pending_separator)
+    }
+
+    pub fn set_previous_trailing_trivia(&mut self, pending_trivia: Trivia) {
+        self.previous_trailing_trivia = Some(pending_trivia);
+    }
+
+    pub fn take_previoud_trailing_trivia(&mut self) -> Option<Trivia> {
+        take(&mut self.previous_trailing_trivia)
     }
 }

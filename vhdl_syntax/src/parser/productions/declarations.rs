@@ -98,12 +98,14 @@ impl Parser {
         self.binding_indication();
         if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
             self.start_node_at(checkpoint, NodeKind::CompoundConfigurationSpecification);
+            self.start_node(CompoundConfigurationSpecificationItems);
             while self.next_is(Keyword(Kw::Use)) {
                 self.start_node(SemiColonTerminatedVerificationUnitBindingIndication);
                 self.verification_unit_binding_indication();
                 self.expect_token(SemiColon);
                 self.end_node();
             }
+            self.end_node();
             self.start_node(ComponentConfigurationEpilogue);
             self.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
             self.end_node();

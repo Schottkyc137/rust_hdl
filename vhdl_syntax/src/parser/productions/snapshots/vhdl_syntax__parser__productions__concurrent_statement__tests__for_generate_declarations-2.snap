@@ -27,7 +27,8 @@ ForGenerateStatement
           Name
             Identifier 'natural'
         SemiColon
-    Keyword(Begin)
+    DeclarationStatementSeparator
+      Keyword(Begin)
     ConcurrentStatements
       ConcurrentSimpleSignalAssignment
         NameTarget
