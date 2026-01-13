@@ -8,7 +8,7 @@ use vhdl_syntax::{
 };
 
 use crate::{
-    config::{Config, NewlineStyle},
+    config::{Config, Indentation, NewlineStyle},
     state::{RegionSeparator, State},
 };
 
@@ -21,26 +21,71 @@ pub struct Formatter {
     state: State,
 }
 
+/// Trims trailing whitespace from the provided trivia.
+fn trim_trailing_ws(line: &[TriviaPiece]) -> &[TriviaPiece] {
+    if let Some(pos) = line.iter().rposition(|t| !t.is_space_or_tab()) {
+        &line[..=pos]
+    } else {
+        line
+    }
+}
+
+/// Trims leading whitespace from the provided trivia.
+fn trim_leading_ws(line: &[TriviaPiece]) -> &[TriviaPiece] {
+    if let Some(pos) = line.iter().position(|t| !t.is_space_or_tab()) {
+        &line[pos..]
+    } else {
+        line
+    }
+}
+
+///  
+fn emit_line(
+    out: &mut Trivia,
+    line: &[TriviaPiece],
+    newline: &TriviaPiece,
+    indent: &Indentation,
+    indent_level: usize,
+) {
+    if indent_level > 0 {
+        out.push(indent.to_trivia(indent_level));
+    }
+    out.extend(line.iter().cloned());
+    out.push(newline.clone());
+}
+
+fn normalize_line(line: &[TriviaPiece], is_first: bool) -> &[TriviaPiece] {
+    let line = trim_trailing_ws(line);
+
+    if is_first {
+        line
+    } else {
+        trim_leading_ws(line)
+    }
+}
+
 /// Normalizes trivia:
 ///
 /// - No whitespace after newlines
-fn normalize_trivia(trivia: &Trivia) -> Trivia {
-    let mut new_trivia = Trivia::default();
-    for line in trivia.split_inclusive(TriviaPiece::is_newline) {
-        if line.last().is_some_and(TriviaPiece::is_newline) {
-            if let Some(pos) = line[..line.len()-1]
-                .iter()
-                .rposition(|item| !item.is_space_or_tab())
-            {
-                new_trivia.extend(line[..pos+1].to_owned());
-            }
+fn normalize_trivia(trivia: &Trivia, indent: &Indentation, indent_level: usize) -> Trivia {
+    let mut out = Trivia::default();
+    let mut first_newline = true;
 
-            new_trivia.push(line.last().unwrap().clone());
+    for chunk in trivia.split_inclusive(TriviaPiece::is_newline) {
+        if let Some(newline) = chunk.last().filter(|piece| piece.is_newline()) {
+            let content = &chunk[..chunk.len() - 1];
+            let normalized = normalize_line(content, first_newline);
+            first_newline = false;
+
+            emit_line(&mut out, normalized, newline, indent, indent_level);
         } else {
-            new_trivia.extend(line.to_owned());
+            if !(!first_newline && chunk.iter().all(TriviaPiece::is_space_or_tab)) {
+                out.extend(chunk.iter().cloned());
+            }
         }
     }
-    new_trivia
+
+    out
 }
 
 fn ensure_newlines(trivia: &mut Trivia, n: usize, _newline_style: NewlineStyle) {
@@ -71,13 +116,6 @@ impl Formatter {
     }
 
     fn format_token(&mut self, token: &SyntaxToken) -> SyntaxToken {
-        // let mut tok = ALL_RULES.iter().fold(token.clone(), |token, rule| {
-        //     if (rule.applies)(&token, &mut self.state) {
-        //         (rule.apply)(&token, &mut self.state, &self.config)
-        //     } else {
-        //         token.clone()
-        //     }
-        // });
         let mut tok = token.clone();
 
         let mut leading_trivia = self
@@ -87,7 +125,11 @@ impl Formatter {
 
         leading_trivia.append(&mut tok.leading_trivia());
 
-        leading_trivia = normalize_trivia(&leading_trivia);
+        leading_trivia = normalize_trivia(
+            &leading_trivia,
+            &self.config.indentationn,
+            self.state.current_indent(),
+        );
 
         if let Some(separator) = self.state.get_and_reset_pending_separator()
             // prevent newlines at the beginning
@@ -161,30 +203,36 @@ impl<'a> FormattingTokenRewriter<'a> {
 }
 
 /// All nodes that should be printed with an indent.
-fn indents(node_kind: NodeKind) -> bool {
+fn indents(node: &SyntaxNode) -> bool {
     use NodeKind::*;
-    matches!(
-        node_kind,
+    match node.kind() {
+        ContextClause
+            if node
+                .parent()
+                .is_some_and(|par| par.kind() == NodeKind::ContextDeclaration) =>
+        {
+            true
+        }
         Declarations
-            | ConcurrentStatements
-            | SequentialStatements
-            | BlockConfigurationItems
-            | BlockHeader
-            | GenerateStatementBody
-            | CaseGenerateAlternative
-            | CaseStatementAlternative
-            | ComponentConfigurationItems
-            | ComponentDeclarationItems
-            | ComponentInstantiationItems
-            | CompoundConfigurationSpecificationItems
-            | ConfigurationDeclarationItems
-            | ContextClause
-            | EntityHeader
-            | PackageHeader
-            | UnitDeclarations
-            | RecordElementDeclarations
-            | InterfaceList
-    )
+        | ConcurrentStatements
+        | SequentialStatements
+        | BlockConfigurationItems
+        | BlockHeader
+        | GenerateStatementBody
+        | CaseGenerateAlternative
+        | CaseStatementAlternative
+        | ComponentConfigurationItems
+        | ComponentDeclarationItems
+        | ComponentInstantiationItems
+        | CompoundConfigurationSpecificationItems
+        | ConfigurationDeclarationItems
+        | EntityHeader
+        | PackageHeader
+        | UnitDeclarations
+        | RecordElementDeclarations
+        | InterfaceList => true,
+        _ => false,
+    }
 }
 
 /// All nodes that require a single newline before them.
@@ -324,7 +372,7 @@ fn wants_newline_before(node_kind: NodeKind) -> bool {
 impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
     // Add a leading trivia piece before the next token
     fn enter(&mut self, node: &SyntaxNode) {
-        if indents(node.kind()) {
+        if indents(&node) {
             self.indent();
         }
         if wants_newline_before(node.kind()) {
@@ -342,7 +390,7 @@ impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
     }
 
     fn exit(&mut self, node: &SyntaxNode) {
-        if indents(node.kind()) {
+        if indents(&node) {
             self.dedent();
         }
     }
