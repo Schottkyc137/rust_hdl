@@ -1,7 +1,6 @@
 pub mod config;
+mod doc_ir;
 pub mod formatter;
-mod rule;
-mod state;
 
 use vhdl_syntax::syntax::node::SyntaxNode;
 

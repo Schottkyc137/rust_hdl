@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use vhdl_syntax::{
     syntax::{
-        NodeKind,
         node::{SyntaxNode, SyntaxToken},
         rewrite::{TokenRewrite, TokenRewriteAction, TokenRewriter},
     },
@@ -9,16 +10,12 @@ use vhdl_syntax::{
 
 use crate::{
     config::{Config, Indentation, NewlineStyle},
-    state::{RegionSeparator, State},
+    doc_ir::{BoundaryDecision, Doc},
 };
 
 pub struct Formatter {
     // Configuration options
     config: Config,
-    // The state of the formater.
-    // Deals with indentation levels and pending separators
-    // (e.g., newlines and spaces).
-    state: State,
 }
 
 /// Trims trailing whitespace from the provided trivia.
@@ -39,7 +36,6 @@ fn trim_leading_ws(line: &[TriviaPiece]) -> &[TriviaPiece] {
     }
 }
 
-///  
 fn emit_line(
     out: &mut Trivia,
     line: &[TriviaPiece],
@@ -109,289 +105,78 @@ fn ensure_newlines(trivia: &mut Trivia, n: usize, _newline_style: NewlineStyle) 
 
 impl Formatter {
     pub fn new(config: Config) -> Formatter {
-        Formatter {
-            config,
-            state: State::new(),
-        }
+        Formatter { config }
     }
 
-    fn format_token(&mut self, token: &SyntaxToken) -> SyntaxToken {
+    pub fn format(&mut self, node: SyntaxNode) -> SyntaxNode {
+        let doc = Doc::from_node(node.clone());
+        let layout = doc.resolve_layout();
+        let layout_rewriter = LayoutBasedTokenRewriter {
+            layout,
+            previous_trailing_trivia: None,
+            config: self.config.clone(),
+            indent_level: 0,
+        };
+        let mut rewriter = TokenRewriter::new(layout_rewriter);
+        rewriter.rewrite(node)
+    }
+}
+
+struct LayoutBasedTokenRewriter {
+    layout: HashMap<usize, BoundaryDecision>,
+    previous_trailing_trivia: Option<Trivia>,
+    config: Config,
+    // TODO: This is a bit ugly at the moment because it is a hacky code duplication solution
+    // that originates from the fact that trivia is always attached to tokens.
+    // This fact makes it quite hard to emit trivia as part of the layout building process.
+    // There should be a better solution; probably by reworking the `normalize_trivia` method.
+    indent_level: usize,
+}
+
+impl TokenRewrite for LayoutBasedTokenRewriter {
+    fn token(&mut self, token: &SyntaxToken) -> TokenRewriteAction {
         let mut tok = token.clone();
 
-        let mut leading_trivia = self
-            .state
-            .take_previoud_trailing_trivia()
-            .unwrap_or_default();
+        let mut leading_trivia = self.previous_trailing_trivia.take().unwrap_or_default();
 
         leading_trivia.append(&mut tok.leading_trivia());
+
+        match self.layout.get(&token.text_pos()) {
+            Some(BoundaryDecision::Newline { indent }) => {
+                self.indent_level = *indent;
+            }
+            _ => {}
+        }
 
         leading_trivia = normalize_trivia(
             &leading_trivia,
             &self.config.indentationn,
-            self.state.current_indent(),
+            self.indent_level,
         );
 
-        if let Some(separator) = self.state.get_and_reset_pending_separator()
-            // prevent newlines at the beginning
-            && tok.prev_token().is_some()
-        {
-            match separator {
-                RegionSeparator::Space => {
-                    leading_trivia.push(TriviaPiece::Spaces(1));
-                }
-                RegionSeparator::Newline => {
-                    ensure_newlines(&mut leading_trivia, 1, self.config.newline_style);
-                    if self.state.current_indent() != 0 {
-                        leading_trivia.push(
-                            self.config
-                                .indentationn
-                                .to_trivia(self.state.current_indent()),
-                        );
-                    }
+        match self.layout.get(&token.text_pos()) {
+            Some(BoundaryDecision::Space) => {
+                leading_trivia.push(TriviaPiece::Spaces(1));
+            }
+            Some(BoundaryDecision::Newline { indent }) => {
+                ensure_newlines(&mut leading_trivia, 1, self.config.newline_style);
+                if *indent > 0 {
+                    leading_trivia.push(self.config.indentationn.to_trivia(*indent));
                 }
             }
+            None => {}
         }
 
         // Store the previous trivia and reset trailing trivia of the token.
         // This means that for formatting, we only have to deal with trailing trivia.
         // TODO: Improve this by introducing an EOF token.
         if !tok.next_token().is_none() {
-            self.state
-                .set_previous_trailing_trivia(tok.trailing_trivia());
+            self.previous_trailing_trivia = Some(tok.trailing_trivia());
             tok = tok.clone_with_trivia(leading_trivia, Trivia::default())
         } else {
             tok = tok.clone_with_leading_trivia(leading_trivia)
         }
 
-        tok
-    }
-
-    pub fn format(&mut self, node: SyntaxNode) -> SyntaxNode {
-        let mut rewriter = TokenRewriter::new(FormattingTokenRewriter::new(self));
-        rewriter.rewrite(node)
-    }
-}
-
-struct FormattingTokenRewriter<'a> {
-    formatter: &'a mut Formatter,
-}
-
-impl<'a> FormattingTokenRewriter<'a> {
-    pub fn new(formatter: &'a mut Formatter) -> FormattingTokenRewriter<'a> {
-        Self { formatter }
-    }
-
-    fn set_pending_newline(&mut self) {
-        self.set_pending_separator(RegionSeparator::Newline);
-    }
-
-    fn set_pending_space(&mut self) {
-        self.set_pending_separator(RegionSeparator::Space);
-    }
-
-    fn set_pending_separator(&mut self, separator: RegionSeparator) {
-        self.formatter.state.set_pending_separator(separator);
-    }
-
-    fn indent(&mut self) {
-        self.formatter.state.indent()
-    }
-
-    fn dedent(&mut self) {
-        self.formatter.state.dedent()
-    }
-}
-
-/// All nodes that should be printed with an indent.
-fn indents(node: &SyntaxNode) -> bool {
-    use NodeKind::*;
-    match node.kind() {
-        ContextClause
-            if node
-                .parent()
-                .is_some_and(|par| par.kind() == NodeKind::ContextDeclaration) =>
-        {
-            true
-        }
-        Declarations
-        | ConcurrentStatements
-        | SequentialStatements
-        | BlockConfigurationItems
-        | BlockHeader
-        | GenerateStatementBody
-        | CaseGenerateAlternative
-        | CaseStatementAlternative
-        | ComponentConfigurationItems
-        | ComponentDeclarationItems
-        | ComponentInstantiationItems
-        | CompoundConfigurationSpecificationItems
-        | ConfigurationDeclarationItems
-        | EntityHeader
-        | PackageHeader
-        | UnitDeclarations
-        | RecordElementDeclarations
-        | InterfaceList => true,
-        _ => false,
-    }
-}
-
-/// All nodes that require a single newline before them.
-fn wants_newline_before(node_kind: NodeKind) -> bool {
-    use NodeKind::*;
-    matches!(
-        node_kind,
-        AliasDeclaration
-            | DeclarationStatementSeparator
-            | SemiColonTerminatedBindingIndication
-            | UseClause
-            | SubprogramDeclaration
-            | SubprogramBody
-            | SubprogramInstantiationDeclaration
-            | PackageDeclaration
-            | PackageBody
-            | PackageInstantiationDeclaration
-            | FullTypeDeclaration
-            | IncompleteTypeDeclaration
-            | SubtypeDeclaration
-            | ConstantDeclaration
-            | SignalDeclaration
-            | VariableDeclaration
-            | SharedVariableDeclaration
-            | FileDeclaration
-            | ComponentDeclaration
-            | AttributeDeclaration
-            | GroupTemplateDeclaration
-            | GroupDeclaration
-            | AttributeSpecification
-            | SimpleConfigurationSpecification
-            | CompoundConfigurationSpecification
-            | DisconnectionSpecification
-            | PslPropertyDeclaration
-            | PslSequenceDeclaration
-            | PslClockDeclaration
-            | GenericClause
-            | PortClause
-            | GenericMapAspect
-            | PortMapAspect
-            | BlockHeader
-            | GenerateStatementBody
-            | CaseGenerateAlternative
-            | CaseStatementAlternative
-            | SemiColonTerminatedVerificationUnitBindingIndication
-            | BlockConfiguration
-            | BlockStatement
-            | ProcessStatement
-            | ConcurrentAssertionStatement
-            | ComponentInstantiationStatement
-            | ConcurrentSelectedSignalAssignment
-            | ConcurrentConditionalSignalAssignment
-            | ConcurrentSimpleSignalAssignment
-            | ConcurrentProcedureCallOrComponentInstantiationStatement
-            | ForGenerateStatement
-            | IfGenerateElsif
-            | IfGenerateElse
-            | CaseGenerateStatement
-            | PslDirective
-            | WaitStatement
-            | AssertionStatement
-            | ReportStatement
-            | ProcedureCallStatement
-            | SimpleVariableAssignment
-            | ConditionalVariableAssignment
-            | SelectedVariableAssignment
-            | IfStatement
-            | IfStatementElsif
-            | IfStatementElse
-            | CaseStatement
-            | LoopStatement
-            | NextStatement
-            | ExitStatement
-            | ReturnStatement
-            | NullStatement
-            | PackageBodyDeclaration
-            | BlockPreamble
-            | PackagePreamble
-            | IfStatementPreamble
-            | PackageBodyPreamble
-            | ArchitecturePreamble
-            | CaseStatementPreamble
-            | LoopStatementPreamble
-            | SubprogramBodyPreamble
-            | ProcessStatementPreamble
-            | EntityDeclarationPreamble
-            | ProtectedTypeBodyPreamble
-            | BlockConfigurationPreamble
-            | ContextDeclarationPreamble
-            | IfGenerateStatementPreamble
-            | ComponentDeclarationPreamble
-            | ForGenerateStatementPreamble
-            | RecordTypeDefinitionPreamble
-            | CaseGenerateStatementPreamble
-            | ComponentConfigurationPreamble
-            | ConfigurationDeclarationPreamble
-            | ProtectedTypeDeclarationPreamble
-            | BlockEpilogue
-            | PackageEpilogue
-            | IfStatementEpilogue
-            | PackageBodyEpilogue
-            | ArchitectureEpilogue
-            | CaseStatementEpilogue
-            | LoopStatementEpilogue
-            | SubprogramBodyEpilogue
-            | ProcessStatementEpilogue
-            | EntityDeclarationEpilogue
-            | ProtectedTypeBodyEpilogue
-            | BlockConfigurationEpilogue
-            | ContextDeclarationEpilogue
-            | IfGenerateStatementEpilogue
-            | ComponentDeclarationEpilogue
-            | ForGenerateStatementEpilogue
-            | RecordTypeDefinitionEpilogue
-            | CaseGenerateStatementEpilogue
-            | GenerateStatementBodyEpilogue
-            | ComponentConfigurationEpilogue
-            | PhysicalTypeDefinitionEpilogue
-            | ConfigurationDeclarationEpilogue
-            | ProtectedTypeDeclarationEpilogue
-            | PrimaryUnitDeclaration
-            | SecondaryUnitDeclaration
-            | ElementDeclaration
-            | SimpleWaveformAssignment
-            | SimpleForceAssignment
-            | SimpleReleaseAssignment
-            | InterfaceConstantDeclaration
-            | InterfaceSignalDeclaration
-            | InterfaceVariableDeclaration
-            | InterfaceFileDeclaration
-            | InterfaceIncompleteTypeDeclaration
-            | InterfaceSubprogramDeclaration
-            | InterfacePackageDeclaration
-    )
-}
-
-impl<'a> TokenRewrite for FormattingTokenRewriter<'a> {
-    // Add a leading trivia piece before the next token
-    fn enter(&mut self, node: &SyntaxNode) {
-        if indents(&node) {
-            self.indent();
-        }
-        if wants_newline_before(node.kind()) {
-            self.set_pending_newline();
-        }
-    }
-
-    fn token(&mut self, token: &SyntaxToken) -> TokenRewriteAction {
-        let new_tok = self.formatter.format_token(token);
-        if &new_tok == token {
-            TokenRewriteAction::Keep
-        } else {
-            TokenRewriteAction::Replace(new_tok)
-        }
-    }
-
-    fn exit(&mut self, node: &SyntaxNode) {
-        if indents(&node) {
-            self.dedent();
-        }
+        TokenRewriteAction::Replace(tok)
     }
 }

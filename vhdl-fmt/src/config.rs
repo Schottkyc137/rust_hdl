@@ -1,12 +1,13 @@
 use vhdl_syntax::tokens::TriviaPiece;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq, PartialEq, Clone)]
 pub enum IndentStyle {
     #[default]
     Spaces,
     Tabs,
 }
 
+#[derive(Eq, PartialEq, Clone)]
 pub struct Indentation {
     pub style: IndentStyle,
     pub width: usize,
@@ -25,7 +26,7 @@ impl Default for Indentation {
     fn default() -> Self {
         Self {
             style: IndentStyle::Spaces,
-            width: 2,
+            width: 4,
         }
     }
 }
@@ -37,15 +38,7 @@ pub enum NewlineStyle {
     CarriageReturnLineFeed,
 }
 
-impl NewlineStyle {
-    pub(crate) fn to_trivia(&self) -> TriviaPiece {
-        match self {
-            NewlineStyle::LineFeed => TriviaPiece::LineFeeds(1),
-            NewlineStyle::CarriageReturnLineFeed => TriviaPiece::CarriageReturnLineFeeds(1),
-        }
-    }
-}
-
+#[derive(Eq, PartialEq, Clone)]
 pub struct Config {
     pub newline_at_end: bool,
     pub indentationn: Indentation,

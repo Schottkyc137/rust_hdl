@@ -72,6 +72,34 @@ impl SyntaxElement {
     }
 }
 
+impl SyntaxElement {
+    pub fn next_sibling_or_token(&self) -> Option<SyntaxElement> {
+        match self {
+            Child::Node(node) => node.next_sibling_or_token(),
+            Child::Token(token) => token.next_sibling_or_token(),
+        }
+    }
+
+    pub fn parent(&self) -> Option<SyntaxNode> {
+        match self {
+            Child::Node(node) => node.parent(),
+            Child::Token(token) => Some(token.parent()),
+        }
+    }
+}
+
+impl From<SyntaxNode> for SyntaxElement {
+    fn from(value: SyntaxNode) -> Self {
+        Self::Node(value)
+    }
+}
+
+impl From<SyntaxToken> for SyntaxElement {
+    fn from(value: SyntaxToken) -> Self {
+        Self::Token(value)
+    }
+}
+
 #[derive(Clone, Eq, PartialEq)]
 pub struct SyntaxToken(Arc<SyntaxTokenData>);
 
@@ -360,6 +388,10 @@ impl SyntaxNode {
 
     pub fn first_child(&self) -> Option<SyntaxNode> {
         self.children().next()
+    }
+
+    pub fn first_child_or_token(&self) -> Option<SyntaxElement> {
+        self.children_with_tokens().next()
     }
 
     pub fn nth_child(&self, n: usize) -> Option<SyntaxNode> {
