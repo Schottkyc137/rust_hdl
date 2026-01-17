@@ -38,6 +38,19 @@ pub enum NewlineStyle {
     CarriageReturnLineFeed,
 }
 
+impl NewlineStyle {
+    pub fn to_trivia(&self) -> TriviaPiece {
+        self.to_trivia_n(1)
+    }
+
+    pub fn to_trivia_n(&self, n: usize) -> TriviaPiece {
+        match self {
+            NewlineStyle::LineFeed => TriviaPiece::LineFeeds(n),
+            NewlineStyle::CarriageReturnLineFeed => TriviaPiece::CarriageReturnLineFeeds(n),
+        }
+    }
+}
+
 #[derive(Eq, PartialEq, Clone)]
 pub struct Config {
     pub newline_at_end: bool,

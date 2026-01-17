@@ -115,7 +115,6 @@ impl Formatter {
             layout,
             previous_trailing_trivia: None,
             config: self.config.clone(),
-            indent_level: 0,
         };
         let mut rewriter = TokenRewriter::new(layout_rewriter);
         rewriter.rewrite(node)
@@ -126,11 +125,6 @@ struct LayoutBasedTokenRewriter {
     layout: HashMap<usize, BoundaryDecision>,
     previous_trailing_trivia: Option<Trivia>,
     config: Config,
-    // TODO: This is a bit ugly at the moment because it is a hacky code duplication solution
-    // that originates from the fact that trivia is always attached to tokens.
-    // This fact makes it quite hard to emit trivia as part of the layout building process.
-    // There should be a better solution; probably by reworking the `normalize_trivia` method.
-    indent_level: usize,
 }
 
 impl TokenRewrite for LayoutBasedTokenRewriter {
@@ -142,23 +136,12 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
         leading_trivia.append(&mut tok.leading_trivia());
 
         match self.layout.get(&token.text_pos()) {
-            Some(BoundaryDecision::Newline { indent }) => {
-                self.indent_level = *indent;
-            }
-            _ => {}
-        }
-
-        leading_trivia = normalize_trivia(
-            &leading_trivia,
-            &self.config.indentationn,
-            self.indent_level,
-        );
-
-        match self.layout.get(&token.text_pos()) {
             Some(BoundaryDecision::Space) => {
                 leading_trivia.push(TriviaPiece::Spaces(1));
             }
             Some(BoundaryDecision::Newline { indent }) => {
+                leading_trivia =
+                    normalize_trivia(&leading_trivia, &self.config.indentationn, *indent);
                 ensure_newlines(&mut leading_trivia, 1, self.config.newline_style);
                 if *indent > 0 {
                     leading_trivia.push(self.config.indentationn.to_trivia(*indent));
