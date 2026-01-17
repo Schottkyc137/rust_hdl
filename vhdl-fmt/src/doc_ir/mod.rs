@@ -1,12 +1,15 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, usize};
 
-use vhdl_syntax::syntax::{
-    NodeKind,
-    node::{SyntaxElement, SyntaxNode, SyntaxToken},
-    visitor::{PreorderWithTokens, WalkEvent},
+use vhdl_syntax::{
+    syntax::{
+        NodeKind,
+        node::{SyntaxElement, SyntaxNode, SyntaxToken},
+        visitor::{PreorderWithTokens, WalkEvent},
+    },
+    tokens::TokenKind,
 };
 
-use crate::doc_ir::builder::DocBuilder;
+use crate::{config::Config, doc_ir::builder::DocBuilder};
 mod builder;
 
 #[derive(Clone)]
@@ -15,14 +18,28 @@ pub enum Doc {
     Token(SyntaxToken),
     /// Mandatory newline
     HardBreak,
-    /// Indent the
-    Indent(Vec<Doc>),
+    /// Indent the following docs
+    Indent(Box<Doc>),
     /// Sequence of docs. Rendered without any special consideration.
     Concat(Vec<Doc>),
     /// Group: try to keep flat if it fits max width
-    Group(Vec<Doc>),
+    Group(Box<Doc>),
     /// Optional break: space if fits, newline + indent otherwise
     SoftBreak,
+}
+
+impl Doc {
+    pub fn flat_width(&self) -> Option<usize> {
+        match self {
+            Doc::Token(syntax_token) => Some(syntax_token.text().len()),
+            Doc::HardBreak => None,
+            Doc::Indent(doc) => doc.flat_width(),
+            Doc::Concat(docs) => docs.iter().map(|doc| doc.flat_width()).sum(),
+            Doc::Group(doc) => doc.flat_width(),
+            // Count soft break as space with flat layouting
+            Doc::SoftBreak => Some(1),
+        }
+    }
 }
 
 impl Debug for Doc {
@@ -195,13 +212,24 @@ fn wants_newline_before(node_kind: NodeKind) -> bool {
             | SimpleWaveformAssignment
             | SimpleForceAssignment
             | SimpleReleaseAssignment
-            | InterfaceConstantDeclaration
-            | InterfaceSignalDeclaration
-            | InterfaceVariableDeclaration
-            | InterfaceFileDeclaration
-            | InterfaceIncompleteTypeDeclaration
-            | InterfaceSubprogramDeclaration
-            | InterfacePackageDeclaration
+    )
+}
+
+/// Nodes that need a soft break, i.e., a conditional break based on
+/// a user-configured maximum line length.
+fn wants_softbreak_before(node_kind: NodeKind) -> bool {
+    matches!(
+        node_kind,
+        NodeKind::InterfaceList
+            | NodeKind::InterfaceConstantDeclaration
+            | NodeKind::InterfaceSignalDeclaration
+            | NodeKind::InterfaceVariableDeclaration
+            | NodeKind::InterfaceFileDeclaration
+            | NodeKind::InterfaceIncompleteTypeDeclaration
+            | NodeKind::InterfaceSubprogramDeclaration
+            | NodeKind::InterfacePackageDeclaration
+            | NodeKind::PortClauseEpilogue
+            | NodeKind::GenericClauseEpilogue
     )
 }
 
@@ -217,6 +245,8 @@ struct ResolveState {
     plan: HashMap<usize, BoundaryDecision>,
     pending: Option<BoundaryDecision>,
     indent: usize,
+    /// The current column
+    column: usize,
 }
 
 impl ResolveState {
@@ -225,6 +255,7 @@ impl ResolveState {
             plan: HashMap::new(),
             pending: None,
             indent: 0,
+            column: 0,
         }
     }
 }
@@ -236,18 +267,36 @@ impl Doc {
         for event in preorder {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
-                    if indents(&node) {
-                        builder.indent();
-                    }
                     if wants_newline_before(node.kind()) {
                         builder.hard_break();
                     }
+                    builder.start_concat();
+                    if wants_softbreak_before(node.kind()) {
+                        builder.soft_break();
+                    }
                 }
-                WalkEvent::Enter(SyntaxElement::Token(token)) => builder.push(token),
+                WalkEvent::Enter(SyntaxElement::Token(token)) => {
+                    if token.kind() == TokenKind::RightPar
+                        && token.parent().kind() == NodeKind::ParenthesizedInterfaceList
+                    {
+                        builder.soft_break();
+                    }
+                    builder.push(token.clone());
+                }
                 WalkEvent::Leave(SyntaxElement::Token(_)) => {}
                 WalkEvent::Leave(SyntaxElement::Node(node)) => {
+                    builder.end_concat();
+                    if matches!(
+                        node.kind(),
+                        NodeKind::InterfaceList
+                            | NodeKind::GenericClause
+                            | NodeKind::PortClause
+                            | NodeKind::ParenthesizedInterfaceList
+                    ) {
+                        builder.embed_in_group();
+                    }
                     if indents(&node) {
-                        builder.dedent();
+                        builder.embed_in_indent();
                     }
                 }
             }
@@ -255,38 +304,56 @@ impl Doc {
         builder.build()
     }
 
-    pub fn resolve_layout(self) -> HashMap<usize, BoundaryDecision> {
+    pub fn resolve_layout(self, config: &Config) -> HashMap<usize, BoundaryDecision> {
         let mut state = ResolveState::new();
-        self.resolve_layout_inner(&mut state);
+        self.resolve_layout_inner(config, &mut state, true);
         state.plan
     }
 
-    fn resolve_layout_inner(self, state: &mut ResolveState) {
+    fn resolve_layout_inner(self, config: &Config, state: &mut ResolveState, flat: bool) {
         match self {
             Doc::Token(syntax_token) => {
                 if let Some(pending) = state.pending.take() {
                     state.plan.insert(syntax_token.text_pos(), pending);
+                    match pending {
+                        BoundaryDecision::Space => state.column += 1,
+                        BoundaryDecision::Newline { indent } => state.column = indent,
+                    }
                 }
+                state.column += syntax_token.text().len();
             }
             Doc::HardBreak => {
                 state.pending = Some(BoundaryDecision::Newline {
                     indent: state.indent,
-                })
+                });
             }
-            Doc::Indent(docs) => {
-                state.indent += 1;
-                for doc in docs {
-                    doc.resolve_layout_inner(state);
-                }
-                state.indent -= 1;
+            Doc::Indent(doc) => {
+                state.indent += config.indentation.width;
+                doc.resolve_layout_inner(config, state, flat);
+                state.indent -= config.indentation.width;
+            }
+            Doc::SoftBreak => {
+                state.pending = if flat {
+                    Some(BoundaryDecision::Space)
+                } else {
+                    Some(BoundaryDecision::Newline {
+                        indent: state.indent,
+                    })
+                };
+            }
+            Doc::Group(doc) => {
+                let layout_as_flat = if let Some(flat_width) = doc.flat_width() {
+                    flat && state.column + flat_width <= config.max_line_length
+                } else {
+                    false
+                };
+                doc.resolve_layout_inner(config, state, layout_as_flat);
             }
             Doc::Concat(docs) => {
                 for doc in docs {
-                    doc.resolve_layout_inner(state);
+                    doc.resolve_layout_inner(config, state, flat);
                 }
             }
-            Doc::SoftBreak => todo!(),
-            Doc::Group(_) => todo!(),
         }
     }
 }

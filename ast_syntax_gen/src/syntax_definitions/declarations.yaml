@@ -174,9 +174,15 @@ FullTypeDeclaration: !Sequence
   - token: SemiColon
 
 GenericClause: !Sequence
+  - node: GenericClausePreamble
+  - node: InterfaceList
+  - node: GenericClauseEpilogue
+
+GenericClausePreamble: !Sequence
   - keyword: Generic
   - token: LeftPar
-  - node: InterfaceList
+
+GenericClauseEpilogue: !Sequence
   - token: RightPar
   - token: SemiColon
 
@@ -361,9 +367,15 @@ Mode: !Choice
   - keyword: Linkage
 
 PortClause: !Sequence
+  - node: PortClausePreamble
+  - node: InterfaceList
+  - node: PortClauseEpilogue
+
+PortClausePreamble: !Sequence
   - keyword: Port
   - token: LeftPar
-  - node: InterfaceList
+
+PortClauseEpilogue: !Sequence
   - token: RightPar
   - token: SemiColon
 

@@ -9,8 +9,9 @@ Package
     Keyword(Is)
   PackageHeader
     GenericClause
-      Keyword(Generic)
-      LeftPar
+      GenericClausePreamble
+        Keyword(Generic)
+        LeftPar
       InterfaceList
         InterfaceIncompleteTypeDeclaration
           Keyword(Type)
@@ -19,8 +20,9 @@ Package
         InterfaceIncompleteTypeDeclaration
           Keyword(Type)
           Identifier 'bar'
-      RightPar
-      SemiColon
+      GenericClauseEpilogue
+        RightPar
+        SemiColon
   PackageEpilogue
     Keyword(End)
     Keyword(Package)

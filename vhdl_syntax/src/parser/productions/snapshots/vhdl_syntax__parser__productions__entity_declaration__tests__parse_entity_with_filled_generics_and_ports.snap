@@ -9,8 +9,9 @@ EntityDeclaration
     Keyword(Is)
   EntityHeader
     GenericClause
-      Keyword(Generic)
-      LeftPar
+      GenericClausePreamble
+        Keyword(Generic)
+        LeftPar
       InterfaceList
         InterfaceConstantDeclaration
           Keyword(Constant)
@@ -21,11 +22,13 @@ EntityDeclaration
           SubtypeIndication
             Name
               Identifier 'bit'
-      RightPar
-      SemiColon
+      GenericClauseEpilogue
+        RightPar
+        SemiColon
     PortClause
-      Keyword(Port)
-      LeftPar
+      PortClausePreamble
+        Keyword(Port)
+        LeftPar
       InterfaceList
         InterfaceConstantDeclaration
           IdentifierList
@@ -47,8 +50,9 @@ EntityDeclaration
           SubtypeIndication
             Name
               Identifier 'boolean'
-      RightPar
-      SemiColon
+      PortClauseEpilogue
+        RightPar
+        SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
   EntityDeclarationEpilogue

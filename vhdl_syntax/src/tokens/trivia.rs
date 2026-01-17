@@ -77,6 +77,10 @@ impl Trivia {
         }
         Ok(())
     }
+
+    pub fn clear(&mut self) {
+        self.pieces.clear();
+    }
 }
 
 impl Trivia {

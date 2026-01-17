@@ -13,11 +13,11 @@ pub struct Indentation {
     pub width: usize,
 }
 
-impl Indentation {
-    pub(crate) fn to_trivia(&self, level: usize) -> TriviaPiece {
-        match self.style {
-            IndentStyle::Spaces => TriviaPiece::Spaces(self.width * level),
-            IndentStyle::Tabs => TriviaPiece::HorizontalTabs(self.width * level),
+impl IndentStyle {
+    pub fn to_trivia(&self, count: usize) -> TriviaPiece {
+        match self {
+            IndentStyle::Spaces => TriviaPiece::Spaces(count),
+            IndentStyle::Tabs => TriviaPiece::HorizontalTabs(count),
         }
     }
 }
@@ -54,16 +54,18 @@ impl NewlineStyle {
 #[derive(Eq, PartialEq, Clone)]
 pub struct Config {
     pub newline_at_end: bool,
-    pub indentationn: Indentation,
+    pub indentation: Indentation,
     pub newline_style: NewlineStyle,
+    pub max_line_length: usize,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             newline_at_end: true,
-            indentationn: Indentation::default(),
+            indentation: Indentation::default(),
             newline_style: NewlineStyle::default(),
+            max_line_length: 80,
         }
     }
 }

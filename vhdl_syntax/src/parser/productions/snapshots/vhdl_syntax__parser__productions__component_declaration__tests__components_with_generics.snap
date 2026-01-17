@@ -9,8 +9,9 @@ ComponentDeclaration
     Keyword(Is)
   ComponentDeclarationItems
     GenericClause
-      Keyword(Generic)
-      LeftPar
+      GenericClausePreamble
+        Keyword(Generic)
+        LeftPar
       InterfaceList
         InterfaceConstantDeclaration
           IdentifierList
@@ -19,8 +20,9 @@ ComponentDeclaration
           SubtypeIndication
             Name
               Identifier 'natural'
-      RightPar
-      SemiColon
+      GenericClauseEpilogue
+        RightPar
+        SemiColon
   ComponentDeclarationEpilogue
     Keyword(End)
     Keyword(Component)

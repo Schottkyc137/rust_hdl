@@ -44,7 +44,7 @@ fn emit_line(
     indent_level: usize,
 ) {
     if indent_level > 0 {
-        out.push(indent.to_trivia(indent_level));
+        out.push(indent.style.to_trivia(indent_level));
     }
     out.extend(line.iter().cloned());
     out.push(newline.clone());
@@ -84,8 +84,7 @@ fn normalize_trivia(trivia: &Trivia, indent: &Indentation, indent_level: usize) 
     out
 }
 
-fn ensure_newlines(trivia: &mut Trivia, n: usize, _newline_style: NewlineStyle) {
-    // TODO: respect newline style
+fn ensure_newlines(trivia: &mut Trivia, n: usize, newline_style: NewlineStyle) {
     let count_of_newlines: usize = trivia
         .iter()
         .filter_map(|piece| match piece {
@@ -99,7 +98,7 @@ fn ensure_newlines(trivia: &mut Trivia, n: usize, _newline_style: NewlineStyle) 
         .copied()
         .sum();
     if count_of_newlines < n {
-        trivia.push(TriviaPiece::LineFeeds(n - count_of_newlines));
+        trivia.push(newline_style.to_trivia_n(n - count_of_newlines));
     }
 }
 
@@ -110,7 +109,7 @@ impl Formatter {
 
     pub fn format(&mut self, node: SyntaxNode) -> SyntaxNode {
         let doc = Doc::from_node(node.clone());
-        let layout = doc.resolve_layout();
+        let layout = doc.resolve_layout(&self.config);
         let layout_rewriter = LayoutBasedTokenRewriter {
             layout,
             previous_trailing_trivia: None,
@@ -137,14 +136,16 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
 
         match self.layout.get(&token.text_pos()) {
             Some(BoundaryDecision::Space) => {
+                // TODO: This discards comments!
+                leading_trivia.clear();
                 leading_trivia.push(TriviaPiece::Spaces(1));
             }
             Some(BoundaryDecision::Newline { indent }) => {
                 leading_trivia =
-                    normalize_trivia(&leading_trivia, &self.config.indentationn, *indent);
+                    normalize_trivia(&leading_trivia, &self.config.indentation, *indent);
                 ensure_newlines(&mut leading_trivia, 1, self.config.newline_style);
                 if *indent > 0 {
-                    leading_trivia.push(self.config.indentationn.to_trivia(*indent));
+                    leading_trivia.push(self.config.indentation.style.to_trivia(*indent));
                 }
             }
             None => {}

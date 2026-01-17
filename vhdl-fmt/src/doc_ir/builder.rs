@@ -23,19 +23,33 @@ impl DocBuilder {
         self.children.push(Doc::HardBreak);
     }
 
-    pub fn indent(&mut self) {
+    pub fn soft_break(&mut self) {
+        self.children.push(Doc::SoftBreak);
+    }
+
+    pub fn start_concat(&mut self) {
         let len = self.children.len();
         self.parents.push(len);
     }
 
-    pub fn dedent(&mut self) {
+    pub fn end_concat(&mut self) {
         let first_child = self.parents.pop().unwrap();
         let data = self.children.drain(first_child..).collect::<Vec<_>>();
         debug_assert!(
             !data.is_empty(),
             "Indented regions should not be empty as nodes should not be empty"
         );
-        self.children.push(Doc::Indent(data));
+        self.children.push(Doc::Concat(data));
+    }
+
+    pub fn embed_in_group(&mut self) {
+        let last = self.children.pop().unwrap();
+        self.children.push(Doc::Group(Box::new(last)));
+    }
+
+    pub fn embed_in_indent(&mut self) {
+        let last = self.children.pop().unwrap();
+        self.children.push(Doc::Indent(Box::new(last)));
     }
 
     pub fn build(mut self) -> Doc {
