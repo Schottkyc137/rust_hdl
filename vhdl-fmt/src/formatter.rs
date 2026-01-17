@@ -10,7 +10,7 @@ use vhdl_syntax::{
 
 use crate::{
     config::{Config, Indentation, NewlineStyle},
-    doc_ir::{BoundaryDecision, Doc},
+    doc_ir::{BoundaryDecision, Doc, TokenFormatting},
 };
 
 pub struct Formatter {
@@ -121,7 +121,7 @@ impl Formatter {
 }
 
 struct LayoutBasedTokenRewriter {
-    layout: HashMap<usize, BoundaryDecision>,
+    layout: HashMap<usize, TokenFormatting>,
     previous_trailing_trivia: Option<Trivia>,
     config: Config,
 }
@@ -130,25 +130,23 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
     fn token(&mut self, token: &SyntaxToken) -> TokenRewriteAction {
         let mut tok = token.clone();
 
-        let mut leading_trivia = self.previous_trailing_trivia.take().unwrap_or_default();
+        let mut leading_trivia = Trivia::default();
 
-        leading_trivia.append(&mut tok.leading_trivia());
-
-        match self.layout.get(&token.text_pos()) {
-            Some(BoundaryDecision::Space) => {
-                // TODO: This discards comments!
-                leading_trivia.clear();
-                leading_trivia.push(TriviaPiece::Spaces(1));
-            }
-            Some(BoundaryDecision::Newline { indent }) => {
-                leading_trivia =
-                    normalize_trivia(&leading_trivia, &self.config.indentation, *indent);
-                ensure_newlines(&mut leading_trivia, 1, self.config.newline_style);
-                if *indent > 0 {
-                    leading_trivia.push(self.config.indentation.style.to_trivia(*indent));
+        if let Some(formatting) = self.layout.get(&token.text_pos()) {
+            leading_trivia = formatting.leading_comments.clone();
+            match formatting.boundary_decision {
+                BoundaryDecision::Space => leading_trivia.push(TriviaPiece::Spaces(1)),
+                BoundaryDecision::Empty => {},
+                BoundaryDecision::Newline {
+                    blank_lines,
+                    indent,
+                } => {
+                    leading_trivia.push(self.config.newline_style.to_trivia_n(blank_lines + 1));
+                    if indent > 0 {
+                        leading_trivia.push(self.config.indentation.style.to_trivia(indent));
+                    }
                 }
             }
-            None => {}
         }
 
         // Store the previous trivia and reset trailing trivia of the token.

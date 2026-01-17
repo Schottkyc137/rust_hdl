@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, usize};
+use std::{collections::HashMap, fmt::Debug, mem::take, usize};
 
 use vhdl_syntax::{
     syntax::{
@@ -6,7 +6,7 @@ use vhdl_syntax::{
         node::{SyntaxElement, SyntaxNode, SyntaxToken},
         visitor::{PreorderWithTokens, WalkEvent},
     },
-    tokens::TokenKind,
+    tokens::{TokenKind, Trivia},
 };
 
 use crate::{config::Config, doc_ir::builder::DocBuilder};
@@ -17,7 +17,7 @@ pub enum Doc {
     /// The basic element of text
     Token(SyntaxToken),
     /// Mandatory newline
-    HardBreak,
+    HardBreak { blank_lines: usize },
     /// Indent the following docs
     Indent(Box<Doc>),
     /// Sequence of docs. Rendered without any special consideration.
@@ -26,18 +26,32 @@ pub enum Doc {
     Group(Box<Doc>),
     /// Optional break: space if fits, newline + indent otherwise
     SoftBreak,
+    /// A forced space
+    Space,
+    /// A comment with given length
+    Comment(Trivia),
+    /// An in-line comment with given length
+    InlineComment(Trivia),
 }
 
 impl Doc {
     pub fn flat_width(&self) -> Option<usize> {
         match self {
             Doc::Token(syntax_token) => Some(syntax_token.text().len()),
-            Doc::HardBreak => None,
+            Doc::HardBreak { .. } => None,
             Doc::Indent(doc) => doc.flat_width(),
             Doc::Concat(docs) => docs.iter().map(|doc| doc.flat_width()).sum(),
             Doc::Group(doc) => doc.flat_width(),
             // Count soft break as space with flat layouting
             Doc::SoftBreak => Some(1),
+            Doc::Space => Some(1),
+            Doc::Comment(trivia) | Doc::InlineComment(trivia) => {
+                if trivia.count_newlines() > 0 {
+                    None
+                } else {
+                    Some(trivia.byte_len())
+                }
+            }
         }
     }
 }
@@ -47,10 +61,16 @@ impl Debug for Doc {
         match self {
             Self::Token(arg0) => f.debug_tuple("Token").field(&arg0.text()).finish(),
             Self::SoftBreak => write!(f, "SoftBreak"),
-            Self::HardBreak => write!(f, "HardBreak"),
+            Self::HardBreak { blank_lines } => f
+                .debug_struct("HardBreak")
+                .field("blank_lines", &blank_lines)
+                .finish(),
             Self::Indent(arg0) => f.debug_tuple("Indent").field(arg0).finish(),
             Self::Concat(arg0) => f.debug_tuple("Concat").field(arg0).finish(),
             Self::Group(arg0) => f.debug_tuple("Group").field(arg0).finish(),
+            Self::Comment(_) => write!(f, "Comment"),
+            Self::Space => write!(f, "Space"),
+            Self::InlineComment(_) => write!(f, "InlineComment"),
         }
     }
 }
@@ -235,15 +255,24 @@ fn wants_softbreak_before(node_kind: NodeKind) -> bool {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BoundaryDecision {
+    /// No trivia before a token
+    Empty,
     /// Add a space before a token
     Space,
     /// Add a newline with given indent
-    Newline { indent: usize },
+    Newline { blank_lines: usize, indent: usize },
+}
+
+pub struct TokenFormatting {
+    pub boundary_decision: BoundaryDecision,
+    pub leading_comments: Trivia,
+    pub trailing_comments: Trivia,
 }
 
 struct ResolveState {
-    plan: HashMap<usize, BoundaryDecision>,
+    plan: HashMap<usize, TokenFormatting>,
     pending: Option<BoundaryDecision>,
+    pending_comments: Trivia,
     indent: usize,
     /// The current column
     column: usize,
@@ -256,6 +285,7 @@ impl ResolveState {
             pending: None,
             indent: 0,
             column: 0,
+            pending_comments: Trivia::default(),
         }
     }
 }
@@ -264,15 +294,25 @@ impl Doc {
     pub fn from_node(node: SyntaxNode) -> Doc {
         let mut builder = DocBuilder::new();
         let preorder = PreorderWithTokens::new(node);
+
+        let mut trivia_decision = false;
+
         for event in preorder {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
                     if wants_newline_before(node.kind()) {
-                        builder.hard_break();
+                        let additional_newlines = node
+                            .first_token()
+                            .map(|tok| tok.all_leading_trivia().count_newlines())
+                            .unwrap_or_default()
+                            .saturating_sub(1);
+                        builder.hard_break_with_blank_lines(additional_newlines);
+                        trivia_decision = true;
                     }
                     builder.start_concat();
                     if wants_softbreak_before(node.kind()) {
                         builder.soft_break();
+                        trivia_decision = true;
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
@@ -280,6 +320,13 @@ impl Doc {
                         && token.parent().kind() == NodeKind::ParenthesizedInterfaceList
                     {
                         builder.soft_break();
+                    }
+                    if trivia_decision {
+                        trivia_decision = false;
+                    } else {
+                        if token.all_leading_trivia().has_spaces_or_tabs() {
+                            builder.space();
+                        }
                     }
                     builder.push(token.clone());
                 }
@@ -304,7 +351,7 @@ impl Doc {
         builder.build()
     }
 
-    pub fn resolve_layout(self, config: &Config) -> HashMap<usize, BoundaryDecision> {
+    pub fn resolve_layout(self, config: &Config) -> HashMap<usize, TokenFormatting> {
         let mut state = ResolveState::new();
         self.resolve_layout_inner(config, &mut state, true);
         state.plan
@@ -314,17 +361,29 @@ impl Doc {
         match self {
             Doc::Token(syntax_token) => {
                 if let Some(pending) = state.pending.take() {
-                    state.plan.insert(syntax_token.text_pos(), pending);
+                    state.plan.insert(
+                        syntax_token.text_pos(),
+                        TokenFormatting {
+                            boundary_decision: pending,
+                            leading_comments: take(&mut state.pending_comments),
+                            trailing_comments: Trivia::new(),
+                        },
+                    );
                     match pending {
                         BoundaryDecision::Space => state.column += 1,
-                        BoundaryDecision::Newline { indent } => state.column = indent,
+                        BoundaryDecision::Newline {
+                            blank_lines: _,
+                            indent,
+                        } => state.column = indent,
+                        BoundaryDecision::Empty => {}
                     }
                 }
                 state.column += syntax_token.text().len();
             }
-            Doc::HardBreak => {
+            Doc::HardBreak { blank_lines } => {
                 state.pending = Some(BoundaryDecision::Newline {
                     indent: state.indent,
+                    blank_lines,
                 });
             }
             Doc::Indent(doc) => {
@@ -338,6 +397,7 @@ impl Doc {
                 } else {
                     Some(BoundaryDecision::Newline {
                         indent: state.indent,
+                        blank_lines: 0,
                     })
                 };
             }
@@ -354,6 +414,8 @@ impl Doc {
                     doc.resolve_layout_inner(config, state, flat);
                 }
             }
+            Doc::Comment(_) | Doc::InlineComment(_) => {}
+            Doc::Space => state.pending = Some(BoundaryDecision::Space),
         }
     }
 }

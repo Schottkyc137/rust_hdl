@@ -20,7 +20,15 @@ impl DocBuilder {
     }
 
     pub fn hard_break(&mut self) {
-        self.children.push(Doc::HardBreak);
+        self.hard_break_with_blank_lines(0);
+    }
+
+    pub fn hard_break_with_blank_lines(&mut self, blank_lines: usize) {
+        self.children.push(Doc::HardBreak { blank_lines });
+    }
+
+    pub fn space(&mut self) {
+        self.children.push(Doc::Space);
     }
 
     pub fn soft_break(&mut self) {

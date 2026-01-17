@@ -81,6 +81,34 @@ impl Trivia {
     pub fn clear(&mut self) {
         self.pieces.clear();
     }
+
+    pub fn count_newlines(&self) -> usize {
+        let mut count = 0;
+        for piece in &self.pieces {
+            match piece {
+                TriviaPiece::CarriageReturns(n)
+                | TriviaPiece::LineFeeds(n)
+                | TriviaPiece::FormFeeds(n)
+                | TriviaPiece::CarriageReturnLineFeeds(n)
+                | TriviaPiece::VerticalTabs(n) => count += n,
+                _ => {}
+            }
+        }
+        count
+    }
+
+    pub fn count_spaces_or_tabs(&self) -> usize {
+        let mut count = 0;
+        for piece in &self.pieces {
+            match piece {
+                TriviaPiece::Spaces(n)
+                | TriviaPiece::HorizontalTabs(n)
+                | TriviaPiece::NonBreakingSpaces(n) => count += n,
+                _ => {}
+            }
+        }
+        count
+    }
 }
 
 impl Trivia {
