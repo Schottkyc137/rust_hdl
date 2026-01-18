@@ -1,4 +1,4 @@
-use vhdl_syntax::syntax::node::SyntaxToken;
+use vhdl_syntax::{syntax::node::SyntaxToken, tokens::Trivia};
 
 use crate::doc_ir::Doc;
 
@@ -20,11 +20,7 @@ impl DocBuilder {
     }
 
     pub fn hard_break(&mut self) {
-        self.hard_break_with_blank_lines(0);
-    }
-
-    pub fn hard_break_with_blank_lines(&mut self, blank_lines: usize) {
-        self.children.push(Doc::HardBreak { blank_lines });
+        self.children.push(Doc::HardBreak);
     }
 
     pub fn space(&mut self) {
@@ -38,6 +34,10 @@ impl DocBuilder {
     pub fn start_concat(&mut self) {
         let len = self.children.len();
         self.parents.push(len);
+    }
+
+    pub fn comment(&mut self, trivia: Trivia) {
+        self.children.push(Doc::Comment(trivia));
     }
 
     pub fn end_concat(&mut self) {
