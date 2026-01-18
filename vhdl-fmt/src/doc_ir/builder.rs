@@ -36,8 +36,8 @@ impl DocBuilder {
         self.parents.push(len);
     }
 
-    pub fn comment(&mut self, trivia: Trivia) {
-        self.children.push(Doc::Comment(trivia));
+    pub fn trivia(&mut self, trivia: Trivia) {
+        self.children.push(Doc::Trivia(trivia));
     }
 
     pub fn end_concat(&mut self) {
