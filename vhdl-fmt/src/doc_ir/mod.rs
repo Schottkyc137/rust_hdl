@@ -10,8 +10,22 @@ use vhdl_syntax::{
         node::{SyntaxElement, SyntaxNode, SyntaxToken},
         visitor::{PreorderWithTokens, WalkEvent},
     },
-    tokens::{TokenKind, Trivia, TriviaPiece},
+    tokens::{TokenKind, Trivia, TriviaPiece, trivia_piece::Comment},
 };
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DocComment {
+    Line(Comment),
+    Block(Comment),
+}
+
+impl DocComment {
+    pub fn byte_len(&self) -> usize {
+        match self {
+            DocComment::Line(comment) | DocComment::Block(comment) => comment.byte_len(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub enum Doc {
@@ -27,6 +41,8 @@ pub enum Doc {
     Concat(Vec<Doc>),
     /// Group: try to keep flat if it fits max width
     Group(Box<Doc>),
+    /// A comment
+    Comment(DocComment),
     /// Optional break: space if fits, newline + indent otherwise
     SoftBreak,
     /// A forced space
@@ -51,6 +67,7 @@ impl Doc {
                     Some(trivia.byte_len())
                 }
             }
+            Doc::Comment(comment) => Some(comment.byte_len()),
         }
     }
 }
@@ -66,6 +83,7 @@ impl Debug for Doc {
             Self::Group(arg0) => f.debug_tuple("Group").field(arg0).finish(),
             Self::Trivia(arg0) => f.debug_tuple("Trivia").field(&arg0.to_string()).finish(),
             Self::Space => write!(f, "Space"),
+            Self::Comment(arg0) => f.debug_tuple("LineComment").field(arg0).finish(),
         }
     }
 }
@@ -252,26 +270,69 @@ impl Doc {
     pub fn from_node(node: SyntaxNode) -> Doc {
         let mut builder = DocBuilder::new();
         let preorder = PreorderWithTokens::new(node);
+        let mut pending_break = None;
 
         for event in preorder {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
                     if wants_newline_before(node.kind()) {
-                        builder.hard_break();
+                        pending_break = Some(Doc::HardBreak);
                     }
                     builder.start_concat();
                     if wants_softbreak_before(node.kind()) {
-                        builder.soft_break();
+                        if pending_break.is_none() {
+                            pending_break = Some(Doc::SoftBreak)
+                        }
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
+                    if token.all_leading_trivia().contains_comments() {
+                        let mut last_sep = None;
+                        for triv in token.all_leading_trivia() {
+                            match triv {
+                                TriviaPiece::HorizontalTabs(_)
+                                | TriviaPiece::Spaces(_)
+                                | TriviaPiece::NonBreakingSpaces(_) => match last_sep {
+                                    None => last_sep = Some(Doc::SoftBreak),
+                                    _ => {}
+                                },
+                                TriviaPiece::BlockComment(comment) => {
+                                    if let Some(sep) = last_sep.take() {
+                                        builder.push(sep);
+                                    }
+                                    builder.comment(DocComment::Block(comment));
+                                }
+                                TriviaPiece::LineComment(comment) => {
+                                    if let Some(sep) = last_sep.take() {
+                                        builder.push(sep);
+                                    }
+                                    builder.comment(DocComment::Line(comment));
+                                }
+                                TriviaPiece::VerticalTabs(_)
+                                | TriviaPiece::CarriageReturnLineFeeds(_)
+                                | TriviaPiece::LineFeeds(_)
+                                | TriviaPiece::CarriageReturns(_)
+                                | TriviaPiece::FormFeeds(_) => last_sep = Some(Doc::HardBreak),
+                                TriviaPiece::Unexpected(_) => unimplemented!("Unexpected trivia"),
+                            }
+                        }
+                        if let Some(sep) = last_sep.take() {
+                            if matches!(sep, Doc::HardBreak) {
+                                builder.push(sep);
+                            }
+                        }
+                    }
                     if token.kind() == TokenKind::RightPar
                         && token.parent().kind() == NodeKind::ParenthesizedInterfaceList
                     {
                         builder.soft_break();
+                    } else if let Some(pendind_break) = pending_break.take() {
+                        builder.push(pendind_break);
                     }
-                    builder.trivia(token.all_leading_trivia());
-                    builder.push(token.clone());
+                    if !token.all_leading_trivia().contains_comments() {
+                        builder.trivia(token.all_leading_trivia());
+                    }
+                    builder.token(token.clone());
                 }
                 WalkEvent::Leave(SyntaxElement::Token(_)) => {}
                 WalkEvent::Leave(SyntaxElement::Node(node)) => {

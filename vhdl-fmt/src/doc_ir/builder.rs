@@ -1,6 +1,6 @@
 use vhdl_syntax::{syntax::node::SyntaxToken, tokens::Trivia};
 
-use crate::doc_ir::Doc;
+use crate::doc_ir::{Doc, DocComment};
 
 pub struct DocBuilder {
     parents: Vec<usize>,
@@ -15,20 +15,28 @@ impl DocBuilder {
         }
     }
 
-    pub fn push(&mut self, token: SyntaxToken) {
-        self.children.push(Doc::Token(token));
+    pub fn push(&mut self, doc: Doc) {
+        self.children.push(doc);
+    }
+
+    pub fn token(&mut self, token: SyntaxToken) {
+        self.push(Doc::Token(token));
     }
 
     pub fn hard_break(&mut self) {
-        self.children.push(Doc::HardBreak);
+        self.push(Doc::HardBreak);
     }
 
     pub fn space(&mut self) {
-        self.children.push(Doc::Space);
+        self.push(Doc::Space);
     }
 
     pub fn soft_break(&mut self) {
-        self.children.push(Doc::SoftBreak);
+        self.push(Doc::SoftBreak);
+    }
+
+    pub fn comment(&mut self, comment: DocComment) {
+        self.push(Doc::Comment(comment));
     }
 
     pub fn start_concat(&mut self) {
@@ -37,7 +45,7 @@ impl DocBuilder {
     }
 
     pub fn trivia(&mut self, trivia: Trivia) {
-        self.children.push(Doc::Trivia(trivia));
+        self.push(Doc::Trivia(trivia));
     }
 
     pub fn end_concat(&mut self) {
@@ -47,17 +55,17 @@ impl DocBuilder {
             !data.is_empty(),
             "Indented regions should not be empty as nodes should not be empty"
         );
-        self.children.push(Doc::Concat(data));
+        self.push(Doc::Concat(data));
     }
 
     pub fn embed_in_group(&mut self) {
         let last = self.children.pop().unwrap();
-        self.children.push(Doc::Group(Box::new(last)));
+        self.push(Doc::Group(Box::new(last)));
     }
 
     pub fn embed_in_indent(&mut self) {
         let last = self.children.pop().unwrap();
-        self.children.push(Doc::Indent(Box::new(last)));
+        self.push(Doc::Indent(Box::new(last)));
     }
 
     pub fn build(mut self) -> Doc {

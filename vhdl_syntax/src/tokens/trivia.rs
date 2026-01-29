@@ -23,13 +23,6 @@ pub struct Trivia {
     pieces: Vec<TriviaPiece>,
 }
 
-impl Trivia {
-    /// Constructs a new and empty Trivia.
-    pub fn new() -> Trivia {
-        Trivia { pieces: Vec::new() }
-    }
-}
-
 impl From<Vec<TriviaPiece>> for Trivia {
     fn from(value: Vec<TriviaPiece>) -> Self {
         Trivia { pieces: value }
@@ -49,6 +42,11 @@ impl<T: ?Sized + AsRef<[TriviaPiece]>> From<&T> for Trivia {
 }
 
 impl Trivia {
+    /// Constructs a new and empty Trivia.
+    pub fn new() -> Trivia {
+        Trivia { pieces: Vec::new() }
+    }
+
     pub fn byte_len(&self) -> usize {
         self.pieces
             .iter()
@@ -108,6 +106,10 @@ impl Trivia {
             }
         }
         count
+    }
+
+    pub fn contains_comments(&self) -> bool {
+        self.pieces.iter().any(|piece| piece.is_comment())
     }
 }
 

@@ -1,4 +1,4 @@
-use vhdl_syntax::tokens::{Trivia, TriviaPiece};
+use vhdl_syntax::tokens::TriviaPiece;
 
 use crate::{
     config::Config,
@@ -103,6 +103,11 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 resolve_layout_recursive(doc, config, state, flat);
             }
         }
+        Doc::Comment(comment) => {
+            let break_kind = take(&mut state.pending.break_kind);
+            state.column += comment.byte_len();
+            state.pending.comments.push((break_kind, comment));
+        }
         // BIG TODO: Tokens are currently handled in a very mediocre way.
         // This is because tokens are treated differently from comments - comments are trivia
         // and always part of tokens, but here it would be more sensible to handle them
@@ -110,45 +115,6 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
         Doc::Trivia(trivia) => {
             if state.pending.break_kind == BreakKind::Unset {
                 state.pending.trivia = trivia
-            } else {
-                let first_comment_idx = trivia.iter().position(|piece| piece.is_comment());
-                let last_comment_idx = trivia.iter().rposition(|piece| piece.is_comment());
-                if let (Some(first), Some(last)) = (first_comment_idx, last_comment_idx) {
-                    for triv in &trivia[first..=last] {
-                        match triv {
-                            TriviaPiece::LineComment(_) => {
-                                state.pending.trivia.push(config.newline_style.to_trivia());
-                                state
-                                    .pending
-                                    .trivia
-                                    .push(config.indentation.style.to_trivia(state.indent));
-                                state.pending.trivia.push(triv.clone());
-                            }
-                            TriviaPiece::BlockComment(_) => {
-                                unimplemented!("Block comment formatting")
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                let first_index = last_comment_idx.unwrap_or_default();
-                if !trivia.is_empty() && trivia.len() - 1 >= first_index {
-                    let newline_count = Trivia::from(&trivia[first_index..])
-                        .count_newlines()
-                        .wrapping_sub(1);
-                    match &mut state.pending.break_kind {
-                        BreakKind::Newline {
-                            blank_lines,
-                            indent,
-                        } => {
-                            state.pending.break_kind = BreakKind::Newline {
-                                blank_lines: *blank_lines + newline_count,
-                                indent: *indent,
-                            }
-                        }
-                        _ => {}
-                    }
-                }
             }
         }
         Doc::Space => {

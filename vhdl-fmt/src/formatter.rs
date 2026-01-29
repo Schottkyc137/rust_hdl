@@ -2,7 +2,11 @@ use std::collections::HashMap;
 
 use crate::{
     config::Config,
-    doc_ir::{Doc, boundary::{BoundaryDecision, BreakKind}, resolve::resolve_layout},
+    doc_ir::{
+        Doc, DocComment,
+        boundary::{BoundaryDecision, BreakKind},
+        resolve::resolve_layout,
+    },
 };
 use vhdl_syntax::{
     syntax::{
@@ -41,6 +45,23 @@ struct LayoutBasedTokenRewriter {
     config: Config,
 }
 
+fn break_kind_to_trivia(break_kind: BreakKind, trivia: &mut Trivia, config: &Config) {
+    match break_kind {
+        BreakKind::Unset => {}
+        BreakKind::Space => trivia.push(TriviaPiece::Spaces(1)),
+        BreakKind::Empty => {}
+        BreakKind::Newline {
+            blank_lines,
+            indent,
+        } => {
+            trivia.push(config.newline_style.to_trivia_n(blank_lines + 1));
+            if indent > 0 {
+                trivia.push(config.indentation.style.to_trivia(indent));
+            }
+        }
+    }
+}
+
 impl TokenRewrite for LayoutBasedTokenRewriter {
     fn token(&mut self, token: &SyntaxToken) -> TokenRewriteAction {
         let mut tok = token.clone();
@@ -49,23 +70,19 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
 
         if let Some(formatting) = self.layout.get(&token.text_pos()) {
             leading_trivia = formatting.trivia.clone();
-            match formatting.break_kind {
-                BreakKind::Unset => {}
-                BreakKind::Space => leading_trivia.push(TriviaPiece::Spaces(1)),
-                BreakKind::Empty => {}
-                BreakKind::Newline {
-                    blank_lines,
-                    indent,
-                } => {
-                    if blank_lines > 1 {
-                        println!("blank_lines > 1")
+
+            for (break_kind, comment) in &formatting.comments {
+                break_kind_to_trivia(break_kind.clone(), &mut leading_trivia, &self.config);
+                match comment {
+                    DocComment::Line(comment) => {
+                        leading_trivia.push(TriviaPiece::LineComment(comment.clone()))
                     }
-                    leading_trivia.push(self.config.newline_style.to_trivia_n(blank_lines + 1));
-                    if indent > 0 {
-                        leading_trivia.push(self.config.indentation.style.to_trivia(indent));
+                    DocComment::Block(comment) => {
+                        leading_trivia.push(TriviaPiece::BlockComment(comment.clone()))
                     }
                 }
             }
+            break_kind_to_trivia(formatting.break_kind, &mut leading_trivia, &self.config);
         } else {
             debug_assert!(false, "No decision for token {:?}", token);
         }
