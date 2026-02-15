@@ -1,5 +1,5 @@
 //! Boundary decisions
-use vhdl_syntax::tokens::{Trivia, trivia_piece::Comment};
+use vhdl_syntax::tokens::Trivia;
 
 use crate::doc_ir::DocComment;
 
@@ -26,5 +26,5 @@ pub struct BoundaryDecision {
     /// Any verbatim trivia (comments, whitespaces, unknown trivia)
     /// that should be printed before this token
     pub trivia: Trivia,
-    pub comments: Vec<(BreakKind, DocComment)>
+    pub comments: Vec<(BreakKind, DocComment)>,
 }
