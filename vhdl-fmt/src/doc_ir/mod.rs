@@ -286,9 +286,44 @@ impl Doc {
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
-                    if token.all_leading_trivia().contains_comments() {
+                    let leading = token.all_leading_trivia();
+                    let comment_index = leading
+                        .iter()
+                        .position(|triv| triv.is_comment())
+                        .unwrap_or(leading.len());
+                    let (non_comments, maybe_comments) = leading.split_at(comment_index);
+                    let newline_count: usize =
+                        non_comments.iter().map(|piece| piece.newline_count()).sum();
+                    match pending_break {
+                        Some(Doc::Space) => {
+                            // remove all leading line break trivia
+                            // ignore the non_comment trivia
+                        }
+                        Some(Doc::HardBreak) => {
+                            // remove one newline from the user trivia (if there is one)
+                            // and treat the remainder as user-supplied extra
+                            for _ in 0..newline_count.saturating_sub(1) {
+                                builder.push(Doc::HardBreak);
+                            }
+                        }
+                        Some(Doc::SoftBreak) => {
+                            // TODO
+                            // remove one newline from the user trivia and treat the remainder as optional hard breaks if soft break is taken else none.
+                        }
+                        Some(_) => panic!(
+                            "Pending break should never be anything but space, hard break or soft break"
+                        ),
+                        None => {
+                            // unknown -> keep the trivia as-is
+                        }
+                    }
+                    // then: push all comments.
+                    //   On line comments, add a trailing newline.
+                    let last_comment_index =
+                        maybe_comments.iter().rposition(|piece| piece.is_comment());
+                    if let Some(last_comment_index) = last_comment_index {
                         let mut last_sep = None;
-                        for triv in token.all_leading_trivia() {
+                        for triv in &maybe_comments[..=last_comment_index] {
                             match triv {
                                 TriviaPiece::HorizontalTabs(_)
                                 | TriviaPiece::Spaces(_)
@@ -297,16 +332,15 @@ impl Doc {
                                     _ => {}
                                 },
                                 TriviaPiece::BlockComment(comment) => {
-                                    if let Some(sep) = last_sep.take() {
-                                        builder.push(sep);
-                                    }
-                                    builder.comment(DocComment::Block(comment));
+                                    builder.comment(DocComment::Block(comment.clone()));
+                                    // Always hard bread after line comment
+                                    builder.push(Doc::HardBreak);
                                 }
                                 TriviaPiece::LineComment(comment) => {
                                     if let Some(sep) = last_sep.take() {
                                         builder.push(sep);
                                     }
-                                    builder.comment(DocComment::Line(comment));
+                                    builder.comment(DocComment::Line(comment.clone()));
                                 }
                                 TriviaPiece::VerticalTabs(_)
                                 | TriviaPiece::CarriageReturnLineFeeds(_)

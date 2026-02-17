@@ -4,7 +4,10 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
-use std::{borrow::Cow, io::{self, Write}};
+use std::{
+    borrow::Cow,
+    io::{self, Write},
+};
 
 use crate::latin_1::Latin1Str;
 
@@ -116,6 +119,17 @@ impl TriviaPiece {
     pub fn is_comment(&self) -> bool {
         use TriviaPiece::*;
         matches!(self, BlockComment(_) | LineComment(_))
+    }
+
+    pub fn newline_count(&self) -> usize {
+        match self {
+            TriviaPiece::CarriageReturns(n)
+            | TriviaPiece::LineFeeds(n)
+            | TriviaPiece::FormFeeds(n)
+            | TriviaPiece::CarriageReturnLineFeeds(n)
+            | TriviaPiece::VerticalTabs(n) => *n,
+            _ => 0
+        }
     }
 
     pub fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {

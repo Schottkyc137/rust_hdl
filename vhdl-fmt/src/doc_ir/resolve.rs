@@ -65,15 +65,7 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             state.column += syntax_token.text().len();
         }
         Doc::HardBreak => {
-            assert!(
-                state.pending.trivia.is_empty(),
-                "Invariant: trivia before hard break"
-            );
-            // overwrite any previoud breaks
-            state.pending.break_kind = BreakKind::Newline {
-                blank_lines: 0,
-                indent: state.indent,
-            };
+            state.pending.trivia.push(TriviaPiece::LineFeeds(1));
         }
         Doc::Indent(doc) => {
             state.indent += config.indentation.width;
@@ -81,13 +73,10 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             state.indent -= config.indentation.width;
         }
         Doc::SoftBreak => {
-            state.pending.break_kind = if flat {
-                BreakKind::Space
+            if flat {
+                state.pending.trivia.push(TriviaPiece::Spaces(1));
             } else {
-                BreakKind::Newline {
-                    indent: state.indent,
-                    blank_lines: 0,
-                }
+                state.pending.trivia.push(TriviaPiece::LineFeeds(1));
             };
         }
         Doc::Group(doc) => {
@@ -104,27 +93,26 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             }
         }
         Doc::Comment(comment) => {
-            let break_kind = take(&mut state.pending.break_kind);
             state.column += comment.byte_len();
-            state.pending.comments.push((break_kind, comment));
+            match comment {
+                super::DocComment::Line(comment) => {
+                    state.pending.trivia.push(TriviaPiece::LineComment(comment))
+                }
+                super::DocComment::Block(comment) => state
+                    .pending
+                    .trivia
+                    .push(TriviaPiece::BlockComment(comment)),
+            }
         }
         // BIG TODO: Tokens are currently handled in a very mediocre way.
         // This is because tokens are treated differently from comments - comments are trivia
         // and always part of tokens, but here it would be more sensible to handle them
         // closer to tokens.
-        Doc::Trivia(trivia) => {
-            if state.pending.break_kind == BreakKind::Unset {
-                state.pending.trivia = trivia
-            }
+        Doc::Trivia(mut trivia) => {
+            state.pending.trivia.append(&mut trivia);
         }
         Doc::Space => {
-            // Do not override newlines with space
-            if matches!(
-                state.pending.break_kind,
-                BreakKind::Empty | BreakKind::Unset
-            ) {
-                state.pending.break_kind = BreakKind::Space;
-            }
+            state.pending.trivia.push(TriviaPiece::Spaces(1));
         }
     }
 }
