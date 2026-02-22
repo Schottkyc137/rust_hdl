@@ -1,8 +1,0 @@
----
-source: vhdl-fmt/tests/architecture.rs
-expression: "format_str(\"architecture  arch  of  foo  is  begin foo <= '1';  end  arch ;\")"
----
-architecture arch of foo is
-begin
-    foo<= '1';
-end arch;
