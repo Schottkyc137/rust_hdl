@@ -74,15 +74,7 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
             debug_assert!(false, "No decision for token {:?}", token);
         }
 
-        // Store the previous trivia and reset trailing trivia of the token.
-        // This means that for formatting, we only have to deal with trailing trivia.
-        // TODO: Improve this by introducing an EOF token.
-        if !tok.next_token().is_none() {
-            self.previous_trailing_trivia = Some(tok.trailing_trivia());
-            tok = tok.clone_with_trivia(leading_trivia, Trivia::default())
-        } else {
-            tok = tok.clone_with_leading_trivia(leading_trivia)
-        }
+        tok = tok.clone_with_leading_trivia(leading_trivia);
 
         TokenRewriteAction::Replace(tok)
     }

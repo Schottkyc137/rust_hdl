@@ -8,8 +8,7 @@ use crate::syntax::node::{SyntaxNode, SyntaxToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::AstNode;
 use crate::tokens::Keyword as Kw;
-use crate::tokens::TokenKind::*;
-
+use crate::tokens::TokenKind;
 #[derive(Debug, Clone)]
 pub struct ArchitectureBodySyntax(pub(crate) SyntaxNode);
 impl AstNode for ArchitectureBodySyntax {
@@ -78,19 +77,19 @@ impl ArchitecturePreambleSyntax {
     pub fn architecture_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Architecture))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Architecture))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn of_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Of))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Of))
             .nth(0)
     }
     pub fn entity_name(&self) -> Option<NameSyntax> {
@@ -99,7 +98,7 @@ impl ArchitecturePreambleSyntax {
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
 }
@@ -123,25 +122,25 @@ impl ArchitectureEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn architecture_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Architecture))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Architecture))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -198,7 +197,6 @@ impl AstNode for ConfigurationItemSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct BlockConfigurationSyntax(pub(crate) SyntaxNode);
 impl AstNode for BlockConfigurationSyntax {
@@ -279,7 +277,7 @@ impl BlockConfigurationPreambleSyntax {
     pub fn for_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::For))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::For))
             .nth(0)
     }
     pub fn name(&self) -> Option<NameSyntax> {
@@ -306,19 +304,19 @@ impl BlockConfigurationEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn for_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::For))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::For))
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -359,6 +357,38 @@ impl ComponentConfigurationSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct SemiColonTerminatedBindingIndicationSyntax(pub(crate) SyntaxNode);
+impl AstNode for SemiColonTerminatedBindingIndicationSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::SemiColonTerminatedBindingIndication => {
+                Some(SemiColonTerminatedBindingIndicationSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::SemiColonTerminatedBindingIndication)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl SemiColonTerminatedBindingIndicationSyntax {
+    pub fn binding_indication(&self) -> Option<BindingIndicationSyntax> {
+        self.0
+            .children()
+            .filter_map(BindingIndicationSyntax::cast)
+            .nth(0)
+    }
+    pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::SemiColon)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct SemiColonTerminatedVerificationUnitBindingIndicationSyntax(pub(crate) SyntaxNode);
 impl AstNode for SemiColonTerminatedVerificationUnitBindingIndicationSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -391,7 +421,7 @@ impl SemiColonTerminatedVerificationUnitBindingIndicationSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -457,7 +487,7 @@ impl ComponentConfigurationPreambleSyntax {
     pub fn for_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::For))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::For))
             .nth(0)
     }
     pub fn component_specification(&self) -> Option<ComponentSpecificationSyntax> {
@@ -489,19 +519,19 @@ impl ComponentConfigurationEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn for_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::For))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::For))
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -607,19 +637,19 @@ impl ConfigurationDeclarationPreambleSyntax {
     pub fn configuration_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Configuration))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Configuration))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn of_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Of))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Of))
             .nth(0)
     }
     pub fn entity_name(&self) -> Option<NameSyntax> {
@@ -628,7 +658,7 @@ impl ConfigurationDeclarationPreambleSyntax {
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
 }
@@ -654,25 +684,25 @@ impl ConfigurationDeclarationEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn configuration_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Configuration))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Configuration))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -750,19 +780,19 @@ impl EntityDeclarationPreambleSyntax {
     pub fn entity_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Entity))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Entity))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
 }
@@ -786,25 +816,25 @@ impl EntityDeclarationEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn entity_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Entity))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Entity))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }

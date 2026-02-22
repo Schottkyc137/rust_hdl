@@ -5,6 +5,7 @@
 // Copyright (c) 2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::latin_1::{Latin1Str, Latin1String};
+use crate::standard::VHDLStandard;
 use crate::tokens::trivia_piece::Comment;
 use crate::tokens::TokenKind::*;
 use crate::tokens::{Keyword as Kw, Trivia, TriviaPiece};
@@ -61,6 +62,7 @@ impl Tokenize for Vec<u8> {
 /// let mut tokenizer = Tokenizer::from("entity foo".bytes());
 /// assert_eq!(tokenizer.next().unwrap().kind(), TokenKind::Keyword(Keyword::Entity));
 /// assert_eq!(tokenizer.next().unwrap().kind(), TokenKind::Identifier);
+/// assert_eq!(tokenizer.next().unwrap().kind(), TokenKind::Eof);
 /// assert_eq!(tokenizer.next(), None);
 /// ```
 ///
@@ -70,7 +72,7 @@ impl Tokenize for Vec<u8> {
 /// use vhdl_syntax::tokens::TokenKind;
 ///
 /// let tokens = "a ?> b".tokenize().map(|tok| tok.kind()).collect::<Vec<_>>();
-/// assert_eq!(tokens, vec![TokenKind::Identifier, TokenKind::QueGT, TokenKind::Identifier])
+/// assert_eq!(tokens, vec![TokenKind::Identifier, TokenKind::QueGT, TokenKind::Identifier, TokenKind::Eof])
 /// ```
 pub struct Tokenizer<I: Iterator<Item = u8>> {
     /// The text, i.e., an iterator over chars.
@@ -81,16 +83,26 @@ pub struct Tokenizer<I: Iterator<Item = u8>> {
     /// The last token kind observed, used to disambiguate ticks (i.e., whether ticks are
     /// used as attributes or character literals)
     last_token_kind: Option<TokenKind>,
+    /// flag indicating whether the `EOF` token was already emitted.
+    eof_emitted: bool,
+    /// Under what standard to tokenize this.
+    standard: VHDLStandard,
 }
 
 impl<I: Iterator<Item = u8>> Tokenizer<I> {
     /// Creates a new tokenizer from some iterator.
-    pub fn new(mut text: I) -> Self {
+    pub fn new(text: I) -> Self {
+        Self::with_standard(VHDLStandard::default(), text)
+    }
+
+    pub fn with_standard(standard: VHDLStandard, mut text: I) -> Self {
         let current = text.next();
         Tokenizer {
             text: text.peekable(),
             current,
             last_token_kind: None,
+            eof_emitted: false,
+            standard,
         }
     }
 }
@@ -370,11 +382,11 @@ impl<T: Iterator<Item = u8>> Iterator for Tokenizer<T> {
     fn next(&mut self) -> Option<Self::Item> {
         let leading_trivia = self.consume_trivia();
         let Some(current) = self.current else {
-            assert!(
-                leading_trivia.is_empty(),
-                "Leading trivia is not empty at last token"
-            );
-            return None;
+            if self.eof_emitted {
+                return None;
+            }
+            self.eof_emitted = true;
+            return Some(Token::eof(leading_trivia));
         };
         let (kind, text) = match current {
             b'a'..=b'z' | b'A'..=b'Z' => {
@@ -382,7 +394,9 @@ impl<T: Iterator<Item = u8>> Iterator for Tokenizer<T> {
                 let kind = self.identifier_keyword_or_bistring_literal(&mut ident_str);
                 if let Some(kind) = kind {
                     (kind, ident_str)
-                } else if let Some(kw) = str_to_keyword(&ident_str) {
+                } else if let Some(kw) =
+                    Kw::from_latin1(&ident_str).filter(|kw| kw.introduced_in() <= self.standard)
+                {
                     (Keyword(kw), ident_str)
                 } else {
                     (Identifier, ident_str)
@@ -593,8 +607,7 @@ impl<T: Iterator<Item = u8>> Iterator for Tokenizer<T> {
             }
         };
         self.last_token_kind = Some(kind);
-        let trailing_trivia = self.consume_trivia();
-        Some(Token::new(kind, text, leading_trivia, trailing_trivia))
+        Some(Token::new(kind, text, leading_trivia))
     }
 }
 
@@ -609,141 +622,21 @@ fn can_be_char(last_token_kind: Option<TokenKind>) -> bool {
     }
 }
 
-fn str_to_keyword(inp: &Latin1Str) -> Option<Kw> {
-    Some(match inp.to_lowercase().as_bytes() {
-        b"abs" => Kw::Abs,
-        b"access" => Kw::Access,
-        b"after" => Kw::After,
-        b"alias" => Kw::Alias,
-        b"all" => Kw::All,
-        b"and" => Kw::And,
-        b"architecture" => Kw::Architecture,
-        b"array" => Kw::Array,
-        b"assert" => Kw::Assert,
-        b"assume" => Kw::Assume,
-        b"attribute" => Kw::Attribute,
-        b"begin" => Kw::Begin,
-        b"block" => Kw::Block,
-        b"body" => Kw::Body,
-        b"buffer" => Kw::Buffer,
-        b"bus" => Kw::Bus,
-        b"case" => Kw::Case,
-        b"component" => Kw::Component,
-        b"configuration" => Kw::Configuration,
-        b"constant" => Kw::Constant,
-        b"context" => Kw::Context,
-        b"cover" => Kw::Cover,
-        b"default" => Kw::Default,
-        b"disconnect" => Kw::Disconnect,
-        b"downto" => Kw::Downto,
-        b"else" => Kw::Else,
-        b"elsif" => Kw::Elsif,
-        b"end" => Kw::End,
-        b"entity" => Kw::Entity,
-        b"exit" => Kw::Exit,
-        b"fairness" => Kw::Fairness,
-        b"file" => Kw::File,
-        b"for" => Kw::For,
-        b"force" => Kw::Force,
-        b"function" => Kw::Function,
-        b"generate" => Kw::Generate,
-        b"generic" => Kw::Generic,
-        b"group" => Kw::Group,
-        b"guarded" => Kw::Guarded,
-        b"if" => Kw::If,
-        b"impure" => Kw::Impure,
-        b"in" => Kw::In,
-        b"inertial" => Kw::Inertial,
-        b"inout" => Kw::Inout,
-        b"is" => Kw::Is,
-        b"label" => Kw::Label,
-        b"library" => Kw::Library,
-        b"linkage" => Kw::Linkage,
-        b"literal" => Kw::Literal,
-        b"loop" => Kw::Loop,
-        b"map" => Kw::Map,
-        b"mod" => Kw::Mod,
-        b"nand" => Kw::Nand,
-        b"new" => Kw::New,
-        b"next" => Kw::Next,
-        b"nor" => Kw::Nor,
-        b"not" => Kw::Not,
-        b"null" => Kw::Null,
-        b"of" => Kw::Of,
-        b"on" => Kw::On,
-        b"open" => Kw::Open,
-        b"or" => Kw::Or,
-        b"others" => Kw::Others,
-        b"out" => Kw::Out,
-        b"package" => Kw::Package,
-        b"parameter" => Kw::Parameter,
-        b"port" => Kw::Port,
-        b"postponed" => Kw::Postponed,
-        b"procedure" => Kw::Procedure,
-        b"process" => Kw::Process,
-        b"property" => Kw::Property,
-        b"protected" => Kw::Protected,
-        b"private" => Kw::Private,
-        b"pure" => Kw::Pure,
-        b"range" => Kw::Range,
-        b"record" => Kw::Record,
-        b"register" => Kw::Register,
-        b"reject" => Kw::Reject,
-        b"release" => Kw::Release,
-        b"rem" => Kw::Rem,
-        b"report" => Kw::Report,
-        b"restrict" => Kw::Restrict,
-        b"return" => Kw::Return,
-        b"rol" => Kw::Rol,
-        b"ror" => Kw::Ror,
-        b"select" => Kw::Select,
-        b"sequence" => Kw::Sequence,
-        b"severity" => Kw::Severity,
-        b"signal" => Kw::Signal,
-        b"shared" => Kw::Shared,
-        b"sla" => Kw::Sla,
-        b"sll" => Kw::Sll,
-        b"sra" => Kw::Sra,
-        b"srl" => Kw::Srl,
-        b"strong" => Kw::Strong,
-        b"subtype" => Kw::Subtype,
-        b"then" => Kw::Then,
-        b"to" => Kw::To,
-        b"transport" => Kw::Transport,
-        b"type" => Kw::Type,
-        b"unaffected" => Kw::Unaffected,
-        b"units" => Kw::Units,
-        b"until" => Kw::Until,
-        b"use" => Kw::Use,
-        b"variable" => Kw::Variable,
-        b"view" => Kw::View,
-        b"vpgk" => Kw::Vpgk,
-        b"vmode" => Kw::Vmode,
-        b"vprop" => Kw::Vprop,
-        b"vunit" => Kw::Vunit,
-        b"wait" => Kw::Wait,
-        b"when" => Kw::When,
-        b"while" => Kw::While,
-        b"with" => Kw::With,
-        b"xnor" => Kw::Xnor,
-        b"xor" => Kw::Xor,
-        _ => return None,
-    })
-}
-
 #[cfg(test)]
 mod tests {
 
     use crate::latin_1::Latin1String;
     use crate::tokens::tokenizer::Tokenize;
+    use crate::tokens::trivia_piece::Comment;
     use crate::tokens::TokenKind;
     use crate::tokens::TokenKind::*;
-    use crate::tokens::trivia_piece::Comment;
     use crate::tokens::{Keyword as Kw, Token, Trivia, TriviaPiece};
     use pretty_assertions::assert_eq;
 
-    fn kinds_tokenize(code: &str) -> Vec<TokenKind> {
-        code.tokenize().map(|tok| tok.kind()).collect()
+    fn kinds_tokenize_remove_eof(code: &str) -> Vec<TokenKind> {
+        let mut val = code.tokenize().map(|tok| tok.kind()).collect::<Vec<_>>();
+        assert_eq!(val.pop(), Some(TokenKind::Eof));
+        val
     }
 
     trait TokenizeVec {
@@ -751,7 +644,15 @@ mod tests {
 
         fn tokenize_kind_value(&self) -> Vec<(TokenKind, String)>;
 
+        fn tokenize_kind_value_one(&self) -> (TokenKind, String) {
+            self.tokenize_kind_value().first().unwrap().clone()
+        }
+
         fn tokenize_kinds(&self) -> Vec<TokenKind>;
+
+        fn tokenize_one(&self) -> Token {
+            self.tokenize_vec().first().unwrap().clone()
+        }
     }
 
     impl<T> TokenizeVec for T
@@ -774,20 +675,39 @@ mod tests {
     }
 
     #[test]
+    fn tokenize_empty_input() {
+        assert_eq!("".tokenize_vec(), vec![Token::eof(Trivia::default())]);
+    }
+
+    #[test]
+    fn tokenize_input_only_trivia() {
+        assert_eq!(
+            "  ".tokenize_vec(),
+            vec![Token::eof(Trivia::from([TriviaPiece::Spaces(2)]))]
+        );
+    }
+
+    #[test]
     fn tokenize_keywords() {
         assert_eq!(
-            kinds_tokenize("architecture"),
+            kinds_tokenize_remove_eof("architecture"),
             vec![Keyword(Kw::Architecture)]
         );
-        assert_eq!(kinds_tokenize("entity"), vec![Keyword(Kw::Entity)]);
-        assert_eq!(kinds_tokenize("is"), vec![Keyword(Kw::Is)]);
-        assert_eq!(kinds_tokenize("generic"), vec![Keyword(Kw::Generic)]);
-        assert_eq!(kinds_tokenize("port"), vec![Keyword(Kw::Port)]);
-        assert_eq!(kinds_tokenize("begin"), vec![Keyword(Kw::Begin)]);
-        assert_eq!(kinds_tokenize("end"), vec![Keyword(Kw::End)]);
-        assert_eq!(kinds_tokenize("all"), vec![Keyword(Kw::All)]);
-        assert_eq!(kinds_tokenize("abs"), vec![Keyword(Kw::Abs)]);
-        assert_eq!(kinds_tokenize("not"), vec![Keyword(Kw::Not)]);
+        assert_eq!(
+            kinds_tokenize_remove_eof("entity"),
+            vec![Keyword(Kw::Entity)]
+        );
+        assert_eq!(kinds_tokenize_remove_eof("is"), vec![Keyword(Kw::Is)]);
+        assert_eq!(
+            kinds_tokenize_remove_eof("generic"),
+            vec![Keyword(Kw::Generic)]
+        );
+        assert_eq!(kinds_tokenize_remove_eof("port"), vec![Keyword(Kw::Port)]);
+        assert_eq!(kinds_tokenize_remove_eof("begin"), vec![Keyword(Kw::Begin)]);
+        assert_eq!(kinds_tokenize_remove_eof("end"), vec![Keyword(Kw::End)]);
+        assert_eq!(kinds_tokenize_remove_eof("all"), vec![Keyword(Kw::All)]);
+        assert_eq!(kinds_tokenize_remove_eof("abs"), vec![Keyword(Kw::Abs)]);
+        assert_eq!(kinds_tokenize_remove_eof("not"), vec![Keyword(Kw::Not)]);
     }
 
     #[test]
@@ -801,7 +721,8 @@ end entity"
                 Keyword(Kw::Entity),
                 Keyword(Kw::Is),
                 Keyword(Kw::End),
-                Keyword(Kw::Entity)
+                Keyword(Kw::Entity),
+                Eof
             ]
         );
     }
@@ -818,19 +739,25 @@ entity foo"
                     Keyword(Kw::Entity),
                     b"entity",
                     Trivia::from([TriviaPiece::LineFeeds(2)]),
-                    Trivia::from([TriviaPiece::Spaces(1)]),
                 ),
-                Token::new(Identifier, b"foo", Trivia::new(), Trivia::new(),)
+                Token::new(Identifier, b"foo", Trivia::from([TriviaPiece::Spaces(1)])),
+                Token::eof(Trivia::default())
             ]
         );
     }
 
     #[test]
     fn tokenize_keywords_case_insensitive() {
-        assert_eq!(kinds_tokenize("entity"), vec![Keyword(Kw::Entity)]);
-        assert_eq!(kinds_tokenize("Entity"), vec![Keyword(Kw::Entity)]);
         assert_eq!(
-            kinds_tokenize("arCHitecture"),
+            kinds_tokenize_remove_eof("entity"),
+            vec![Keyword(Kw::Entity)]
+        );
+        assert_eq!(
+            kinds_tokenize_remove_eof("Entity"),
+            vec![Keyword(Kw::Entity)]
+        );
+        assert_eq!(
+            kinds_tokenize_remove_eof("arCHitecture"),
             vec![Keyword(Kw::Architecture)]
         );
     }
@@ -838,20 +765,20 @@ entity foo"
     #[test]
     fn tokenize_identifier() {
         assert_eq!(
-            "my_ident".tokenize_vec(),
-            vec![Token::simple(Identifier, b"my_ident",)]
+            "my_ident".tokenize_one(),
+            Token::simple(Identifier, b"my_ident")
         );
     }
 
     #[test]
     fn tokenize_extended_identifier() {
         assert_eq!(
-            "\\1$my_ident\\".tokenize_vec(),
-            vec![Token::simple(Identifier, b"\\1$my_ident\\")]
+            "\\1$my_ident\\".tokenize_one(),
+            Token::simple(Identifier, b"\\1$my_ident\\")
         );
         assert_eq!(
-            "\\my\\\\_ident\\".tokenize_vec(),
-            vec![Token::simple(Identifier, b"\\my\\\\_ident\\")]
+            "\\my\\\\_ident\\".tokenize_one(),
+            Token::simple(Identifier, b"\\my\\\\_ident\\")
         );
     }
 
@@ -863,18 +790,13 @@ entity foo"
 my_other_ident"
                 .tokenize_vec(),
             vec![
-                Token::new(
-                    Identifier,
-                    b"my_ident",
-                    Trivia::default(),
-                    Trivia::from([TriviaPiece::LineFeeds(2)]),
-                ),
+                Token::new(Identifier, b"my_ident", Trivia::default(),),
                 Token::new(
                     Identifier,
                     b"my_other_ident",
-                    Trivia::default(),
-                    Trivia::default(),
-                )
+                    Trivia::from([TriviaPiece::LineFeeds(2)])
+                ),
+                Token::eof(Trivia::default())
             ]
         );
     }
@@ -891,6 +813,7 @@ my_other_ident"
                 (AbstractLiteral, "1e3".to_string()),
                 (AbstractLiteral, "2E4".to_string()),
                 (AbstractLiteral, "1e-1".to_string()),
+                (Eof, "".to_string())
             ]
         );
     }
@@ -911,6 +834,7 @@ my_other_ident"
                 (AbstractLiteral, "2.1e-2".to_string()),
                 (AbstractLiteral, "4.4e+1".to_string()),
                 (AbstractLiteral, "2.5E+3".to_string()),
+                (Eof, "".to_string())
             ]
         );
     }
@@ -918,38 +842,38 @@ my_other_ident"
     #[test]
     fn tokenize_real_many_fractional_digits() {
         assert_eq!(
-            "0.1000_0000_0000_0000_0000_0000_0000_0000".tokenize_kind_value(),
-            vec![(
+            "0.1000_0000_0000_0000_0000_0000_0000_0000".tokenize_kind_value_one(),
+            (
                 AbstractLiteral,
                 "0.1000_0000_0000_0000_0000_0000_0000_0000".to_string()
-            )]
+            )
         );
     }
 
     #[test]
     fn tokenize_real_many_integer_digits() {
         assert_eq!(
-            "1000_0000_0000_0000_0000_0000_0000_0000.0".tokenize_kind_value(),
-            vec![(
+            "1000_0000_0000_0000_0000_0000_0000_0000.0".tokenize_kind_value_one(),
+            (
                 AbstractLiteral,
                 "1000_0000_0000_0000_0000_0000_0000_0000.0".to_string()
-            )]
+            )
         );
     }
 
     #[test]
     fn tokenize_string_literal() {
         assert_eq!(
-            "\"string\"".tokenize_vec(),
-            vec![Token::simple(StringLiteral, b"\"string\"")]
+            "\"string\"".tokenize_one(),
+            Token::simple(StringLiteral, b"\"string\"")
         );
     }
 
     #[test]
     fn tokenize_string_literal_quote() {
         assert_eq!(
-            "\"str\"\"ing\"".tokenize_vec(),
-            vec![Token::simple(StringLiteral, b"\"str\"\"ing\"")]
+            "\"str\"\"ing\"".tokenize_one(),
+            Token::simple(StringLiteral, b"\"str\"\"ing\"")
         );
     }
 
@@ -958,18 +882,13 @@ my_other_ident"
         assert_eq!(
             "\"str\" \"ing\"".tokenize_vec(),
             vec![
-                Token::new(
-                    StringLiteral,
-                    b"\"str\"",
-                    Trivia::default(),
-                    Trivia::from([TriviaPiece::Spaces(1)])
-                ),
+                Token::new(StringLiteral, b"\"str\"", Trivia::default(),),
                 Token::new(
                     StringLiteral,
                     b"\"ing\"",
-                    Trivia::default(),
-                    Trivia::default()
+                    Trivia::from([TriviaPiece::Spaces(1)]),
                 ),
+                Token::eof(Trivia::default())
             ]
         );
     }
@@ -977,16 +896,16 @@ my_other_ident"
     #[test]
     fn tokenize_string_literal_multiline() {
         assert_eq!(
-            "\"str\ning\"".tokenize_vec(),
-            vec![Token::simple(StringLiteral, b"\"str\ning\"")]
+            "\"str\ning\"".tokenize_one(),
+            Token::simple(StringLiteral, b"\"str\ning\"")
         );
     }
 
     #[test]
     fn tokenize_string_literal_error_on_early_eof() {
         assert_eq!(
-            "\"string".tokenize_vec(),
-            vec![Token::simple(Unterminated, b"\"string")]
+            "\"string".tokenize_one(),
+            Token::simple(Unterminated, b"\"string")
         );
     }
 
@@ -1026,8 +945,8 @@ my_other_ident"
                         code.make_uppercase()
                     }
 
-                    let tokens = code.tokenize_vec();
-                    assert_eq!(tokens, vec![Token::simple(BitStringLiteral, code)]);
+                    let token = code.tokenize_one();
+                    assert_eq!(token, Token::simple(BitStringLiteral, code));
                 }
             }
         }
@@ -1035,36 +954,36 @@ my_other_ident"
 
     #[test]
     fn tokenize_illegal_bit_string() {
-        assert_eq!("10x".tokenize_vec(), vec![Token::simple(Unknown, b"10x",)]);
-        assert_eq!("10ux".tokenize_vec(), vec![Token::simple(Unknown, b"10ux")]);
+        assert_eq!("10x".tokenize_one(), Token::simple(Unknown, b"10x"));
+        assert_eq!("10ux".tokenize_one(), Token::simple(Unknown, b"10ux"));
     }
 
     #[test]
     fn tokenize_based_integer() {
         assert_eq!(
-            "2#101#".tokenize_kind_value(),
-            vec![(AbstractLiteral, "2#101#".to_string())]
+            "2#101#".tokenize_kind_value_one(),
+            (AbstractLiteral, "2#101#".to_string())
         );
         assert_eq!(
-            "8#321#".tokenize_kind_value(),
-            vec![(AbstractLiteral, "8#321#".to_string())]
+            "8#321#".tokenize_kind_value_one(),
+            (AbstractLiteral, "8#321#".to_string())
         );
         assert_eq!(
-            "16#eEFfa#".tokenize_kind_value(),
-            vec![(AbstractLiteral, "16#eEFfa#".to_string())]
+            "16#eEFfa#".tokenize_kind_value_one(),
+            (AbstractLiteral, "16#eEFfa#".to_string())
         );
         // This is illegal, but the checking happens at a later stage
         assert_eq!(
-            "3#3#".tokenize_kind_value(),
-            vec![(AbstractLiteral, "3#3#".to_string())]
+            "3#3#".tokenize_kind_value_one(),
+            (AbstractLiteral, "3#3#".to_string())
         );
     }
 
     macro_rules! check_tokenize {
         ($tokens:literal, $kind:expr) => {
             assert_eq!(
-                $tokens.tokenize_kind_value(),
-                vec![($kind, $tokens.to_string())]
+                $tokens.tokenize_kind_value_one(),
+                ($kind, $tokens.to_string())
             )
         };
     }
@@ -1210,19 +1129,18 @@ my_other_ident"
                     AbstractLiteral,
                     b"1",
                     Trivia::from([TriviaPiece::LineFeeds(1)]),
+                ),
+                Token::new(
+                    Minus,
+                    b"-",
                     Trivia::from([
                         TriviaPiece::LineFeeds(1),
                         TriviaPiece::LineComment(Comment::new(b"comment")),
                         TriviaPiece::LineFeeds(1)
-                    ]),
+                    ])
                 ),
-                Token::new(Minus, b"-", Trivia::default(), Trivia::default(),),
-                Token::new(
-                    AbstractLiteral,
-                    b"2",
-                    Trivia::default(),
-                    Trivia::from([TriviaPiece::LineFeeds(1)]),
-                )
+                Token::new(AbstractLiteral, b"2", Trivia::default(),),
+                Token::eof(Trivia::from([TriviaPiece::LineFeeds(1)]))
             ]
         )
     }
@@ -1248,23 +1166,22 @@ comment
                     AbstractLiteral,
                     b"1",
                     Trivia::from([TriviaPiece::LineFeeds(1)]),
+                ),
+                Token::new(
+                    Minus,
+                    b"-",
                     Trivia::from([
                         TriviaPiece::LineFeeds(2),
                         TriviaPiece::BlockComment(Comment::new(b"\ncomment\n")),
                         TriviaPiece::LineFeeds(2),
-                    ]),
+                    ])
                 ),
-                Token::new(Minus, b"-", Trivia::default(), Trivia::default(),),
-                Token::new(
-                    AbstractLiteral,
-                    b"2",
-                    Trivia::default(),
-                    Trivia::from([
-                        TriviaPiece::Spaces(1),
-                        TriviaPiece::BlockComment(Comment::new("\ncomment\n")),
-                        TriviaPiece::LineFeeds(2),
-                    ]),
-                ),
+                Token::new(AbstractLiteral, b"2", Trivia::default(),),
+                Token::eof(Trivia::from([
+                    TriviaPiece::Spaces(1),
+                    TriviaPiece::BlockComment(Comment::new("\ncomment\n")),
+                    TriviaPiece::LineFeeds(2),
+                ]),)
             ]
         )
     }
@@ -1274,7 +1191,7 @@ comment
         // http://www.eda-stds.org/isac/IRs-VHDL-93/IR1045.txt
         assert_eq!(
             "string'('a')".tokenize_kinds(),
-            vec![Identifier, Tick, LeftPar, CharacterLiteral, RightPar]
+            vec![Identifier, Tick, LeftPar, CharacterLiteral, RightPar, Eof]
         );
     }
 
@@ -1282,7 +1199,84 @@ comment
     fn tokenize_illegal() {
         assert_eq!(
             "begin!end".tokenize_kinds(),
-            vec![Keyword(Kw::Begin), Unknown, Keyword(Kw::End),]
+            vec![Keyword(Kw::Begin), Unknown, Keyword(Kw::End), Eof]
+        );
+    }
+
+    // ---- standard-aware keyword tests ----
+
+    fn tokenize_first_kind_with_standard(
+        standard: crate::standard::VHDLStandard,
+        input: &str,
+    ) -> TokenKind {
+        use super::Tokenizer;
+        Tokenizer::with_standard(standard, input.bytes())
+            .next()
+            .unwrap()
+            .kind()
+    }
+
+    #[test]
+    fn xnor_is_identifier_before_vhdl1993() {
+        use crate::standard::VHDLStandard::*;
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL1987, "xnor"),
+            Identifier
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL1993, "xnor"),
+            Keyword(Kw::Xnor)
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2008, "xnor"),
+            Keyword(Kw::Xnor)
+        );
+    }
+
+    #[test]
+    fn protected_is_identifier_before_vhdl2000() {
+        use crate::standard::VHDLStandard::*;
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL1993, "protected"),
+            Identifier
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2000, "protected"),
+            Keyword(Kw::Protected)
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2008, "protected"),
+            Keyword(Kw::Protected)
+        );
+    }
+
+    #[test]
+    fn context_is_identifier_before_vhdl2008() {
+        use crate::standard::VHDLStandard::*;
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2002, "context"),
+            Identifier
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2008, "context"),
+            Keyword(Kw::Context)
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2019, "context"),
+            Keyword(Kw::Context)
+        );
+    }
+
+    #[test]
+    fn view_is_identifier_before_vhdl2019() {
+        use crate::standard::VHDLStandard::*;
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2008, "view"),
+            Identifier
+        );
+        assert_eq!(
+            tokenize_first_kind_with_standard(VHDL2019, "view"),
+            Keyword(Kw::View)
         );
     }
 }

@@ -8,8 +8,7 @@ use crate::syntax::node::{SyntaxNode, SyntaxToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::AstNode;
 use crate::tokens::Keyword as Kw;
-use crate::tokens::TokenKind::*;
-
+use crate::tokens::TokenKind;
 #[derive(Debug, Clone)]
 pub struct AccessTypeDefinitionSyntax(pub(crate) SyntaxNode);
 impl AstNode for AccessTypeDefinitionSyntax {
@@ -30,7 +29,7 @@ impl AccessTypeDefinitionSyntax {
     pub fn access_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Access))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Access))
             .nth(0)
     }
     pub fn subtype_indication(&self) -> Option<SubtypeIndicationSyntax> {
@@ -97,7 +96,6 @@ impl AstNode for ArrayTypeDefinitionSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub enum CompositeTypeDefinitionSyntax {
     ArrayTypeDefinition(ArrayTypeDefinitionSyntax),
@@ -127,7 +125,6 @@ impl AstNode for CompositeTypeDefinitionSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct ConstrainedArrayDefinitionSyntax(pub(crate) SyntaxNode);
 impl AstNode for ConstrainedArrayDefinitionSyntax {
@@ -148,7 +145,7 @@ impl ConstrainedArrayDefinitionSyntax {
     pub fn array_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Array))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Array))
             .nth(0)
     }
     pub fn index_constraint(&self) -> Option<IndexConstraintSyntax> {
@@ -160,7 +157,7 @@ impl ConstrainedArrayDefinitionSyntax {
     pub fn of_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Of))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Of))
             .nth(0)
     }
     pub fn subtype_indication(&self) -> Option<SubtypeIndicationSyntax> {
@@ -178,8 +175,8 @@ pub enum DirectionSyntax {
 impl DirectionSyntax {
     pub fn cast(token: SyntaxToken) -> Option<Self> {
         match token.kind() {
-            Keyword(Kw::To) => Some(DirectionSyntax::To(token)),
-            Keyword(Kw::Downto) => Some(DirectionSyntax::Downto(token)),
+            TokenKind::Keyword(Kw::To) => Some(DirectionSyntax::To(token)),
+            TokenKind::Keyword(Kw::Downto) => Some(DirectionSyntax::Downto(token)),
             _ => None,
         }
     }
@@ -190,7 +187,6 @@ impl DirectionSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct SubtypeIndicationDiscreteDiscreteRangeSyntax(pub(crate) SyntaxNode);
 impl AstNode for SubtypeIndicationDiscreteDiscreteRangeSyntax {
@@ -263,7 +259,7 @@ impl OpenDiscreteRangeSyntax {
     pub fn open_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Open))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Open))
             .nth(0)
     }
 }
@@ -305,7 +301,6 @@ impl AstNode for DiscreteRangeSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct ElementDeclarationSyntax(pub(crate) SyntaxNode);
 impl AstNode for ElementDeclarationSyntax {
@@ -330,7 +325,10 @@ impl ElementDeclarationSyntax {
             .nth(0)
     }
     pub fn colon_token(&self) -> Option<SyntaxToken> {
-        self.0.tokens().filter(|token| token.kind() == Colon).nth(0)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Colon)
+            .nth(0)
     }
     pub fn subtype_indication(&self) -> Option<SubtypeIndicationSyntax> {
         self.0
@@ -341,7 +339,7 @@ impl ElementDeclarationSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -365,19 +363,21 @@ impl EnumerationTypeDefinitionSyntax {
     pub fn left_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftPar)
+            .filter(|token| token.kind() == TokenKind::LeftPar)
             .nth(0)
     }
     pub fn discrete_ranges(&self) -> impl Iterator<Item = DiscreteRangeSyntax> + use<'_> {
         self.0.children().filter_map(DiscreteRangeSyntax::cast)
     }
     pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0.tokens().filter(|token| token.kind() == Comma)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
     }
     pub fn right_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightPar)
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -401,13 +401,13 @@ impl FileTypeDefinitionSyntax {
     pub fn file_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::File))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::File))
             .nth(0)
     }
     pub fn of_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Of))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Of))
             .nth(0)
     }
     pub fn name(&self) -> Option<NameSyntax> {
@@ -434,11 +434,14 @@ impl IdentifierListSyntax {
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn comma_token(&self) -> Option<SyntaxToken> {
-        self.0.tokens().filter(|token| token.kind() == Comma).nth(0)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
+            .nth(0)
     }
 }
 #[derive(Debug, Clone)]
@@ -461,19 +464,19 @@ impl IncompleteTypeDeclarationSyntax {
     pub fn type_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Type))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Type))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -500,11 +503,14 @@ impl IndexSubtypeDefinitionSyntax {
     pub fn range_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Range))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Range))
             .nth(0)
     }
     pub fn box_token(&self) -> Option<SyntaxToken> {
-        self.0.tokens().filter(|token| token.kind() == BOX).nth(0)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::BOX)
+            .nth(0)
     }
 }
 #[derive(Debug, Clone)]
@@ -527,7 +533,7 @@ impl PhysicalLiteralSyntax {
     pub fn abstract_literal_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == AbstractLiteral)
+            .filter(|token| token.kind() == TokenKind::AbstractLiteral)
             .nth(0)
     }
     pub fn name(&self) -> Option<NameSyntax> {
@@ -592,7 +598,7 @@ impl UnitDeclarationsSyntax {
     pub fn units_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Units))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Units))
             .nth(0)
     }
     pub fn primary_unit_declaration(&self) -> Option<PrimaryUnitDeclarationSyntax> {
@@ -631,19 +637,19 @@ impl PhysicalTypeDefinitionEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn units_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Units))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Units))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
 }
@@ -667,13 +673,13 @@ impl PrimaryUnitDeclarationSyntax {
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -733,13 +739,13 @@ impl ProtectedTypeBodyPreambleSyntax {
     pub fn protected_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Protected))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Protected))
             .nth(0)
     }
     pub fn body_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Body))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Body))
             .nth(0)
     }
 }
@@ -763,25 +769,25 @@ impl ProtectedTypeBodyEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn protected_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Protected))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Protected))
             .nth(0)
     }
     pub fn body_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Body))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Body))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
 }
@@ -847,7 +853,7 @@ impl ProtectedTypeDeclarationPreambleSyntax {
     pub fn protected_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Protected))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Protected))
             .nth(0)
     }
 }
@@ -873,19 +879,19 @@ impl ProtectedTypeDeclarationEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn protected_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Protected))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Protected))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
 }
@@ -918,7 +924,6 @@ impl AstNode for ProtectedTypeDefinitionSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct RangeExpressionSyntax(pub(crate) SyntaxNode);
 impl AstNode for RangeExpressionSyntax {
@@ -996,7 +1001,6 @@ impl AstNode for RangeSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct RangeConstraintSyntax(pub(crate) SyntaxNode);
 impl AstNode for RangeConstraintSyntax {
@@ -1017,7 +1021,7 @@ impl RangeConstraintSyntax {
     pub fn range_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Range))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Range))
             .nth(0)
     }
     pub fn range(&self) -> Option<RangeSyntax> {
@@ -1044,7 +1048,7 @@ impl RecordConstraintSyntax {
     pub fn left_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftPar)
+            .filter(|token| token.kind() == TokenKind::LeftPar)
             .nth(0)
     }
     pub fn record_element_constraints(
@@ -1055,12 +1059,14 @@ impl RecordConstraintSyntax {
             .filter_map(RecordElementConstraintSyntax::cast)
     }
     pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0.tokens().filter(|token| token.kind() == Comma)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
     }
     pub fn right_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightPar)
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -1167,7 +1173,7 @@ impl RecordTypeDefinitionPreambleSyntax {
     pub fn record_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Record))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Record))
             .nth(0)
     }
 }
@@ -1193,19 +1199,19 @@ impl RecordTypeDefinitionEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn record_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Record))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Record))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
 }
@@ -1271,7 +1277,6 @@ impl AstNode for ScalarTypeDefinitionSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct SecondaryUnitDeclarationSyntax(pub(crate) SyntaxNode);
 impl AstNode for SecondaryUnitDeclarationSyntax {
@@ -1292,11 +1297,14 @@ impl SecondaryUnitDeclarationSyntax {
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn eq_token(&self) -> Option<SyntaxToken> {
-        self.0.tokens().filter(|token| token.kind() == EQ).nth(0)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::EQ)
+            .nth(0)
     }
     pub fn physical_literal(&self) -> Option<PhysicalLiteralSyntax> {
         self.0
@@ -1307,7 +1315,7 @@ impl SecondaryUnitDeclarationSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -1331,19 +1339,21 @@ impl IndexConstraintSyntax {
     pub fn left_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftPar)
+            .filter(|token| token.kind() == TokenKind::LeftPar)
             .nth(0)
     }
     pub fn discrete_ranges(&self) -> impl Iterator<Item = DiscreteRangeSyntax> + use<'_> {
         self.0.children().filter_map(DiscreteRangeSyntax::cast)
     }
     pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0.tokens().filter(|token| token.kind() == Comma)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
     }
     pub fn right_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightPar)
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -1372,7 +1382,9 @@ impl IndexSubtypeDefinitionListSyntax {
             .filter_map(IndexSubtypeDefinitionSyntax::cast)
     }
     pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0.tokens().filter(|token| token.kind() == Comma)
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
     }
 }
 #[derive(Debug, Clone)]
@@ -1395,13 +1407,13 @@ impl UnboundedArrayDefinitionSyntax {
     pub fn array_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Array))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Array))
             .nth(0)
     }
     pub fn left_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftPar)
+            .filter(|token| token.kind() == TokenKind::LeftPar)
             .nth(0)
     }
     pub fn index_subtype_definition_list(&self) -> Option<IndexSubtypeDefinitionListSyntax> {
@@ -1413,13 +1425,13 @@ impl UnboundedArrayDefinitionSyntax {
     pub fn right_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightPar)
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
     pub fn of_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Of))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Of))
             .nth(0)
     }
     pub fn subtype_indication(&self) -> Option<SubtypeIndicationSyntax> {

@@ -14,11 +14,15 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 use vhdl_syntax::parser;
-use vhdl_syntax::parser::Parser;
 use vhdl_syntax::syntax::node::SyntaxElement;
 use vhdl_syntax::syntax::rewrite::RewriteAction;
 use vhdl_syntax::syntax::AstNode;
+use vhdl_syntax::syntax::EntityDeclarationBuilder;
+use vhdl_syntax::syntax::EntityDeclarationEpilogueBuilder;
+use vhdl_syntax::syntax::EntityDeclarationPreambleBuilder;
 use vhdl_syntax::syntax::EntityDeclarationSyntax;
+use vhdl_syntax::tokens::Trivia;
+use vhdl_syntax::tokens::TriviaPiece;
 
 fn main() {
     // The file to change
@@ -38,22 +42,24 @@ end foobar;
         "Did not expect diagnostics for correct VHDL"
     );
 
-    // The target
-    // NOTE: Usage of the parser API will be significantly changed or removed in favor of a better alternative in a future version.
-    let mut parser = Parser::new(
-        "\
-entity no_longer_foo is
-end no_longer_foo;
-
-"
-        .into(),
-    );
-    parser.entity_declaration();
-    let (replacement_entity, diagnostics) = parser.into_root();
-    assert!(
-        diagnostics.is_empty(),
-        "Did not expect diagnostics for correct VHDL"
-    );
+    // The target: build a replacement entity declaration.
+    // In a realistic scenario, one would simply construct an entity using
+    // `EntityDeclarationBuilder::new(EntityDeclarationPreambleBuilder::new(b"no_longer_foo"))`
+    // and leave trivia formatting to a formatter.
+    // This example directly formats the entity using the builder API.
+    let replacement_entity = EntityDeclarationBuilder::new(
+        EntityDeclarationPreambleBuilder::new(b"no_longer_foo")
+            // Clear the default-inserted space before the `entity` token
+            .with_entity_token_trivia(Trivia::new()),
+    )
+    .with_entity_declaration_epilogue(
+        EntityDeclarationEpilogueBuilder::new()
+            // Replace space between 'is' and 'end' with newline
+            .with_end_token_trivia(Trivia::from([TriviaPiece::LineFeeds(1)]))
+            .with_identifier_token(b"no_longer_foo")
+            .with_semi_colon_token_trivia(Trivia::new()),
+    )
+    .build();
 
     let new_file = file.raw().rewrite(|node| match node {
         SyntaxElement::Node(node) => match EntityDeclarationSyntax::cast(node.clone()) {
@@ -64,7 +70,7 @@ end no_longer_foo;
                     .and_then(|preamble| preamble.name_token())
                     .is_some_and(|tok| tok.text() == "foo") =>
             {
-                RewriteAction::Change(SyntaxElement::Node(replacement_entity.clone()))
+                RewriteAction::Change(SyntaxElement::Node(replacement_entity.raw()))
             }
             // If the syntax node is not an entity, or the name of the entity is not 'foo', leave the node as-is
             _ => RewriteAction::Leave,

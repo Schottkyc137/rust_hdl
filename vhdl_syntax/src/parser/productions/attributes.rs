@@ -4,7 +4,6 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::match_next_token;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
@@ -70,7 +69,7 @@ impl Parser {
     pub fn entity_designator(&mut self) {
         self.start_node(EntityDesignator);
         self.entity_tag();
-        if self.peek_token() == Some(LeftSquare) {
+        if self.peek_token() == LeftSquare {
             self.signature();
         }
         self.end_node();

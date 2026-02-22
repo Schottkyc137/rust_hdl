@@ -90,161 +90,161 @@ impl Debug for Doc {
 
 /// All nodes that should be printed with an indent.
 fn indents(node: &SyntaxNode) -> bool {
-    use vhdl_syntax::syntax::NodeKind::*;
+    use vhdl_syntax::syntax::NodeKind as Nk;
     match node.kind() {
-        ContextClause
+        Nk::ContextClause
             if node
                 .parent()
-                .is_some_and(|par| par.kind() == ContextDeclaration) =>
+                .is_some_and(|par| par.kind() == Nk::ContextDeclaration) =>
         {
             true
         }
-        Declarations
-        | ConcurrentStatements
-        | SequentialStatements
-        | BlockConfigurationItems
-        | BlockHeader
-        | GenerateStatementBody
-        | CaseGenerateAlternative
-        | CaseStatementAlternative
-        | ComponentConfigurationItems
-        | ComponentDeclarationItems
-        | ComponentInstantiationItems
-        | CompoundConfigurationSpecificationItems
-        | ConfigurationDeclarationItems
-        | EntityHeader
-        | PackageHeader
-        | UnitDeclarations
-        | RecordElementDeclarations
-        | InterfaceList => true,
+        Nk::Declarations
+        | Nk::ConcurrentStatements
+        | Nk::SequentialStatements
+        | Nk::BlockConfigurationItems
+        | Nk::BlockHeader
+        | Nk::GenerateStatementBody
+        | Nk::CaseGenerateAlternative
+        | Nk::CaseStatementAlternative
+        | Nk::ComponentConfigurationItems
+        | Nk::ComponentDeclarationItems
+        | Nk::ComponentInstantiationItems
+        | Nk::CompoundConfigurationSpecificationItems
+        | Nk::ConfigurationDeclarationItems
+        | Nk::EntityHeader
+        | Nk::PackageHeader
+        | Nk::UnitDeclarations
+        | Nk::RecordElementDeclarations
+        | Nk::InterfaceList => true,
         _ => false,
     }
 }
 
 /// All nodes that require a single newline before them.
 fn wants_newline_before(node_kind: NodeKind) -> bool {
-    use vhdl_syntax::syntax::NodeKind::*;
+    use vhdl_syntax::syntax::NodeKind as Nk;
     matches!(
         node_kind,
-        AliasDeclaration
-            | DeclarationStatementSeparator
-            | SemiColonTerminatedBindingIndication
-            | UseClause
-            | SubprogramDeclaration
-            | SubprogramBody
-            | SubprogramInstantiationDeclaration
-            | PackageDeclaration
-            | PackageBody
-            | PackageInstantiationDeclaration
-            | FullTypeDeclaration
-            | IncompleteTypeDeclaration
-            | SubtypeDeclaration
-            | ConstantDeclaration
-            | SignalDeclaration
-            | VariableDeclaration
-            | SharedVariableDeclaration
-            | FileDeclaration
-            | ComponentDeclaration
-            | AttributeDeclaration
-            | GroupTemplateDeclaration
-            | GroupDeclaration
-            | AttributeSpecification
-            | SimpleConfigurationSpecification
-            | CompoundConfigurationSpecification
-            | DisconnectionSpecification
-            | PslPropertyDeclaration
-            | PslSequenceDeclaration
-            | PslClockDeclaration
-            | GenericClause
-            | PortClause
-            | GenericMapAspect
-            | PortMapAspect
-            | BlockHeader
-            | GenerateStatementBody
-            | CaseGenerateAlternative
-            | CaseStatementAlternative
-            | SemiColonTerminatedVerificationUnitBindingIndication
-            | BlockConfiguration
-            | BlockStatement
-            | ProcessStatement
-            | ConcurrentAssertionStatement
-            | ComponentInstantiationStatement
-            | ConcurrentSelectedSignalAssignment
-            | ConcurrentConditionalSignalAssignment
-            | ConcurrentSimpleSignalAssignment
-            | ConcurrentProcedureCallOrComponentInstantiationStatement
-            | ForGenerateStatement
-            | IfGenerateElsif
-            | IfGenerateElse
-            | CaseGenerateStatement
-            | PslDirective
-            | WaitStatement
-            | AssertionStatement
-            | ReportStatement
-            | ProcedureCallStatement
-            | SimpleVariableAssignment
-            | ConditionalVariableAssignment
-            | SelectedVariableAssignment
-            | IfStatement
-            | IfStatementElsif
-            | IfStatementElse
-            | CaseStatement
-            | LoopStatement
-            | NextStatement
-            | ExitStatement
-            | ReturnStatement
-            | NullStatement
-            | PackageBodyDeclaration
-            | BlockPreamble
-            | PackagePreamble
-            | IfStatementPreamble
-            | PackageBodyPreamble
-            | ArchitecturePreamble
-            | CaseStatementPreamble
-            | LoopStatementPreamble
-            | SubprogramBodyPreamble
-            | ProcessStatementPreamble
-            | EntityDeclarationPreamble
-            | ProtectedTypeBodyPreamble
-            | BlockConfigurationPreamble
-            | ContextDeclarationPreamble
-            | IfGenerateStatementPreamble
-            | ComponentDeclarationPreamble
-            | ForGenerateStatementPreamble
-            | RecordTypeDefinitionPreamble
-            | CaseGenerateStatementPreamble
-            | ComponentConfigurationPreamble
-            | ConfigurationDeclarationPreamble
-            | ProtectedTypeDeclarationPreamble
-            | BlockEpilogue
-            | PackageEpilogue
-            | IfStatementEpilogue
-            | PackageBodyEpilogue
-            | ArchitectureEpilogue
-            | CaseStatementEpilogue
-            | LoopStatementEpilogue
-            | SubprogramBodyEpilogue
-            | ProcessStatementEpilogue
-            | EntityDeclarationEpilogue
-            | ProtectedTypeBodyEpilogue
-            | BlockConfigurationEpilogue
-            | ContextDeclarationEpilogue
-            | IfGenerateStatementEpilogue
-            | ComponentDeclarationEpilogue
-            | ForGenerateStatementEpilogue
-            | RecordTypeDefinitionEpilogue
-            | CaseGenerateStatementEpilogue
-            | GenerateStatementBodyEpilogue
-            | ComponentConfigurationEpilogue
-            | PhysicalTypeDefinitionEpilogue
-            | ConfigurationDeclarationEpilogue
-            | ProtectedTypeDeclarationEpilogue
-            | PrimaryUnitDeclaration
-            | SecondaryUnitDeclaration
-            | ElementDeclaration
-            | SimpleWaveformAssignment
-            | SimpleForceAssignment
-            | SimpleReleaseAssignment
+        Nk::AliasDeclaration
+            | Nk::DeclarationStatementSeparator
+            | Nk::SemiColonTerminatedBindingIndication
+            | Nk::UseClause
+            | Nk::SubprogramDeclaration
+            | Nk::SubprogramBody
+            | Nk::SubprogramInstantiationDeclaration
+            | Nk::PackageDeclaration
+            | Nk::PackageBody
+            | Nk::PackageInstantiationDeclaration
+            | Nk::FullTypeDeclaration
+            | Nk::IncompleteTypeDeclaration
+            | Nk::SubtypeDeclaration
+            | Nk::ConstantDeclaration
+            | Nk::SignalDeclaration
+            | Nk::VariableDeclaration
+            | Nk::SharedVariableDeclaration
+            | Nk::FileDeclaration
+            | Nk::ComponentDeclaration
+            | Nk::AttributeDeclaration
+            | Nk::GroupTemplateDeclaration
+            | Nk::GroupDeclaration
+            | Nk::AttributeSpecification
+            | Nk::SimpleConfigurationSpecification
+            | Nk::CompoundConfigurationSpecification
+            | Nk::DisconnectionSpecification
+            | Nk::PslPropertyDeclaration
+            | Nk::PslSequenceDeclaration
+            | Nk::PslClockDeclaration
+            | Nk::GenericClause
+            | Nk::PortClause
+            | Nk::GenericMapAspect
+            | Nk::PortMapAspect
+            | Nk::BlockHeader
+            | Nk::GenerateStatementBody
+            | Nk::CaseGenerateAlternative
+            | Nk::CaseStatementAlternative
+            | Nk::SemiColonTerminatedVerificationUnitBindingIndication
+            | Nk::BlockConfiguration
+            | Nk::BlockStatement
+            | Nk::ProcessStatement
+            | Nk::ConcurrentAssertionStatement
+            | Nk::ComponentInstantiationStatement
+            | Nk::ConcurrentSelectedSignalAssignment
+            | Nk::ConcurrentConditionalSignalAssignment
+            | Nk::ConcurrentSimpleSignalAssignment
+            | Nk::ConcurrentProcedureCallOrComponentInstantiationStatement
+            | Nk::ForGenerateStatement
+            | Nk::IfGenerateElsif
+            | Nk::IfGenerateElse
+            | Nk::CaseGenerateStatement
+            | Nk::PslDirective
+            | Nk::WaitStatement
+            | Nk::AssertionStatement
+            | Nk::ReportStatement
+            | Nk::ProcedureCallStatement
+            | Nk::SimpleVariableAssignment
+            | Nk::ConditionalVariableAssignment
+            | Nk::SelectedVariableAssignment
+            | Nk::IfStatement
+            | Nk::IfStatementElsif
+            | Nk::IfStatementElse
+            | Nk::CaseStatement
+            | Nk::LoopStatement
+            | Nk::NextStatement
+            | Nk::ExitStatement
+            | Nk::ReturnStatement
+            | Nk::NullStatement
+            | Nk::PackageBodyDeclaration
+            | Nk::BlockPreamble
+            | Nk::PackagePreamble
+            | Nk::IfStatementPreamble
+            | Nk::PackageBodyPreamble
+            | Nk::ArchitecturePreamble
+            | Nk::CaseStatementPreamble
+            | Nk::LoopStatementPreamble
+            | Nk::SubprogramBodyPreamble
+            | Nk::ProcessStatementPreamble
+            | Nk::EntityDeclarationPreamble
+            | Nk::ProtectedTypeBodyPreamble
+            | Nk::BlockConfigurationPreamble
+            | Nk::ContextDeclarationPreamble
+            | Nk::IfGenerateStatementPreamble
+            | Nk::ComponentDeclarationPreamble
+            | Nk::ForGenerateStatementPreamble
+            | Nk::RecordTypeDefinitionPreamble
+            | Nk::CaseGenerateStatementPreamble
+            | Nk::ComponentConfigurationPreamble
+            | Nk::ConfigurationDeclarationPreamble
+            | Nk::ProtectedTypeDeclarationPreamble
+            | Nk::BlockEpilogue
+            | Nk::PackageEpilogue
+            | Nk::IfStatementEpilogue
+            | Nk::PackageBodyEpilogue
+            | Nk::ArchitectureEpilogue
+            | Nk::CaseStatementEpilogue
+            | Nk::LoopStatementEpilogue
+            | Nk::SubprogramBodyEpilogue
+            | Nk::ProcessStatementEpilogue
+            | Nk::EntityDeclarationEpilogue
+            | Nk::ProtectedTypeBodyEpilogue
+            | Nk::BlockConfigurationEpilogue
+            | Nk::ContextDeclarationEpilogue
+            | Nk::IfGenerateStatementEpilogue
+            | Nk::ComponentDeclarationEpilogue
+            | Nk::ForGenerateStatementEpilogue
+            | Nk::RecordTypeDefinitionEpilogue
+            | Nk::CaseGenerateStatementEpilogue
+            | Nk::GenerateStatementBodyEpilogue
+            | Nk::ComponentConfigurationEpilogue
+            | Nk::PhysicalTypeDefinitionEpilogue
+            | Nk::ConfigurationDeclarationEpilogue
+            | Nk::ProtectedTypeDeclarationEpilogue
+            | Nk::PrimaryUnitDeclaration
+            | Nk::SecondaryUnitDeclaration
+            | Nk::ElementDeclaration
+            | Nk::SimpleWaveformAssignment
+            | Nk::SimpleForceAssignment
+            | Nk::SimpleReleaseAssignment
     )
 }
 
@@ -286,7 +286,7 @@ impl Doc {
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
-                    let leading = token.all_leading_trivia();
+                    let leading = token.leading_trivia();
                     let comment_index = leading
                         .iter()
                         .position(|triv| triv.is_comment())
@@ -363,8 +363,8 @@ impl Doc {
                     } else if let Some(pendind_break) = pending_break.take() {
                         builder.push(pendind_break);
                     }
-                    if !token.all_leading_trivia().contains_comments() {
-                        builder.trivia(token.all_leading_trivia());
+                    if !token.leading_trivia().contains_comments() {
+                        builder.trivia(token.leading_trivia().clone());
                     }
                     builder.token(token.clone());
                 }

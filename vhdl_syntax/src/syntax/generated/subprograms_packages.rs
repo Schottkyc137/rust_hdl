@@ -8,8 +8,7 @@ use crate::syntax::node::{SyntaxNode, SyntaxToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::AstNode;
 use crate::tokens::Keyword as Kw;
-use crate::tokens::TokenKind::*;
-
+use crate::tokens::TokenKind;
 #[derive(Debug, Clone)]
 pub struct SubprogramDeclarationSyntax(pub(crate) SyntaxNode);
 impl AstNode for SubprogramDeclarationSyntax {
@@ -36,7 +35,7 @@ impl SubprogramDeclarationSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -69,7 +68,6 @@ impl AstNode for SubprogramSpecificationSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct ProcedureSpecificationSyntax(pub(crate) SyntaxNode);
 impl AstNode for ProcedureSpecificationSyntax {
@@ -90,7 +88,7 @@ impl ProcedureSpecificationSyntax {
     pub fn procedure_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Procedure))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Procedure))
             .nth(0)
     }
     pub fn designator(&self) -> Option<DesignatorSyntax> {
@@ -135,7 +133,7 @@ impl FunctionSpecificationSyntax {
     pub fn function_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Function))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Function))
             .nth(0)
     }
     pub fn designator(&self) -> Option<DesignatorSyntax> {
@@ -156,7 +154,7 @@ impl FunctionSpecificationSyntax {
     pub fn return_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Return))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Return))
             .nth(0)
     }
     pub fn name(&self) -> Option<NameSyntax> {
@@ -183,7 +181,7 @@ impl ParenthesizedInterfaceListSyntax {
     pub fn left_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftPar)
+            .filter(|token| token.kind() == TokenKind::LeftPar)
             .nth(0)
     }
     pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
@@ -195,7 +193,7 @@ impl ParenthesizedInterfaceListSyntax {
     pub fn right_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightPar)
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -219,7 +217,7 @@ impl ParameterListSyntax {
     pub fn parameter_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Parameter))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Parameter))
             .nth(0)
     }
     pub fn parenthesized_interface_list(&self) -> Option<ParenthesizedInterfaceListSyntax> {
@@ -237,8 +235,8 @@ pub enum FunctionPuritySyntax {
 impl FunctionPuritySyntax {
     pub fn cast(token: SyntaxToken) -> Option<Self> {
         match token.kind() {
-            Keyword(Kw::Pure) => Some(FunctionPuritySyntax::Pure(token)),
-            Keyword(Kw::Impure) => Some(FunctionPuritySyntax::Impure(token)),
+            TokenKind::Keyword(Kw::Pure) => Some(FunctionPuritySyntax::Pure(token)),
+            TokenKind::Keyword(Kw::Impure) => Some(FunctionPuritySyntax::Impure(token)),
             _ => None,
         }
     }
@@ -249,7 +247,6 @@ impl FunctionPuritySyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct SubprogramHeaderSyntax(pub(crate) SyntaxNode);
 impl AstNode for SubprogramHeaderSyntax {
@@ -302,13 +299,13 @@ impl SubprogramHeaderGenericClauseSyntax {
     pub fn generic_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Generic))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Generic))
             .nth(0)
     }
     pub fn left_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftPar)
+            .filter(|token| token.kind() == TokenKind::LeftPar)
             .nth(0)
     }
     pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
@@ -320,7 +317,7 @@ impl SubprogramHeaderGenericClauseSyntax {
     pub fn right_par_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightPar)
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -398,7 +395,7 @@ impl SubprogramBodyPreambleSyntax {
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
 }
@@ -422,7 +419,7 @@ impl SubprogramBodyEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn subprogram_kind(&self) -> Option<SubprogramKindSyntax> {
@@ -437,7 +434,7 @@ impl SubprogramBodyEpilogueSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -449,8 +446,8 @@ pub enum SubprogramKindSyntax {
 impl SubprogramKindSyntax {
     pub fn cast(token: SyntaxToken) -> Option<Self> {
         match token.kind() {
-            Keyword(Kw::Procedure) => Some(SubprogramKindSyntax::Procedure(token)),
-            Keyword(Kw::Function) => Some(SubprogramKindSyntax::Function(token)),
+            TokenKind::Keyword(Kw::Procedure) => Some(SubprogramKindSyntax::Procedure(token)),
+            TokenKind::Keyword(Kw::Function) => Some(SubprogramKindSyntax::Function(token)),
             _ => None,
         }
     }
@@ -461,7 +458,6 @@ impl SubprogramKindSyntax {
         }
     }
 }
-
 #[derive(Debug, Clone)]
 pub struct SubprogramInstantiationDeclarationSyntax(pub(crate) SyntaxNode);
 impl AstNode for SubprogramInstantiationDeclarationSyntax {
@@ -498,7 +494,7 @@ impl SubprogramInstantiationDeclarationSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -533,19 +529,19 @@ impl SubprogramInstantiationDeclarationPreambleSyntax {
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
     pub fn new_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::New))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::New))
             .nth(0)
     }
     pub fn name(&self) -> Option<NameSyntax> {
@@ -617,19 +613,19 @@ impl PackagePreambleSyntax {
     pub fn package_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Package))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Package))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
 }
@@ -653,25 +649,25 @@ impl PackageEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn package_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Package))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Package))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -707,7 +703,7 @@ impl PackageHeaderSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -767,25 +763,25 @@ impl PackageBodyPreambleSyntax {
     pub fn package_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Package))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Package))
             .nth(0)
     }
     pub fn body_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Body))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Body))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
 }
@@ -809,31 +805,31 @@ impl PackageBodyEpilogueSyntax {
     pub fn end_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::End))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::End))
             .nth(0)
     }
     pub fn package_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Package))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Package))
             .nth(0)
     }
     pub fn body_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Body))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Body))
             .nth(0)
     }
     pub fn identifier_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -869,7 +865,7 @@ impl PackageInstantiationSyntax {
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == SemiColon)
+            .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
     }
 }
@@ -895,25 +891,25 @@ impl PackageInstantiationPreambleSyntax {
     pub fn package_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Package))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Package))
             .nth(0)
     }
     pub fn name_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Identifier)
+            .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
     }
     pub fn is_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Is))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
     pub fn new_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::New))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::New))
             .nth(0)
     }
     pub fn name(&self) -> Option<NameSyntax> {
@@ -940,7 +936,7 @@ impl SignatureSyntax {
     pub fn left_square_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == LeftSquare)
+            .filter(|token| token.kind() == TokenKind::LeftSquare)
             .nth(0)
     }
     pub fn names(&self) -> impl Iterator<Item = NameSyntax> + use<'_> {
@@ -949,7 +945,7 @@ impl SignatureSyntax {
     pub fn return_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == Keyword(Kw::Return))
+            .filter(|token| token.kind() == TokenKind::Keyword(Kw::Return))
             .nth(0)
     }
     pub fn return_type(&self) -> Option<NameSyntax> {
@@ -958,7 +954,7 @@ impl SignatureSyntax {
     pub fn right_square_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
-            .filter(|token| token.kind() == RightSquare)
+            .filter(|token| token.kind() == TokenKind::RightSquare)
             .nth(0)
     }
 }
