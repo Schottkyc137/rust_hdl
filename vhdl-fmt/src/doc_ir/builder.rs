@@ -23,10 +23,12 @@ impl DocBuilder {
         self.push(Doc::Token(token));
     }
 
+    #[allow(dead_code)]
     pub fn hard_break(&mut self) {
         self.push(Doc::HardBreak);
     }
 
+    #[allow(dead_code)]
     pub fn space(&mut self) {
         self.push(Doc::Space);
     }

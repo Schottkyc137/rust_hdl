@@ -4,6 +4,7 @@ use vhdl_syntax::tokens::Trivia;
 use crate::doc_ir::DocComment;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[allow(dead_code)]
 pub enum BreakKind {
     /// No explicit break kind.
     /// This is currently for debug purposes and simply

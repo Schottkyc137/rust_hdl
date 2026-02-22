@@ -41,6 +41,7 @@ impl Formatter {
 
 struct LayoutBasedTokenRewriter {
     layout: HashMap<usize, BoundaryDecision>,
+    #[allow(dead_code)]
     previous_trailing_trivia: Option<Trivia>,
     config: Config,
 }
@@ -72,7 +73,7 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
             leading_trivia = formatting.trivia.clone();
 
             for (break_kind, comment) in &formatting.comments {
-                break_kind_to_trivia(break_kind.clone(), &mut leading_trivia, &self.config);
+                break_kind_to_trivia(*break_kind, &mut leading_trivia, &self.config);
                 match comment {
                     DocComment::Line(comment) => {
                         leading_trivia.push(TriviaPiece::LineComment(comment.clone()))
