@@ -51,12 +51,21 @@ impl NewlineStyle {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum UserBlankLinePolicy {
+    /// Preserve user-supplied blank lines as-is (subject to formatter constraints).
+    #[default]
+    Preserve,
+    // Future variants: Max(usize), Override(usize)
+}
+
 #[derive(Eq, PartialEq, Clone)]
 pub struct Config {
     pub newline_at_end: bool,
     pub indentation: Indentation,
     pub newline_style: NewlineStyle,
     pub max_line_length: usize,
+    pub blank_lines: UserBlankLinePolicy,
 }
 
 impl Default for Config {
@@ -66,6 +75,7 @@ impl Default for Config {
             indentation: Indentation::default(),
             newline_style: NewlineStyle::default(),
             max_line_length: 80,
+            blank_lines: UserBlankLinePolicy::default(),
         }
     }
 }

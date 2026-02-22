@@ -3,7 +3,7 @@ mod builder;
 pub(crate) mod resolve;
 
 use crate::doc_ir::builder::DocBuilder;
-use std::{fmt::Debug, usize};
+use std::fmt::Debug;
 use vhdl_syntax::{
     syntax::{
         NodeKind,
@@ -28,6 +28,7 @@ impl DocComment {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum Doc {
     /// The basic element of text
     Token(SyntaxToken),
@@ -47,6 +48,9 @@ pub enum Doc {
     SoftBreak,
     /// A forced space
     Space,
+    /// User-supplied blank lines. Only contributes to `BreakKind::Newline.blank_lines`
+    /// when the resolver is emitting a newline; ignored otherwise.
+    BlankLines(usize),
 }
 
 impl Doc {
@@ -68,6 +72,9 @@ impl Doc {
                 }
             }
             Doc::Comment(comment) => Some(comment.byte_len()),
+            // Blank lines only contribute when not laying out flat.
+            // In a flat layout, they are omitted.
+            Doc::BlankLines(_) => Some(0),
         }
     }
 }
@@ -84,8 +91,36 @@ impl Debug for Doc {
             Self::Trivia(arg0) => f.debug_tuple("Trivia").field(&arg0.to_string()).finish(),
             Self::Space => write!(f, "Space"),
             Self::Comment(arg0) => f.debug_tuple("LineComment").field(arg0).finish(),
+            Self::BlankLines(n) => write!(f, "BlankLines({n})"),
         }
     }
+}
+
+/// Tracks whitespace/newline separator state while scanning comment trivia.
+#[derive(Default)]
+struct PendingSep {
+    /// True if at least one linefeed-class piece was seen.
+    hard: bool,
+    /// Total count of linefeed characters accumulated.
+    total_linefeeds: usize,
+}
+
+impl PendingSep {
+    /// Blank lines = total linefeeds minus the single mandatory newline.
+    fn blank_lines(&self) -> usize {
+        self.total_linefeeds.saturating_sub(1)
+    }
+
+    fn add_linefeeds(&mut self, n: usize) {
+        self.hard = true;
+        self.total_linefeeds += n;
+    }
+}
+
+/// Count user-supplied blank lines in `trivia`.
+/// Blank lines = (total linefeed characters) − 1 (the mandatory single newline).
+fn count_user_blank_lines(trivia: &Trivia) -> usize {
+    trivia.count_newlines().saturating_sub(1)
 }
 
 /// All nodes that should be printed with an indent.
@@ -279,55 +314,85 @@ impl Doc {
                         pending_break = Some(Doc::HardBreak);
                     }
                     builder.start_concat();
-                    if wants_softbreak_before(node.kind()) {
-                        if pending_break.is_none() {
-                            pending_break = Some(Doc::SoftBreak)
-                        }
+                    if wants_softbreak_before(node.kind()) && pending_break.is_none() {
+                        pending_break = Some(Doc::SoftBreak)
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
                     if token.leading_trivia().contains_comments() {
-                        let mut last_sep = None;
+                        let mut last_sep: Option<PendingSep> = None;
                         for triv in token.leading_trivia() {
                             match triv {
                                 TriviaPiece::HorizontalTabs(_)
                                 | TriviaPiece::Spaces(_)
-                                | TriviaPiece::NonBreakingSpaces(_) => match last_sep {
-                                    None => last_sep = Some(Doc::SoftBreak),
-                                    _ => {}
-                                },
+                                | TriviaPiece::NonBreakingSpaces(_) => {
+                                    if last_sep.is_none() {
+                                        last_sep = Some(PendingSep::default());
+                                    }
+                                }
+                                TriviaPiece::VerticalTabs(n)
+                                | TriviaPiece::CarriageReturnLineFeeds(n)
+                                | TriviaPiece::LineFeeds(n)
+                                | TriviaPiece::CarriageReturns(n)
+                                | TriviaPiece::FormFeeds(n) => {
+                                    last_sep.get_or_insert_default().add_linefeeds(*n);
+                                }
                                 TriviaPiece::BlockComment(comment) => {
                                     if let Some(sep) = last_sep.take() {
-                                        builder.push(sep);
+                                        if sep.hard {
+                                            if sep.blank_lines() > 0 {
+                                                builder.push(Doc::BlankLines(sep.blank_lines()));
+                                            }
+                                            builder.push(Doc::HardBreak);
+                                        } else {
+                                            builder.soft_break();
+                                        }
                                     }
                                     builder.comment(DocComment::Block(comment.clone()));
                                 }
                                 TriviaPiece::LineComment(comment) => {
                                     if let Some(sep) = last_sep.take() {
-                                        builder.push(sep);
+                                        if sep.hard {
+                                            if sep.blank_lines() > 0 {
+                                                builder.push(Doc::BlankLines(sep.blank_lines()));
+                                            }
+                                            builder.push(Doc::HardBreak);
+                                        } else {
+                                            builder.soft_break();
+                                        }
                                     }
                                     builder.comment(DocComment::Line(comment.clone()));
                                 }
-                                TriviaPiece::VerticalTabs(_)
-                                | TriviaPiece::CarriageReturnLineFeeds(_)
-                                | TriviaPiece::LineFeeds(_)
-                                | TriviaPiece::CarriageReturns(_)
-                                | TriviaPiece::FormFeeds(_) => last_sep = Some(Doc::HardBreak),
                                 TriviaPiece::Unexpected(_) => unimplemented!("Unexpected trivia"),
                             }
                         }
-                        if let Some(sep) = last_sep.take() {
-                            if matches!(sep, Doc::HardBreak) {
-                                builder.push(sep);
+                        // The trailing separator after the last comment owns boundary B
+                        // (last comment -> token). If it is hard, pending_break is dropped
+                        // so the formatter does not emit a second HardBreak for the same boundary.
+                        // Soft-only separators are dropped — the comment already provides spacing.
+                        let trailing_was_hard = if let Some(sep) = last_sep.take()
+                            && sep.hard
+                        {
+                            if sep.blank_lines() > 0 {
+                                builder.push(Doc::BlankLines(sep.blank_lines()));
                             }
+                            builder.push(Doc::HardBreak);
+                            true
+                        } else {
+                            false
+                        };
+                        if trailing_was_hard {
+                            pending_break = None;
+                        }
+                    } else {
+                        let bl = count_user_blank_lines(token.leading_trivia());
+                        if bl > 0 {
+                            builder.push(Doc::BlankLines(bl));
                         }
                     }
-                    if token.kind() == TokenKind::RightPar
-                        && token.parent().kind() == NodeKind::ParenthesizedInterfaceList
-                    {
-                        builder.soft_break();
-                    } else if let Some(pendind_break) = pending_break.take() {
-                        builder.push(pendind_break);
+
+                    if let Some(pending_break) = pending_break.take() {
+                        builder.push(pending_break);
                     }
                     if !token.leading_trivia().contains_comments() {
                         builder.trivia(token.leading_trivia().clone());

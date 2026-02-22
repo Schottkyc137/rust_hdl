@@ -16,6 +16,7 @@ impl ResolveState {
             pending: BoundaryDecision::default(),
             indent: 0,
             column: 0,
+            blank_lines_hint: 0,
         }
     }
 }
@@ -36,11 +37,14 @@ struct ResolveState {
     indent: usize,
     /// The current column
     column: usize,
+    /// Accumulated user blank-line count hint
+    blank_lines_hint: usize,
 }
 
 fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState, flat: bool) {
     match doc {
         Doc::Token(syntax_token) => {
+            state.blank_lines_hint = 0;
             let boundary_decision = take(&mut state.pending);
             for trivia in &boundary_decision.trivia {
                 match trivia {
@@ -69,11 +73,16 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 state.pending.trivia.is_empty(),
                 "Invariant: trivia before hard break"
             );
-            // overwrite any previoud breaks
+            debug_assert!(
+                !matches!(state.pending.break_kind, BreakKind::Newline { .. }),
+                "HardBreak fires while a Newline is already pending — \
+                 two HardBreaks for one boundary; this is a bug in Doc::from_node"
+            );
             state.pending.break_kind = BreakKind::Newline {
-                blank_lines: 0,
+                blank_lines: state.blank_lines_hint,
                 indent: state.indent,
             };
+            state.blank_lines_hint = 0;
         }
         Doc::Indent(doc) => {
             state.indent += config.indentation.width;
@@ -85,10 +94,11 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 BreakKind::Space
             } else {
                 BreakKind::Newline {
+                    blank_lines: state.blank_lines_hint,
                     indent: state.indent,
-                    blank_lines: 0,
                 }
             };
+            state.blank_lines_hint = 0;
         }
         Doc::Group(doc) => {
             let layout_as_flat = if let Some(flat_width) = doc.flat_width() {
@@ -124,7 +134,19 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 BreakKind::Empty | BreakKind::Unset
             ) {
                 state.pending.break_kind = BreakKind::Space;
+                state.blank_lines_hint = 0;
             }
+            // Existing Newline: don't override; keep blank_lines_hint for the newline
+        }
+        Doc::BlankLines(n) => {
+            let hint = match config.blank_lines {
+                crate::config::UserBlankLinePolicy::Preserve => n,
+            };
+            debug_assert_eq!(
+                state.blank_lines_hint, 0,
+                "Two consecutive BlankLines nodes without an intervening break"
+            );
+            state.blank_lines_hint = hint;
         }
     }
 }
