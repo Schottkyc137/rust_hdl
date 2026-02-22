@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     config::Config,
     doc_ir::{
-        Doc,
+        Doc, DocComment,
         boundary::{BoundaryDecision, BreakKind},
         resolve::resolve_layout,
     },
@@ -70,6 +70,19 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
 
         if let Some(formatting) = self.layout.get(&token.text_pos()) {
             leading_trivia = formatting.trivia.clone();
+
+            for (break_kind, comment) in &formatting.comments {
+                break_kind_to_trivia(break_kind.clone(), &mut leading_trivia, &self.config);
+                match comment {
+                    DocComment::Line(comment) => {
+                        leading_trivia.push(TriviaPiece::LineComment(comment.clone()))
+                    }
+                    DocComment::Block(comment) => {
+                        leading_trivia.push(TriviaPiece::BlockComment(comment.clone()))
+                    }
+                }
+            }
+            break_kind_to_trivia(formatting.break_kind, &mut leading_trivia, &self.config);
         } else {
             debug_assert!(false, "No decision for token {:?}", token);
         }
