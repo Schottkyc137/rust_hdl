@@ -316,7 +316,13 @@ impl Doc {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
                     if wants_newline_before(node.kind()) {
-                        pending_break = Some(Doc::HardBreak);
+                        let has_preceding_content = node
+                            .first_token()
+                            .and_then(|tok| tok.prev_token())
+                            .is_some();
+                        if has_preceding_content {
+                            pending_break = Some(Doc::HardBreak);
+                        }
                     }
                     builder.start_concat();
                     if wants_softbreak_before(node.kind()) && pending_break.is_none() {
