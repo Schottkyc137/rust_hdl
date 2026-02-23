@@ -35,7 +35,7 @@ impl AlignmentMap {
 fn get_alignment_target(kind: NodeKind) -> Option<TokenKind> {
     use vhdl_syntax::syntax::NodeKind as Nk;
     match kind {
-        Nk::InterfaceList | Nk::Declarations | Nk::RecordElementDeclarations => {
+        Nk::InterfaceList | Nk::RecordElementDeclarations => {
             Some(TokenKind::Colon)
         }
         _ => None,
