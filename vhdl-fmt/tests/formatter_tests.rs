@@ -45,13 +45,18 @@ fn fmt(node: impl AstNode) -> String {
 // Entity Declaration
 // ---------------------------------------------------------------------------
 
+// NOTE: Currently, most testcases that originate from the builder leave a leading space.
+// This is expected currently and is due to the fact that we use verbatim trivia in places that we
+// do not format.
+// Once we format all tokens and remove the verbatim trivia, this must be removed
+
 /// A minimal entity (`entity my_entity is end ;`) is formatted with
 /// newlines before the preamble and epilogue nodes, and no indentation.
 #[test]
 fn empty_entity_formatting() {
     let entity =
         EntityDeclarationBuilder::new(EntityDeclarationPreambleBuilder::new(b"my_entity")).build();
-    assert_eq!(fmt(entity), "\nentity my_entity is\nend ;");
+    assert_eq!(fmt(entity), " entity my_entity is\nend ;");
 }
 
 /// The optional identifier in the epilogue is preserved and formatted
@@ -63,7 +68,7 @@ fn entity_formatting_with_epilogue_name() {
             EntityDeclarationEpilogueBuilder::new().with_identifier_token(b"my_entity"),
         )
         .build();
-    assert_eq!(fmt(entity), "\nentity my_entity is\nend my_entity ;");
+    assert_eq!(fmt(entity), " entity my_entity is\nend my_entity ;");
 }
 
 /// The optional `entity` keyword in the epilogue is included when set.
@@ -82,7 +87,7 @@ fn entity_formatting_with_full_epilogue() {
                 .with_identifier_token(b"my_entity"),
         )
         .build();
-    assert_eq!(fmt(entity), "\nentity my_entity is\nend entity my_entity ;");
+    assert_eq!(fmt(entity), " entity my_entity is\nend entity my_entity ;");
 }
 
 // ---------------------------------------------------------------------------
@@ -100,7 +105,7 @@ fn empty_architecture_formatting() {
     .build();
     assert_eq!(
         fmt(arch),
-        "\narchitecture rtl of my_entity is\nbegin\nend ;"
+        " architecture rtl of my_entity is\nbegin\nend ;"
     );
 }
 
@@ -124,7 +129,7 @@ fn architecture_declarations_are_indented() {
     .build();
     assert_eq!(
         fmt(arch),
-        "\narchitecture rtl of my_entity is\n    use ;\nbegin\nend ;"
+        " architecture rtl of my_entity is\n    use ;\nbegin\nend ;"
     );
 }
 
@@ -151,7 +156,7 @@ fn architecture_concurrent_statements_are_indented() {
     .build();
     assert_eq!(
         fmt(arch),
-        "\narchitecture rtl of my_entity is\nbegin\n    p1 : process\n    begin\n    end process ;\nend ;"
+        " architecture rtl of my_entity is\nbegin\n    p1 : process\n    begin\n    end process ;\nend ;"
     );
 }
 
@@ -184,7 +189,7 @@ fn design_file_entity_and_architecture() {
     // canonical_token()) is preserved as-is when BreakKind::Unset applies.
     assert_eq!(
         fmt(file),
-        "\nentity foo is\nend ;\narchitecture rtl of foo is\nbegin\nend ; "
+        " entity foo is\nend ;\narchitecture rtl of foo is\nbegin\nend ; "
     );
 }
 
@@ -203,7 +208,7 @@ fn crlf_newline_style() {
         ..Config::default()
     };
     let formatted = format_with_config(entity.raw(), config).to_string();
-    assert_eq!(formatted, "\r\nentity my_entity is\r\nend ;");
+    assert_eq!(formatted, " entity my_entity is\r\nend ;");
 }
 
 /// Indentation width is configurable. Here 2-space indentation is verified
@@ -231,7 +236,7 @@ fn two_space_indentation() {
     let formatted = format_with_config(arch.raw(), config).to_string();
     assert_eq!(
         formatted,
-        "\narchitecture rtl of my_entity is\n  use ;\nbegin\nend ;"
+        " architecture rtl of my_entity is\n  use ;\nbegin\nend ;"
     );
 }
 
@@ -259,7 +264,7 @@ fn tab_indentation() {
     let formatted = format_with_config(arch.raw(), config).to_string();
     assert_eq!(
         formatted,
-        "\narchitecture rtl of my_entity is\n\tuse ;\nbegin\nend ;"
+        " architecture rtl of my_entity is\n\tuse ;\nbegin\nend ;"
     );
 }
 
@@ -494,6 +499,22 @@ end;",
         "
 entity foo is
 end;",
+    );
+    insta::assert_snapshot!(formatted);
+}
+
+#[test]
+fn consecutive_declarations_do_not_influence_formatting_of_each_other() {
+    // There is currently a bug where the comment after signal a is emitted to the next line.
+    // If signal b is omitted, the comment is trailing (like it should be)
+    let formatted = fmt_str(
+        "\
+architecture foo of bar is
+  signal a : bit; -- Comment
+  signal b : std_logic;
+begin
+end foo;
+",
     );
     insta::assert_snapshot!(formatted);
 }

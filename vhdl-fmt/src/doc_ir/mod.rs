@@ -422,7 +422,6 @@ impl Doc {
                             | NodeKind::GenericClause
                             | NodeKind::PortClause
                             | NodeKind::ParenthesizedInterfaceList
-                            | NodeKind::Declarations
                             | NodeKind::RecordElementDeclarations
                     ) {
                         builder.embed_in_group();
