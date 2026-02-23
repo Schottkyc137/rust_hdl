@@ -2,6 +2,7 @@ pub(crate) mod boundary;
 mod builder;
 pub(crate) mod resolve;
 
+use crate::align::AlignmentMap;
 use crate::doc_ir::builder::DocBuilder;
 use std::fmt::Debug;
 use vhdl_syntax::{
@@ -48,6 +49,8 @@ pub enum Doc {
     SoftBreak,
     /// A forced space
     Space,
+    /// Alignment space: `n` spaces in broken layout, 1 space in flat layout.
+    AlignedSpace(usize),
     /// User-supplied blank lines. Only contributes to `BreakKind::Newline.blank_lines`
     /// when the resolver is emitting a newline; ignored otherwise.
     BlankLines(usize),
@@ -64,6 +67,7 @@ impl Doc {
             // Count soft break as space with flat layouting
             Doc::SoftBreak => Some(1),
             Doc::Space => Some(1),
+            Doc::AlignedSpace(_) => Some(1),
             Doc::Trivia(trivia) => {
                 if trivia.has_newline() {
                     None
@@ -90,6 +94,7 @@ impl Debug for Doc {
             Self::Group(arg0) => f.debug_tuple("Group").field(arg0).finish(),
             Self::Trivia(arg0) => f.debug_tuple("Trivia").field(&arg0.to_string()).finish(),
             Self::Space => write!(f, "Space"),
+            Self::AlignedSpace(n) => write!(f, "AlignedSpace({n})"),
             Self::Comment(arg0) => f.debug_tuple("LineComment").field(arg0).finish(),
             Self::BlankLines(n) => write!(f, "BlankLines({n})"),
         }
@@ -302,7 +307,7 @@ fn wants_softbreak_before(node_kind: NodeKind) -> bool {
 }
 
 impl Doc {
-    pub fn from_node(node: SyntaxNode) -> Doc {
+    pub fn from_node(node: SyntaxNode, alignment: &AlignmentMap) -> Doc {
         let mut builder = DocBuilder::new();
         let preorder = PreorderWithTokens::new(node);
         let mut pending_break = None;
@@ -394,6 +399,9 @@ impl Doc {
                     if let Some(pending_break) = pending_break.take() {
                         builder.push(pending_break);
                     }
+                    if let Some(alignment) = alignment.get(&token) {
+                        builder.push(Doc::AlignedSpace(alignment));
+                    }
                     if !token.leading_trivia().contains_comments() {
                         builder.trivia(token.leading_trivia().clone());
                     }
@@ -408,6 +416,8 @@ impl Doc {
                             | NodeKind::GenericClause
                             | NodeKind::PortClause
                             | NodeKind::ParenthesizedInterfaceList
+                            | NodeKind::Declarations
+                            | NodeKind::RecordElementDeclarations
                     ) {
                         builder.embed_in_group();
                     }

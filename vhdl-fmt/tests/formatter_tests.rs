@@ -402,3 +402,86 @@ fn space_overrules_blank_lines() {
         "Unexpected blank line inside flat-layout group, got:\n{result}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Colon alignment
+// ---------------------------------------------------------------------------
+
+/// Two ports with different identifier lengths in a port clause produce aligned
+/// colons: the shorter identifier is padded with spaces so both colons sit in
+/// the same column.
+#[test]
+fn colon_alignment_in_interface_list() {
+    // clk_i (5 chars) and data_output_bus (15 chars).
+    // max_width = 15.
+    // clk_i       → spaces = 15 − 5 + 1 = 11
+    // data_output_bus → spaces = 15 − 15 + 1 = 1
+    let src = "entity my_entity is\n    port (\n        clk_i : in std_logic;\n        data_output_bus : in std_logic_vector(15 downto 0)\n    );\nend;";
+    let result = fmt_str(src);
+    assert!(
+        result.contains("clk_i           :"),
+        "Expected 'clk_i' with 11 alignment spaces before ':', got:\n{result}"
+    );
+    assert!(
+        result.contains("data_output_bus :"),
+        "Expected 'data_output_bus' with 1 space before ':', got:\n{result}"
+    );
+}
+
+/// A single-item interface list has no alignment partner; the colon still
+/// receives exactly 1 space (max_width == identifier width, so spaces = 1).
+#[test]
+fn colon_alignment_single_item_no_extra_padding() {
+    // G has width 1; max_width = 1; spaces = 1 − 1 + 1 = 1.
+    let src = "entity my_entity is\n    generic (\n        G : integer\n    );\nend;";
+    let result = fmt_str(src);
+    assert!(
+        result.contains("G :"),
+        "Expected 'G :' with exactly 1 space before ':', got:\n{result}"
+    );
+    assert!(
+        !result.contains("G  :"),
+        "Expected no extra padding before ':' in single-item list, got:\n{result}"
+    );
+}
+
+/// Signal declarations with different identifier lengths inside an architecture
+/// body produce aligned colons.
+#[test]
+fn colon_alignment_in_declarations() {
+    // Tokens before ':' for each signal:
+    //   signal clk     → "signal"(6) + "clk"(3) = width 10
+    //   signal data_out → "signal"(6) + "data_out"(8) = width 15
+    // max_width = 15.
+    // clk     → spaces = 15 − 10 + 1 = 6
+    // data_out → spaces = 15 − 15 + 1 = 1
+    let src = "architecture rtl of my_entity is\n    signal clk : std_logic;\n    signal data_out : std_logic_vector(7 downto 0);\nbegin\nend;";
+    let result = fmt_str(src);
+    assert!(
+        result.contains("signal clk      :"),
+        "Expected 'signal clk' with 6 alignment spaces before ':', got:\n{result}"
+    );
+    assert!(
+        result.contains("signal data_out :"),
+        "Expected 'signal data_out' with 1 space before ':', got:\n{result}"
+    );
+}
+
+/// Record element declarations with different field name lengths produce
+/// aligned colons.
+#[test]
+fn colon_alignment_in_record_elements() {
+    // x       → width 1; y_coord → width 7; max_width = 7.
+    // x       → spaces = 7 − 1 + 1 = 7
+    // y_coord → spaces = 7 − 7 + 1 = 1
+    let src = "package pkg is\n    type my_record is record\n        x : integer;\n        y_coord : std_logic;\n    end record;\nend package;";
+    let result = fmt_str(src);
+    assert!(
+        result.contains("x       :"),
+        "Expected 'x' with 7 alignment spaces before ':', got:\n{result}"
+    );
+    assert!(
+        result.contains("y_coord :"),
+        "Expected 'y_coord' with 1 space before ':', got:\n{result}"
+    );
+}

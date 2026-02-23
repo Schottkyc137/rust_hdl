@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
+    align::compute_alignment,
     config::Config,
     doc_ir::{
         Doc, DocComment,
@@ -27,7 +28,8 @@ impl Formatter {
     }
 
     pub fn format(&mut self, node: SyntaxNode) -> SyntaxNode {
-        let doc = Doc::from_node(node.clone());
+        let alignment = compute_alignment(&node);
+        let doc = Doc::from_node(node.clone(), &alignment);
         let layout = resolve_layout(doc, &self.config);
         let layout_rewriter = LayoutBasedTokenRewriter {
             layout,
@@ -49,7 +51,7 @@ struct LayoutBasedTokenRewriter {
 fn break_kind_to_trivia(break_kind: BreakKind, trivia: &mut Trivia, config: &Config) {
     match break_kind {
         BreakKind::Unset => {}
-        BreakKind::Space => trivia.push(TriviaPiece::Spaces(1)),
+        BreakKind::Spaces(n) => trivia.push(TriviaPiece::Spaces(n)),
         BreakKind::Empty => {}
         BreakKind::Newline {
             blank_lines,

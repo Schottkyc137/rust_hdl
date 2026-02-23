@@ -91,7 +91,7 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
         }
         Doc::SoftBreak => {
             state.pending.break_kind = if flat {
-                BreakKind::Space
+                BreakKind::Spaces(1)
             } else {
                 BreakKind::Newline {
                     blank_lines: state.blank_lines_hint,
@@ -134,10 +134,17 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 state.pending.break_kind,
                 BreakKind::Empty | BreakKind::Unset
             ) {
-                state.pending.break_kind = BreakKind::Space;
+                state.pending.break_kind = BreakKind::Spaces(1);
                 state.blank_lines_hint = 0;
             }
             // Existing Newline: don't override; keep blank_lines_hint for the newline
+        }
+        Doc::AlignedSpace(n) => {
+            state.pending.break_kind = if flat {
+                BreakKind::Spaces(1)
+            } else {
+                BreakKind::Spaces(n)
+            };
         }
         Doc::BlankLines(n) => {
             let hint = match config.blank_lines {

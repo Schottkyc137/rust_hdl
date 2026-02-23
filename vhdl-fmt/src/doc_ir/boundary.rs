@@ -13,8 +13,8 @@ pub enum BreakKind {
     Unset,
     /// No trivia before a token
     Empty,
-    /// Add a space before a token
-    Space,
+    /// Exactly `n` spaces before a token
+    Spaces(usize),
     /// Add a newline with blank lines and given indent
     Newline { blank_lines: usize, indent: usize },
 }

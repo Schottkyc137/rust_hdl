@@ -1,3 +1,4 @@
+mod align;
 pub mod config;
 mod doc_ir;
 pub mod formatter;
