@@ -128,6 +128,7 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             }
         }
         Doc::Space => {
+            // TODO: This should likely be a debug_assert(state.pending.break_kind == Unset)
             // Do not override newlines with space
             if matches!(
                 state.pending.break_kind,

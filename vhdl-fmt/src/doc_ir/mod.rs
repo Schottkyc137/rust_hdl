@@ -10,7 +10,7 @@ use vhdl_syntax::{
         node::{SyntaxElement, SyntaxNode, SyntaxToken},
         visitor::{PreorderWithTokens, WalkEvent},
     },
-    tokens::{TokenKind, Trivia, TriviaPiece, trivia_piece::Comment},
+    tokens::{Trivia, TriviaPiece, trivia_piece::Comment},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -366,7 +366,7 @@ impl Doc {
                                 TriviaPiece::Unexpected(_) => unimplemented!("Unexpected trivia"),
                             }
                         }
-                        // The trailing separator after the last comment owns boundary B
+                        // The trailing separator after the last comment owns the boundary
                         // (last comment -> token). If it is hard, pending_break is dropped
                         // so the formatter does not emit a second HardBreak for the same boundary.
                         // Soft-only separators are dropped — the comment already provides spacing.
