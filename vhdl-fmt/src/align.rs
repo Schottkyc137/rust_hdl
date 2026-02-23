@@ -10,6 +10,7 @@ use vhdl_syntax::{
 
 /// Maps tokens `text_pos` to the number of spaces that must precede it
 /// so that colons within the same alignment group are in the same column.
+#[derive(Debug, Clone, Default)]
 pub struct AlignmentMap {
     inner: HashMap<usize, usize>,
 }

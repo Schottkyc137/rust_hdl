@@ -59,6 +59,20 @@ pub enum UserBlankLinePolicy {
     // Future variants: Max(usize), Override(usize)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HorizontalAlignment {
+    /// Global enable / disable flag
+    pub enable: bool,
+    // Future: scope (per port / generic / declarations e.t.c.)
+    // Enable / disable blank lines / comment-separated groups
+}
+
+impl Default for HorizontalAlignment {
+    fn default() -> Self {
+        Self { enable: true }
+    }
+}
+
 #[derive(Eq, PartialEq, Clone)]
 pub struct Config {
     pub newline_at_end: bool,
@@ -66,6 +80,7 @@ pub struct Config {
     pub newline_style: NewlineStyle,
     pub max_line_length: usize,
     pub blank_lines: UserBlankLinePolicy,
+    pub horizontal_alignment: HorizontalAlignment,
 }
 
 impl Default for Config {
@@ -76,6 +91,7 @@ impl Default for Config {
             newline_style: NewlineStyle::default(),
             max_line_length: 80,
             blank_lines: UserBlankLinePolicy::default(),
+            horizontal_alignment: HorizontalAlignment::default(),
         }
     }
 }

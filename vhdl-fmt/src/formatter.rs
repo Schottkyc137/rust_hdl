@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    align::compute_alignment,
+    align::{AlignmentMap, compute_alignment},
     config::Config,
     doc_ir::{
         Doc, DocComment,
@@ -28,7 +28,11 @@ impl Formatter {
     }
 
     pub fn format(&mut self, node: SyntaxNode) -> SyntaxNode {
-        let alignment = compute_alignment(&node);
+        let alignment = if self.config.horizontal_alignment.enable {
+            compute_alignment(&node)
+        } else {
+            AlignmentMap::default()
+        };
         let doc = Doc::from_node(node.clone(), &alignment);
         let layout = resolve_layout(doc, &self.config);
         let layout_rewriter = LayoutBasedTokenRewriter {
