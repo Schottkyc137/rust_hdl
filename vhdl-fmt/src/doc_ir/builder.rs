@@ -2,12 +2,14 @@ use vhdl_syntax::{syntax::node::SyntaxToken, tokens::Trivia};
 
 use crate::doc_ir::{Doc, DocComment, Docs};
 
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum NodeKind {
     Concat,
     Indent,
     Group,
 }
 
+#[derive(Clone, Debug)]
 pub enum Event {
     Push(Doc),
     Start(NodeKind),
@@ -96,6 +98,11 @@ impl DocBuilder {
                     parents.push(len);
                 }
                 Event::End(node_kind) => {
+                    // Canonicalize: Concat(Concat(X)) -> X
+                    if node_kind == NodeKind::Concat && children.last().is_some_and(|doc| matches!(doc, Doc::Concat(_))) {
+                        parents.pop();
+                        continue;
+                    }
                     let first_child = parents.pop().unwrap();
                     let data = children.drain(first_child..).collect::<Vec<_>>();
                     debug_assert!(
@@ -111,6 +118,8 @@ impl DocBuilder {
             }
         }
         assert!(children.len() == 1);
-        return children.pop().unwrap()
+        let doc = children.pop().unwrap();
+        println!("{doc:#?}");
+        doc
     }
 }
