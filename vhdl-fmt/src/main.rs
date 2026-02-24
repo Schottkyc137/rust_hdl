@@ -63,7 +63,7 @@ fn main() {
     let node = match parse_from_file(&args.file) {
         Ok(design) => design,
         Err(e) => {
-            println!("{}", e.message);
+            eprintln!("{}", e.message);
             exit(e.err_code);
         }
     };
@@ -76,7 +76,7 @@ fn main() {
     match result {
         Ok(_) => {}
         Err(e) => {
-            println!("Cannot write formatted document back to file: {}", e);
+            eprintln!("Cannot write formatted document back to file: {}", e);
             exit(e.raw_os_error().unwrap_or(1));
         }
     }
