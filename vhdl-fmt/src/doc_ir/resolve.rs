@@ -84,9 +84,11 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             };
             state.blank_lines_hint = 0;
         }
-        Doc::Indent(doc) => {
+        Doc::Indent(docs) => {
             state.indent += config.indentation.width;
-            resolve_layout_recursive(*doc, config, state, flat);
+            for doc in docs {
+                resolve_layout_recursive(doc, config, state, flat);
+            }
             state.indent -= config.indentation.width;
         }
         Doc::SoftBreak => {
@@ -100,13 +102,15 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             };
             state.blank_lines_hint = 0;
         }
-        Doc::Group(doc) => {
-            let layout_as_flat = if let Some(flat_width) = doc.flat_width() {
+        Doc::Group(docs) => {
+            let layout_as_flat = if let Some(flat_width) = docs.flat_width() {
                 flat && state.column + flat_width <= config.max_line_length
             } else {
                 false
             };
-            resolve_layout_recursive(*doc, config, state, layout_as_flat);
+            for doc in docs {
+                resolve_layout_recursive(doc, config, state, layout_as_flat);
+            }
         }
         Doc::Concat(docs) => {
             for doc in docs {

@@ -1,22 +1,30 @@
 use vhdl_syntax::{syntax::node::SyntaxToken, tokens::Trivia};
 
-use crate::doc_ir::{Doc, DocComment};
+use crate::doc_ir::{Doc, DocComment, Docs};
+
+pub enum NodeKind {
+    Concat,
+    Indent,
+    Group,
+}
+
+pub enum Event {
+    Push(Doc),
+    Start(NodeKind),
+    End(NodeKind),
+}
 
 pub struct DocBuilder {
-    parents: Vec<usize>,
-    children: Vec<Doc>,
+    events: Vec<Event>,
 }
 
 impl DocBuilder {
     pub fn new() -> DocBuilder {
-        DocBuilder {
-            parents: Vec::new(),
-            children: Vec::new(),
-        }
+        DocBuilder { events: Vec::new() }
     }
 
     pub fn push(&mut self, doc: Doc) {
-        self.children.push(doc);
+        self.events.push(Event::Push(doc));
     }
 
     pub fn token(&mut self, token: SyntaxToken) {
@@ -41,41 +49,68 @@ impl DocBuilder {
         self.push(Doc::Comment(comment));
     }
 
-    pub fn start_concat(&mut self) {
-        let len = self.children.len();
-        self.parents.push(len);
-    }
-
     pub fn trivia(&mut self, trivia: Trivia) {
         self.push(Doc::Trivia(trivia));
     }
 
+    fn start(&mut self, kind: NodeKind) {
+        self.events.push(Event::Start(kind));
+    }
+
+    fn end(&mut self, kind: NodeKind) {
+        self.events.push(Event::End(kind));
+    }
+
+    pub fn start_concat(&mut self) {
+        self.start(NodeKind::Concat);
+    }
+
+    pub fn start_group(&mut self) {
+        self.start(NodeKind::Group);
+    }
+
+    pub fn start_indent(&mut self) {
+        self.start(NodeKind::Indent);
+    }
+
     pub fn end_concat(&mut self) {
-        let first_child = self.parents.pop().unwrap();
-        let data = self.children.drain(first_child..).collect::<Vec<_>>();
-        debug_assert!(
-            !data.is_empty(),
-            "Indented regions should not be empty as nodes should not be empty"
-        );
-        self.push(Doc::Concat(data));
+        self.end(NodeKind::Concat);
     }
 
-    pub fn embed_in_group(&mut self) {
-        let last = self.children.pop().unwrap();
-        self.push(Doc::Group(Box::new(last)));
+    pub fn end_group(&mut self) {
+        self.end(NodeKind::Group);
     }
 
-    pub fn embed_in_indent(&mut self) {
-        let last = self.children.pop().unwrap();
-        self.push(Doc::Indent(Box::new(last)));
+    pub fn end_indent(&mut self) {
+        self.end(NodeKind::Indent);
     }
 
-    pub fn build(mut self) -> Doc {
-        // TODO: This does not work for an empty doc at the moment
-        if self.children.len() == 1 {
-            self.children.pop().unwrap()
-        } else {
-            Doc::Concat(self.children)
+    pub fn build(self) -> Doc {
+        let mut children = Vec::new();
+        let mut parents = Vec::new();
+        for event in self.events {
+            match event {
+                Event::Push(doc) => children.push(doc),
+                Event::Start(_) => {
+                    let len = children.len();
+                    parents.push(len);
+                }
+                Event::End(node_kind) => {
+                    let first_child = parents.pop().unwrap();
+                    let data = children.drain(first_child..).collect::<Vec<_>>();
+                    debug_assert!(
+                        !data.is_empty(),
+                        "Nodes should not be empty as SyntaxNodes should not be empty"
+                    );
+                    match node_kind {
+                        NodeKind::Concat => children.push(Doc::Concat(Docs(data))),
+                        NodeKind::Indent => children.push(Doc::Indent(Docs(data))),
+                        NodeKind::Group => children.push(Doc::Group(Docs(data))),
+                    }
+                },
+            }
         }
+        assert!(children.len() == 1);
+        return children.pop().unwrap()
     }
 }

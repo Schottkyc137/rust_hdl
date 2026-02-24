@@ -4,7 +4,7 @@ pub(crate) mod resolve;
 
 use crate::align::AlignmentMap;
 use crate::doc_ir::builder::DocBuilder;
-use std::fmt::Debug;
+use std::{fmt::Debug, vec};
 use vhdl_syntax::{
     syntax::{
         NodeKind,
@@ -29,6 +29,25 @@ impl DocComment {
 }
 
 #[derive(Clone)]
+pub struct Docs(pub Vec<Doc>);
+
+impl Docs {
+    pub fn flat_width(&self) -> Option<usize> {
+        self.0.iter().map(|doc| doc.flat_width()).sum()
+    }
+}
+
+impl IntoIterator for Docs {
+    type Item = Doc;
+
+    type IntoIter = vec::IntoIter<Doc>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[derive(Clone)]
 #[allow(dead_code)]
 pub enum Doc {
     /// The basic element of text
@@ -38,11 +57,11 @@ pub enum Doc {
     /// Mandatory newline
     HardBreak,
     /// Indent the following docs
-    Indent(Box<Doc>),
+    Indent(Docs),
     /// Sequence of docs. Rendered without any special consideration.
-    Concat(Vec<Doc>),
+    Concat(Docs),
     /// Group: try to keep flat if it fits max width
-    Group(Box<Doc>),
+    Group(Docs),
     /// A comment
     Comment(DocComment),
     /// Optional break: space if fits, newline + indent otherwise
@@ -62,8 +81,8 @@ impl Doc {
             Doc::Token(syntax_token) => Some(syntax_token.text().len()),
             Doc::HardBreak => None,
             Doc::Indent(doc) => doc.flat_width(),
-            Doc::Concat(docs) => docs.iter().map(|doc| doc.flat_width()).sum(),
-            Doc::Group(doc) => doc.flat_width(),
+            Doc::Concat(docs) => docs.flat_width(),
+            Doc::Group(docs) => docs.flat_width(),
             // Count soft break as space with flat layouting
             Doc::SoftBreak => Some(1),
             Doc::Space => Some(1),
@@ -89,9 +108,9 @@ impl Debug for Doc {
             Self::Token(arg0) => f.debug_tuple("Token").field(&arg0.text()).finish(),
             Self::SoftBreak => write!(f, "SoftBreak"),
             Self::HardBreak => write!(f, "HardBreak"),
-            Self::Indent(arg0) => f.debug_tuple("Indent").field(arg0).finish(),
-            Self::Concat(arg0) => f.debug_tuple("Concat").field(arg0).finish(),
-            Self::Group(arg0) => f.debug_tuple("Group").field(arg0).finish(),
+            Self::Indent(arg0) => f.debug_tuple("Indent").field(&arg0.0).finish(),
+            Self::Concat(arg0) => f.debug_tuple("Concat").field(&arg0.0).finish(),
+            Self::Group(arg0) => f.debug_tuple("Group").field(&arg0.0).finish(),
             Self::Trivia(arg0) => f.debug_tuple("Trivia").field(&arg0.to_string()).finish(),
             Self::Space => write!(f, "Space"),
             Self::AlignedSpace(n) => write!(f, "AlignedSpace({n})"),
@@ -128,7 +147,7 @@ fn count_user_blank_lines(trivia: &Trivia) -> usize {
     trivia.count_newlines().saturating_sub(1)
 }
 
-/// All nodes that should be printed with an indent.
+/// Group of nodes that should be indented
 fn indents(node: &SyntaxNode) -> bool {
     use vhdl_syntax::syntax::NodeKind as Nk;
     match node.kind() {
@@ -159,6 +178,17 @@ fn indents(node: &SyntaxNode) -> bool {
         | Nk::InterfaceList => true,
         _ => false,
     }
+}
+
+/// Group of nodes that have optionally flat layout
+fn groups(node: &SyntaxNode) -> bool {
+    matches!(node.kind(),
+        NodeKind::InterfaceList
+        | NodeKind::GenericClause
+        | NodeKind::PortClause
+        | NodeKind::ParenthesizedInterfaceList
+        | NodeKind::RecordElementDeclarations
+    )
 }
 
 /// All nodes that require a single newline before them.
@@ -324,9 +354,18 @@ impl Doc {
                             pending_break = Some(Doc::HardBreak);
                         }
                     }
-                    builder.start_concat();
                     if wants_softbreak_before(node.kind()) && pending_break.is_none() {
                         pending_break = Some(Doc::SoftBreak)
+                    }
+
+                    if groups(&node) {
+                        builder.start_group();
+                    } else {
+                        builder.start_concat();
+                    }
+
+                    if indents(&node) {
+                        builder.start_indent();
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
@@ -415,19 +454,14 @@ impl Doc {
                 }
                 WalkEvent::Leave(SyntaxElement::Token(_)) => {}
                 WalkEvent::Leave(SyntaxElement::Node(node)) => {
-                    builder.end_concat();
-                    if matches!(
-                        node.kind(),
-                        NodeKind::InterfaceList
-                            | NodeKind::GenericClause
-                            | NodeKind::PortClause
-                            | NodeKind::ParenthesizedInterfaceList
-                            | NodeKind::RecordElementDeclarations
-                    ) {
-                        builder.embed_in_group();
+                    if groups(&node) {
+                        builder.end_group();
+                    } else {
+                        builder.end_concat();
                     }
+
                     if indents(&node) {
-                        builder.embed_in_indent();
+                        builder.end_indent();
                     }
                 }
             }
