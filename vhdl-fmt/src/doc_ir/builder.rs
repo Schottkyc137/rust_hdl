@@ -97,17 +97,25 @@ impl DocBuilder {
                 }
                 Event::End(node_kind) => {
                     let first_child = parents.pop().unwrap();
-                    let data = children.drain(first_child..).collect::<Vec<_>>();
+                    let mut data = children.drain(first_child..).collect::<Vec<_>>();
                     debug_assert!(
                         !data.is_empty(),
                         "Nodes should not be empty as SyntaxNodes should not be empty"
                     );
                     match node_kind {
-                        NodeKind::Concat => children.push(Doc::Concat(Docs(data))),
+                        NodeKind::Concat => {
+                            // canonicalize: Concat([X]) == X
+                            // This makes reading the Doc IR much easier
+                            if data.len() == 1 {
+                                children.push(data.pop().unwrap());
+                            } else {
+                                children.push(Doc::Concat(Docs(data)))
+                            }
+                        }
                         NodeKind::Indent => children.push(Doc::Indent(Docs(data))),
                         NodeKind::Group => children.push(Doc::Group(Docs(data))),
                     }
-                },
+                }
             }
         }
         assert!(children.len() == 1);
