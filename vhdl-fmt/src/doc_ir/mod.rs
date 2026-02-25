@@ -114,7 +114,7 @@ impl Debug for Doc {
             Self::Trivia(arg0) => f.debug_tuple("Trivia").field(&arg0.to_string()).finish(),
             Self::Space => write!(f, "Space"),
             Self::AlignedSpace(n) => write!(f, "AlignedSpace({n})"),
-            Self::Comment(arg0) => f.debug_tuple("LineComment").field(arg0).finish(),
+            Self::Comment(arg0) => f.debug_tuple("Comment").field(arg0).finish(),
             Self::BlankLines(n) => write!(f, "BlankLines({n})"),
         }
     }
@@ -182,158 +182,150 @@ fn indents(node: &SyntaxNode) -> bool {
 
 /// Group of nodes that have optionally flat layout
 fn groups(node: &SyntaxNode) -> bool {
-    matches!(node.kind(),
+    matches!(
+        node.kind(),
         NodeKind::InterfaceList
-        | NodeKind::GenericClause
-        | NodeKind::PortClause
-        | NodeKind::ParenthesizedInterfaceList
-        | NodeKind::RecordElementDeclarations
+            | NodeKind::GenericClause
+            | NodeKind::PortClause
+            | NodeKind::ParenthesizedInterfaceList
+            | NodeKind::RecordElementDeclarations
     )
 }
 
-/// All nodes that require a single newline before them.
-fn wants_newline_before(node_kind: NodeKind) -> bool {
+fn break_kind_before(node: NodeKind) -> Option<Doc> {
     use vhdl_syntax::syntax::NodeKind as Nk;
-    matches!(
-        node_kind,
+    match node {
         Nk::AliasDeclaration
-            | Nk::DeclarationStatementSeparator
-            | Nk::SemiColonTerminatedBindingIndication
-            | Nk::UseClause
-            | Nk::SubprogramDeclaration
-            | Nk::SubprogramBody
-            | Nk::SubprogramInstantiationDeclaration
-            | Nk::PackageDeclaration
-            | Nk::PackageBody
-            | Nk::PackageInstantiationDeclaration
-            | Nk::FullTypeDeclaration
-            | Nk::IncompleteTypeDeclaration
-            | Nk::SubtypeDeclaration
-            | Nk::ConstantDeclaration
-            | Nk::SignalDeclaration
-            | Nk::VariableDeclaration
-            | Nk::SharedVariableDeclaration
-            | Nk::FileDeclaration
-            | Nk::ComponentDeclaration
-            | Nk::AttributeDeclaration
-            | Nk::GroupTemplateDeclaration
-            | Nk::GroupDeclaration
-            | Nk::AttributeSpecification
-            | Nk::SimpleConfigurationSpecification
-            | Nk::CompoundConfigurationSpecification
-            | Nk::DisconnectionSpecification
-            | Nk::PslPropertyDeclaration
-            | Nk::PslSequenceDeclaration
-            | Nk::PslClockDeclaration
-            | Nk::GenericClause
-            | Nk::PortClause
-            | Nk::GenericMapAspect
-            | Nk::PortMapAspect
-            | Nk::BlockHeader
-            | Nk::GenerateStatementBody
-            | Nk::CaseGenerateAlternative
-            | Nk::CaseStatementAlternative
-            | Nk::SemiColonTerminatedVerificationUnitBindingIndication
-            | Nk::BlockConfiguration
-            | Nk::BlockStatement
-            | Nk::ProcessStatement
-            | Nk::ConcurrentAssertionStatement
-            | Nk::ComponentInstantiationStatement
-            | Nk::ConcurrentSelectedSignalAssignment
-            | Nk::ConcurrentConditionalSignalAssignment
-            | Nk::ConcurrentSimpleSignalAssignment
-            | Nk::ConcurrentProcedureCallOrComponentInstantiationStatement
-            | Nk::ForGenerateStatement
-            | Nk::IfGenerateElsif
-            | Nk::IfGenerateElse
-            | Nk::CaseGenerateStatement
-            | Nk::PslDirective
-            | Nk::WaitStatement
-            | Nk::AssertionStatement
-            | Nk::ReportStatement
-            | Nk::ProcedureCallStatement
-            | Nk::SimpleVariableAssignment
-            | Nk::ConditionalVariableAssignment
-            | Nk::SelectedVariableAssignment
-            | Nk::IfStatement
-            | Nk::IfStatementElsif
-            | Nk::IfStatementElse
-            | Nk::CaseStatement
-            | Nk::LoopStatement
-            | Nk::NextStatement
-            | Nk::ExitStatement
-            | Nk::ReturnStatement
-            | Nk::NullStatement
-            | Nk::PackageBodyDeclaration
-            | Nk::BlockPreamble
-            | Nk::PackagePreamble
-            | Nk::IfStatementPreamble
-            | Nk::PackageBodyPreamble
-            | Nk::ArchitecturePreamble
-            | Nk::CaseStatementPreamble
-            | Nk::LoopStatementPreamble
-            | Nk::SubprogramBodyPreamble
-            | Nk::ProcessStatementPreamble
-            | Nk::EntityDeclarationPreamble
-            | Nk::ProtectedTypeBodyPreamble
-            | Nk::BlockConfigurationPreamble
-            | Nk::ContextDeclarationPreamble
-            | Nk::IfGenerateStatementPreamble
-            | Nk::ComponentDeclarationPreamble
-            | Nk::ForGenerateStatementPreamble
-            | Nk::RecordTypeDefinitionPreamble
-            | Nk::CaseGenerateStatementPreamble
-            | Nk::ComponentConfigurationPreamble
-            | Nk::ConfigurationDeclarationPreamble
-            | Nk::ProtectedTypeDeclarationPreamble
-            | Nk::BlockEpilogue
-            | Nk::PackageEpilogue
-            | Nk::IfStatementEpilogue
-            | Nk::PackageBodyEpilogue
-            | Nk::ArchitectureEpilogue
-            | Nk::CaseStatementEpilogue
-            | Nk::LoopStatementEpilogue
-            | Nk::SubprogramBodyEpilogue
-            | Nk::ProcessStatementEpilogue
-            | Nk::EntityDeclarationEpilogue
-            | Nk::ProtectedTypeBodyEpilogue
-            | Nk::BlockConfigurationEpilogue
-            | Nk::ContextDeclarationEpilogue
-            | Nk::IfGenerateStatementEpilogue
-            | Nk::ComponentDeclarationEpilogue
-            | Nk::ForGenerateStatementEpilogue
-            | Nk::RecordTypeDefinitionEpilogue
-            | Nk::CaseGenerateStatementEpilogue
-            | Nk::GenerateStatementBodyEpilogue
-            | Nk::ComponentConfigurationEpilogue
-            | Nk::PhysicalTypeDefinitionEpilogue
-            | Nk::ConfigurationDeclarationEpilogue
-            | Nk::ProtectedTypeDeclarationEpilogue
-            | Nk::PrimaryUnitDeclaration
-            | Nk::SecondaryUnitDeclaration
-            | Nk::ElementDeclaration
-            | Nk::SimpleWaveformAssignment
-            | Nk::SimpleForceAssignment
-            | Nk::SimpleReleaseAssignment
-    )
-}
-
-/// Nodes that need a soft break, i.e., a conditional break based on
-/// a user-configured maximum line length.
-fn wants_softbreak_before(node_kind: NodeKind) -> bool {
-    matches!(
-        node_kind,
-        NodeKind::InterfaceList
-            | NodeKind::InterfaceConstantDeclaration
-            | NodeKind::InterfaceSignalDeclaration
-            | NodeKind::InterfaceVariableDeclaration
-            | NodeKind::InterfaceFileDeclaration
-            | NodeKind::InterfaceIncompleteTypeDeclaration
-            | NodeKind::InterfaceSubprogramDeclaration
-            | NodeKind::InterfacePackageDeclaration
-            | NodeKind::PortClauseEpilogue
-            | NodeKind::GenericClauseEpilogue
-    )
+        | Nk::DeclarationStatementSeparator
+        | Nk::SemiColonTerminatedBindingIndication
+        | Nk::UseClause
+        | Nk::SubprogramDeclaration
+        | Nk::SubprogramBody
+        | Nk::SubprogramInstantiationDeclaration
+        | Nk::PackageDeclaration
+        | Nk::PackageBody
+        | Nk::PackageInstantiationDeclaration
+        | Nk::FullTypeDeclaration
+        | Nk::IncompleteTypeDeclaration
+        | Nk::SubtypeDeclaration
+        | Nk::ConstantDeclaration
+        | Nk::SignalDeclaration
+        | Nk::VariableDeclaration
+        | Nk::SharedVariableDeclaration
+        | Nk::FileDeclaration
+        | Nk::ComponentDeclaration
+        | Nk::AttributeDeclaration
+        | Nk::GroupTemplateDeclaration
+        | Nk::GroupDeclaration
+        | Nk::AttributeSpecification
+        | Nk::SimpleConfigurationSpecification
+        | Nk::CompoundConfigurationSpecification
+        | Nk::DisconnectionSpecification
+        | Nk::PslPropertyDeclaration
+        | Nk::PslSequenceDeclaration
+        | Nk::PslClockDeclaration
+        | Nk::GenericClause
+        | Nk::PortClause
+        | Nk::GenericMapAspect
+        | Nk::PortMapAspect
+        | Nk::BlockHeader
+        | Nk::GenerateStatementBody
+        | Nk::CaseGenerateAlternative
+        | Nk::CaseStatementAlternative
+        | Nk::SemiColonTerminatedVerificationUnitBindingIndication
+        | Nk::BlockConfiguration
+        | Nk::BlockStatement
+        | Nk::ProcessStatement
+        | Nk::ConcurrentAssertionStatement
+        | Nk::ComponentInstantiationStatement
+        | Nk::ConcurrentSelectedSignalAssignment
+        | Nk::ConcurrentConditionalSignalAssignment
+        | Nk::ConcurrentSimpleSignalAssignment
+        | Nk::ConcurrentProcedureCallOrComponentInstantiationStatement
+        | Nk::ForGenerateStatement
+        | Nk::IfGenerateElsif
+        | Nk::IfGenerateElse
+        | Nk::CaseGenerateStatement
+        | Nk::PslDirective
+        | Nk::WaitStatement
+        | Nk::AssertionStatement
+        | Nk::ReportStatement
+        | Nk::ProcedureCallStatement
+        | Nk::SimpleVariableAssignment
+        | Nk::ConditionalVariableAssignment
+        | Nk::SelectedVariableAssignment
+        | Nk::IfStatement
+        | Nk::IfStatementElsif
+        | Nk::IfStatementElse
+        | Nk::CaseStatement
+        | Nk::LoopStatement
+        | Nk::NextStatement
+        | Nk::ExitStatement
+        | Nk::ReturnStatement
+        | Nk::NullStatement
+        | Nk::PackageBodyDeclaration
+        | Nk::BlockPreamble
+        | Nk::PackagePreamble
+        | Nk::IfStatementPreamble
+        | Nk::PackageBodyPreamble
+        | Nk::ArchitecturePreamble
+        | Nk::CaseStatementPreamble
+        | Nk::LoopStatementPreamble
+        | Nk::SubprogramBodyPreamble
+        | Nk::ProcessStatementPreamble
+        | Nk::EntityDeclarationPreamble
+        | Nk::ProtectedTypeBodyPreamble
+        | Nk::BlockConfigurationPreamble
+        | Nk::ContextDeclarationPreamble
+        | Nk::IfGenerateStatementPreamble
+        | Nk::ComponentDeclarationPreamble
+        | Nk::ForGenerateStatementPreamble
+        | Nk::RecordTypeDefinitionPreamble
+        | Nk::CaseGenerateStatementPreamble
+        | Nk::ComponentConfigurationPreamble
+        | Nk::ConfigurationDeclarationPreamble
+        | Nk::ProtectedTypeDeclarationPreamble
+        | Nk::BlockEpilogue
+        | Nk::PackageEpilogue
+        | Nk::IfStatementEpilogue
+        | Nk::PackageBodyEpilogue
+        | Nk::ArchitectureEpilogue
+        | Nk::CaseStatementEpilogue
+        | Nk::LoopStatementEpilogue
+        | Nk::SubprogramBodyEpilogue
+        | Nk::ProcessStatementEpilogue
+        | Nk::EntityDeclarationEpilogue
+        | Nk::ProtectedTypeBodyEpilogue
+        | Nk::BlockConfigurationEpilogue
+        | Nk::ContextDeclarationEpilogue
+        | Nk::IfGenerateStatementEpilogue
+        | Nk::ComponentDeclarationEpilogue
+        | Nk::ForGenerateStatementEpilogue
+        | Nk::RecordTypeDefinitionEpilogue
+        | Nk::CaseGenerateStatementEpilogue
+        | Nk::GenerateStatementBodyEpilogue
+        | Nk::ComponentConfigurationEpilogue
+        | Nk::PhysicalTypeDefinitionEpilogue
+        | Nk::ConfigurationDeclarationEpilogue
+        | Nk::ProtectedTypeDeclarationEpilogue
+        | Nk::PrimaryUnitDeclaration
+        | Nk::SecondaryUnitDeclaration
+        | Nk::ElementDeclaration
+        | Nk::SimpleWaveformAssignment
+        | Nk::SimpleForceAssignment
+        | Nk::SimpleReleaseAssignment => Some(Doc::HardBreak),
+        Nk::InterfaceList
+        | Nk::InterfaceConstantDeclaration
+        | Nk::InterfaceSignalDeclaration
+        | Nk::InterfaceVariableDeclaration
+        | Nk::InterfaceFileDeclaration
+        | Nk::InterfaceIncompleteTypeDeclaration
+        | Nk::InterfaceSubprogramDeclaration
+        | Nk::InterfacePackageDeclaration
+        | Nk::PortClauseEpilogue
+        | Nk::GenericClauseEpilogue => Some(Doc::SoftBreak),
+        _ => None,
+    }
 }
 
 impl Doc {
@@ -345,17 +337,15 @@ impl Doc {
         for event in preorder {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
-                    if wants_newline_before(node.kind()) {
-                        let has_preceding_content = node
+                    if let Some(doc) = break_kind_before(node.kind()) {
+                        // No breaks on the first token
+                        if node
                             .first_token()
                             .and_then(|tok| tok.prev_token())
-                            .is_some();
-                        if has_preceding_content {
-                            pending_break = Some(Doc::HardBreak);
+                            .is_some()
+                        {
+                            pending_break = Some(doc);
                         }
-                    }
-                    if wants_softbreak_before(node.kind()) && pending_break.is_none() {
-                        pending_break = Some(Doc::SoftBreak)
                     }
 
                     if groups(&node) {
@@ -369,6 +359,7 @@ impl Doc {
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
+                    // Step 1: lift comment trivia (or record blank lines for the plain case).
                     if token.leading_trivia().contains_comments() {
                         let mut last_sep: Option<PendingSep> = None;
                         for triv in token.leading_trivia() {
@@ -390,10 +381,8 @@ impl Doc {
                                 TriviaPiece::BlockComment(comment) => {
                                     if let Some(sep) = last_sep.take() {
                                         if sep.hard {
-                                            if sep.blank_lines() > 0 {
-                                                builder.push(Doc::BlankLines(sep.blank_lines()));
-                                            }
-                                            builder.push(Doc::HardBreak);
+                                            builder.blank_lines(sep.blank_lines());
+                                            builder.hard_break();
                                         } else {
                                             builder.soft_break();
                                         }
@@ -403,10 +392,8 @@ impl Doc {
                                 TriviaPiece::LineComment(comment) => {
                                     if let Some(sep) = last_sep.take() {
                                         if sep.hard {
-                                            if sep.blank_lines() > 0 {
-                                                builder.push(Doc::BlankLines(sep.blank_lines()));
-                                            }
-                                            builder.push(Doc::HardBreak);
+                                            builder.blank_lines(sep.blank_lines());
+                                            builder.hard_break();
                                         } else {
                                             builder.soft_break();
                                         }
@@ -417,39 +404,43 @@ impl Doc {
                             }
                         }
                         // The trailing separator after the last comment owns the boundary
-                        // (last comment -> token). If it is hard, pending_break is dropped
-                        // so the formatter does not emit a second HardBreak for the same boundary.
+                        // (last comment -> token). Blank lines are always preserved.
+                        // For structural break positions the structural HardBreak below
+                        // handles the mandatory newline; for all other positions we emit it
+                        // here as before.
                         // Soft-only separators are dropped — the comment already provides spacing.
-                        let trailing_was_hard = if let Some(sep) = last_sep.take()
+                        if let Some(sep) = last_sep.take()
                             && sep.hard
                         {
-                            if sep.blank_lines() > 0 {
-                                builder.push(Doc::BlankLines(sep.blank_lines()));
-                            }
-                            builder.push(Doc::HardBreak);
-                            true
-                        } else {
-                            false
-                        };
-                        if trailing_was_hard {
-                            pending_break = None;
+                            builder.blank_lines(sep.blank_lines());
+                            pending_break = Some(Doc::HardBreak);
                         }
                     } else {
-                        let bl = count_user_blank_lines(token.leading_trivia());
-                        if bl > 0 {
-                            builder.push(Doc::BlankLines(bl));
-                        }
+                        builder.blank_lines(count_user_blank_lines(token.leading_trivia()));
                     }
 
-                    if let Some(pending_break) = pending_break.take() {
-                        builder.push(pending_break);
+                    let has_break = pending_break.is_some();
+                    // Step 2: structural break (after comments, before token).
+                    if let Some(pending) = pending_break.take() {
+                        builder.push(pending);
                     }
+
+                    // Step 3: alignment space — emitted *before* trivia so that the resolver
+                    // sets break_kind first; the subsequent trivia emission is then a no-op
+                    // (resolver ignores trivia when break_kind != Unset). For structural break
+                    // positions the Newline guard prevents AlignedSpace from overriding Newline.
                     if let Some(alignment) = alignment.get(&token) {
-                        builder.push(Doc::AlignedSpace(alignment));
+                        builder.aligned_spaces(alignment);
                     }
-                    if !token.leading_trivia().contains_comments() {
+
+                    // Step 4: verbatim trivia for non-structural positions. Emitted after
+                    // aligned_spaces so it is silently ignored whenever aligned_spaces (or the
+                    // structural HardBreak) already owns the break_kind slot.
+                    if !has_break && !token.leading_trivia().contains_comments() {
                         builder.trivia(token.leading_trivia().clone());
                     }
+
+                    // Step 5: token.
                     builder.token(token.clone());
                 }
                 WalkEvent::Leave(SyntaxElement::Token(_)) => {}

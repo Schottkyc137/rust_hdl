@@ -44,8 +44,19 @@ struct ResolveState {
 fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState, flat: bool) {
     match doc {
         Doc::Token(syntax_token) => {
+            let mut boundary_decision = take(&mut state.pending);
+            match &mut boundary_decision.break_kind {
+                BreakKind::Newline {
+                    blank_lines,
+                    indent: _,
+                } => {
+                    if state.blank_lines_hint != 0 {
+                        *blank_lines = *blank_lines + state.blank_lines_hint
+                    }
+                }
+                _ => {}
+            }
             state.blank_lines_hint = 0;
-            let boundary_decision = take(&mut state.pending);
             for trivia in &boundary_decision.trivia {
                 match trivia {
                     TriviaPiece::HorizontalTabs(_) => unimplemented!("Column count for tabs"),
@@ -73,16 +84,17 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 state.pending.trivia.is_empty(),
                 "Invariant: trivia before hard break"
             );
-            debug_assert!(
-                !matches!(state.pending.break_kind, BreakKind::Newline { .. }),
-                "HardBreak fires while a Newline is already pending — \
-                 two HardBreaks for one boundary; this is a bug in Doc::from_node"
-            );
-            state.pending.break_kind = BreakKind::Newline {
-                blank_lines: state.blank_lines_hint,
-                indent: state.indent,
-            };
-            state.blank_lines_hint = 0;
+            // HardBreak is the highest-priority break: it upgrades any pending
+            // break to Newline. If Newline is already pending the HardBreak is a
+            // no-op — blank_lines_hint is intentionally left intact so the Token
+            // handler can still apply it to the existing Newline boundary.
+            if !matches!(state.pending.break_kind, BreakKind::Newline { .. }) {
+                state.pending.break_kind = BreakKind::Newline {
+                    blank_lines: state.blank_lines_hint,
+                    indent: state.indent,
+                };
+                state.blank_lines_hint = 0;
+            }
         }
         Doc::Indent(docs) => {
             state.indent += config.indentation.width;
@@ -92,15 +104,22 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             state.indent -= config.indentation.width;
         }
         Doc::SoftBreak => {
-            state.pending.break_kind = if flat {
-                BreakKind::Spaces(1)
-            } else {
-                BreakKind::Newline {
-                    blank_lines: state.blank_lines_hint,
-                    indent: state.indent,
-                }
-            };
-            state.blank_lines_hint = 0;
+            // SoftBreak resolves to Spaces(1) when flat, Newline when broken.
+            // It never overrides a pending Newline — the structural HardBreak for
+            // that boundary is now emitted *after* any lifted comment trivia in
+            // `from_node`, so a SoftBreak that precedes a structural boundary will
+            // always arrive before the HardBreak and will not compete with it.
+            if !matches!(state.pending.break_kind, BreakKind::Newline { .. }) {
+                state.pending.break_kind = if flat {
+                    BreakKind::Spaces(1)
+                } else {
+                    BreakKind::Newline {
+                        blank_lines: state.blank_lines_hint,
+                        indent: state.indent,
+                    }
+                };
+                state.blank_lines_hint = 0;
+            }
         }
         Doc::Group(docs) => {
             let layout_as_flat = if let Some(flat_width) = docs.flat_width() {
@@ -132,7 +151,6 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             }
         }
         Doc::Space => {
-            // TODO: This should likely be a debug_assert(state.pending.break_kind == Unset)
             // Do not override newlines with space
             if matches!(
                 state.pending.break_kind,
@@ -144,21 +162,20 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             // Existing Newline: don't override; keep blank_lines_hint for the newline
         }
         Doc::AlignedSpace(n) => {
-            state.pending.break_kind = if flat {
-                BreakKind::Spaces(1)
-            } else {
-                BreakKind::Spaces(n)
-            };
+            // AlignedSpace never overrides a pending Newline.
+            if !matches!(state.pending.break_kind, BreakKind::Newline { .. }) {
+                state.pending.break_kind = if flat {
+                    BreakKind::Spaces(1)
+                } else {
+                    BreakKind::Spaces(n)
+                };
+            }
         }
         Doc::BlankLines(n) => {
             let hint = match config.blank_lines {
                 crate::config::UserBlankLinePolicy::Preserve => n,
             };
-            debug_assert_eq!(
-                state.blank_lines_hint, 0,
-                "Two consecutive BlankLines nodes without an intervening break"
-            );
-            state.blank_lines_hint = hint;
+            state.blank_lines_hint += hint;
         }
     }
 }

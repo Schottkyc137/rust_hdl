@@ -103,10 +103,7 @@ fn empty_architecture_formatting() {
         simple_name(b"my_entity"),
     ))
     .build();
-    assert_eq!(
-        fmt(arch),
-        " architecture rtl of my_entity is\nbegin\nend ;"
-    );
+    assert_eq!(fmt(arch), " architecture rtl of my_entity is\nbegin\nend ;");
 }
 
 /// Declarations inside an architecture body are indented by one level (4
@@ -518,3 +515,15 @@ end foo;
     );
     insta::assert_snapshot!(formatted);
 }
+
+// #[test]
+// fn does_not_split_into_multiple_lines_for_elements_shorter_than_the_maximum_column_width() {
+//     let formatted = fmt_str(
+//         "\
+// package foo is
+//     function f(short_arg : std_logic);
+// end;
+// ",
+//     );
+//     insta::assert_snapshot!(formatted);
+// }

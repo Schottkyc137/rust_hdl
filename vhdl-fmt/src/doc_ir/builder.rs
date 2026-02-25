@@ -27,16 +27,24 @@ impl DocBuilder {
         self.events.push(Event::Push(doc));
     }
 
+    pub fn blank_lines(&mut self, n: usize) {
+        if n > 0 {
+            self.push(Doc::BlankLines(n));
+        }
+    }
+
+    pub fn aligned_spaces(&mut self, n: usize) {
+        self.push(Doc::AlignedSpace(n));
+    }
+
     pub fn token(&mut self, token: SyntaxToken) {
         self.push(Doc::Token(token));
     }
 
-    #[allow(dead_code)]
     pub fn hard_break(&mut self) {
         self.push(Doc::HardBreak);
     }
 
-    #[allow(dead_code)]
     pub fn space(&mut self) {
         self.push(Doc::Space);
     }
@@ -50,6 +58,9 @@ impl DocBuilder {
     }
 
     pub fn trivia(&mut self, trivia: Trivia) {
+        if trivia.is_empty() {
+            return;
+        }
         self.push(Doc::Trivia(trivia));
     }
 
@@ -90,7 +101,9 @@ impl DocBuilder {
         let mut parents = Vec::new();
         for event in self.events {
             match event {
-                Event::Push(doc) => children.push(doc),
+                Event::Push(doc) => {
+                    children.push(doc);
+                }
                 Event::Start(_) => {
                     let len = children.len();
                     parents.push(len);
@@ -119,6 +132,8 @@ impl DocBuilder {
             }
         }
         assert!(children.len() == 1);
-        return children.pop().unwrap()
+        let doc = children.pop().unwrap();
+        println!("{doc:#?}");
+        doc
     }
 }
