@@ -1,0 +1,12 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: formatted
+---
+package pkg is
+    type my_record is
+    record
+        -- describes field_a
+        field_a : std_logic;
+        field_b : integer;
+    end record;
+end pkg;

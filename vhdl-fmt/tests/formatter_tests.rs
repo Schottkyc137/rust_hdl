@@ -502,7 +502,7 @@ end;",
 
 #[test]
 fn consecutive_declarations_do_not_influence_formatting_of_each_other() {
-    // There is currently a bug where the comment after signal a is emitted to the next line.
+    // There was a bug where the comment after signal a was emitted to the next line.
     // If signal b is omitted, the comment is trailing (like it should be)
     let formatted = fmt_str(
         "\
@@ -511,6 +511,57 @@ architecture foo of bar is
   signal b : std_logic;
 begin
 end foo;
+",
+    );
+    insta::assert_snapshot!(formatted);
+}
+
+/// A trailing line comment in a record type definition is always hoisted to
+/// appear *before* the element it was on, because record element declarations
+/// always use broken (non-flat) layout.
+#[test]
+fn trailing_comment_in_record_is_hoisted_before_element() {
+    let formatted = fmt_str(
+        "\
+package pkg is
+  type my_record is record
+    field_a : std_logic; -- describes field_a
+    field_b : integer;
+  end record;
+end pkg;
+",
+    );
+    insta::assert_snapshot!(formatted);
+}
+
+/// A trailing line comment inside a port list is always hoisted before the
+/// port it annotated, regardless of port-name length.  A trailing *line*
+/// comment always introduces a newline, which makes the interface-list group
+/// flat_width = None (always broken), so hoisting unconditionally applies.
+#[test]
+fn trailing_comment_in_interface_list_is_hoisted() {
+    let formatted = fmt_str(
+        "\
+entity foo is
+  port (very_long_signal_name_here : in std_logic_vector(7 downto 0); -- hoisted
+        another_very_long_signal : out std_logic);
+end foo;
+",
+    );
+    insta::assert_snapshot!(formatted);
+}
+
+#[test]
+fn trailing_comment_is_hoisted_before_last_other_comment() {
+    let formatted = fmt_str(
+        "\
+package pkg is
+  type my_record is record
+    -- other comment
+    field_a : std_logic; -- describes field_a
+    field_b : integer;
+  end record;
+end pkg;
 ",
     );
     insta::assert_snapshot!(formatted);

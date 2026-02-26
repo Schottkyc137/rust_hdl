@@ -73,6 +73,15 @@ pub enum Doc {
     /// User-supplied blank lines. Only contributes to `BreakKind::Newline.blank_lines`
     /// when the resolver is emitting a newline; ignored otherwise.
     BlankLines(usize),
+    /// A comment that appeared on the same source line as the preceding token
+    /// (i.e., preceded only by whitespace, not by a newline, in the token's
+    /// leading trivia).
+    ///
+    /// - **Flat layout**: emitted inline after a single space, same as `Comment`.
+    /// - **Broken layout**: hoisted to appear *before* the current statement
+    ///   (i.e., prepended to the boundary of the first token of the statement
+    ///   that owns the comment's `StatementStart` sentinel).
+    TrailingComment(DocComment),
 }
 
 impl Doc {
@@ -98,6 +107,8 @@ impl Doc {
             // Blank lines only contribute when not laying out flat.
             // In a flat layout, they are omitted.
             Doc::BlankLines(_) => Some(0),
+            // Trailing comment is inline (space + comment) in flat layout.
+            Doc::TrailingComment(comment) => Some(1 + comment.byte_len()),
         }
     }
 }
@@ -116,6 +127,7 @@ impl Debug for Doc {
             Self::AlignedSpace(n) => write!(f, "AlignedSpace({n})"),
             Self::Comment(arg0) => f.debug_tuple("Comment").field(arg0).finish(),
             Self::BlankLines(n) => write!(f, "BlankLines({n})"),
+            Self::TrailingComment(arg0) => f.debug_tuple("TrailingComment").field(arg0).finish(),
         }
     }
 }
@@ -392,13 +404,21 @@ impl Doc {
                                 TriviaPiece::LineComment(comment) => {
                                     if let Some(sep) = last_sep.take() {
                                         if sep.hard {
+                                            // Leading line comment: on its own line.
                                             builder.blank_lines(sep.blank_lines());
                                             builder.hard_break();
+                                            builder.comment(DocComment::Line(comment.clone()));
                                         } else {
+                                            // Trailing line comment: same source line as
+                                            // the preceding token.
                                             builder.soft_break();
+                                            builder.trailing_comment(DocComment::Line(
+                                                comment.clone(),
+                                            ));
                                         }
+                                    } else {
+                                        builder.trailing_comment(DocComment::Line(comment.clone()));
                                     }
-                                    builder.comment(DocComment::Line(comment.clone()));
                                 }
                                 TriviaPiece::Unexpected(_) => unimplemented!("Unexpected trivia"),
                             }

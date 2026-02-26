@@ -1,0 +1,11 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: formatted
+---
+entity foo is
+    port (
+        -- hoisted
+        very_long_signal_name_here : in std_logic_vector(7 downto 0);
+        another_very_long_signal   : out std_logic
+    );
+end foo;

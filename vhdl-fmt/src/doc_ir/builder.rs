@@ -57,6 +57,10 @@ impl DocBuilder {
         self.push(Doc::Comment(comment));
     }
 
+    pub fn trailing_comment(&mut self, comment: DocComment) {
+        self.push(Doc::TrailingComment(comment));
+    }
+
     pub fn trivia(&mut self, trivia: Trivia) {
         if trivia.is_empty() {
             return;

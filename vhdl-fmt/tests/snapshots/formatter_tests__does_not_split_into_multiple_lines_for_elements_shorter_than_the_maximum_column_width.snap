@@ -1,6 +1,5 @@
 ---
 source: vhdl-fmt/tests/formatter_tests.rs
-assertion_line: 528
 expression: formatted
 ---
 package foo is

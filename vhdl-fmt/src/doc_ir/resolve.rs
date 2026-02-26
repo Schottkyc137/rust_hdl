@@ -17,6 +17,7 @@ impl ResolveState {
             indent: 0,
             column: 0,
             blank_lines_hint: 0,
+            last_line_start: None,
         }
     }
 }
@@ -39,6 +40,8 @@ struct ResolveState {
     column: usize,
     /// Accumulated user blank-line count hint
     blank_lines_hint: usize,
+    /// Text position of the first token of the current line.
+    last_line_start: Option<usize>,
 }
 
 fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState, flat: bool) {
@@ -53,6 +56,7 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                     if state.blank_lines_hint != 0 {
                         *blank_lines = *blank_lines + state.blank_lines_hint
                     }
+                    state.last_line_start = Some(syntax_token.text_pos());
                 }
                 _ => {}
             }
@@ -140,6 +144,44 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             let break_kind = take(&mut state.pending.break_kind);
             state.column += comment.byte_len();
             state.pending.comments.push((break_kind, comment));
+        }
+        Doc::TrailingComment(comment) => {
+            let break_kind = take(&mut state.pending.break_kind);
+            state.column += comment.byte_len();
+            if flat {
+                // Flat layout: keep inline just like a regular Comment.
+                state.pending.comments.push((break_kind, comment));
+            } else {
+                // Broken layout: hoist the comment to appear before the
+                // current statement by prepending it to the boundary decision
+                // of that statement's first token.
+                let hoisted = if let Some(stmt_pos) = state.last_line_start {
+                    if let Some(decision) = state.plan.get_mut(&stmt_pos) {
+                        let indent = match decision.break_kind {
+                            BreakKind::Newline { indent, .. } => indent,
+                            _ => 0,
+                        };
+                        // Insert at the front so that the trailing comment
+                        // precedes any leading comments already on that token.
+                        decision.comments.push((
+                            BreakKind::Newline {
+                                blank_lines: 0,
+                                indent,
+                            },
+                            comment.clone(),
+                        ));
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+                if !hoisted {
+                    // Fallback: treat like a regular comment.
+                    state.pending.comments.push((break_kind, comment));
+                }
+            }
         }
         // BIG TODO: Tokens are currently handled in a very mediocre way.
         // This is because tokens are treated differently from comments - comments are trivia
