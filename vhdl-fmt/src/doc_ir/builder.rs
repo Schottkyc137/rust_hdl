@@ -46,11 +46,11 @@ impl DocBuilder {
     }
 
     pub fn space(&mut self) {
-        self.push(Doc::Space);
+        self.push(Doc::Spaces(1));
     }
 
     pub fn soft_break(&mut self) {
-        self.push(Doc::SoftBreak);
+        self.push(Doc::SoftBreak { flat_spaces: 1 });
     }
 
     pub fn comment(&mut self, comment: DocComment) {

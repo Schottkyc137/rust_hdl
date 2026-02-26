@@ -48,7 +48,6 @@ impl IntoIterator for Docs {
 }
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub enum Doc {
     /// The basic element of text
     Token(SyntaxToken),
@@ -64,10 +63,10 @@ pub enum Doc {
     Group(Docs),
     /// A comment
     Comment(DocComment),
-    /// Optional break: space if fits, newline + indent otherwise
-    SoftBreak,
-    /// A forced space
-    Space,
+    /// Optional break: 'n' spaces if fits, newline + indent otherwise
+    SoftBreak { flat_spaces: usize },
+    /// forced spaces
+    Spaces(usize),
     /// Alignment space: `n` spaces in broken layout, 1 space in flat layout.
     AlignedSpace(usize),
     /// User-supplied blank lines. Only contributes to `BreakKind::Newline.blank_lines`
@@ -93,8 +92,8 @@ impl Doc {
             Doc::Concat(docs) => docs.flat_width(),
             Doc::Group(docs) => docs.flat_width(),
             // Count soft break as space with flat layouting
-            Doc::SoftBreak => Some(1),
-            Doc::Space => Some(1),
+            Doc::SoftBreak { flat_spaces } => Some(*flat_spaces),
+            Doc::Spaces(n) => Some(*n),
             Doc::AlignedSpace(_) => Some(1),
             Doc::Trivia(trivia) => {
                 if trivia.has_newline() {
@@ -117,13 +116,16 @@ impl Debug for Doc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Token(arg0) => f.debug_tuple("Token").field(&arg0.text()).finish(),
-            Self::SoftBreak => write!(f, "SoftBreak"),
+            Self::SoftBreak { flat_spaces } => f
+                .debug_struct("SoftBreak")
+                .field("flat_spaces", flat_spaces)
+                .finish(),
             Self::HardBreak => write!(f, "HardBreak"),
             Self::Indent(arg0) => f.debug_tuple("Indent").field(&arg0.0).finish(),
             Self::Concat(arg0) => f.debug_tuple("Concat").field(&arg0.0).finish(),
             Self::Group(arg0) => f.debug_tuple("Group").field(&arg0.0).finish(),
             Self::Trivia(arg0) => f.debug_tuple("Trivia").field(&arg0.to_string()).finish(),
-            Self::Space => write!(f, "Space"),
+            Self::Spaces(arg0) => f.debug_tuple("Spaces").field(arg0).finish(),
             Self::AlignedSpace(n) => write!(f, "AlignedSpace({n})"),
             Self::Comment(arg0) => f.debug_tuple("Comment").field(arg0).finish(),
             Self::BlankLines(n) => write!(f, "BlankLines({n})"),
@@ -335,7 +337,7 @@ fn break_kind_before(node: NodeKind) -> Option<Doc> {
         | Nk::InterfaceSubprogramDeclaration
         | Nk::InterfacePackageDeclaration
         | Nk::PortClauseEpilogue
-        | Nk::GenericClauseEpilogue => Some(Doc::SoftBreak),
+        | Nk::GenericClauseEpilogue => Some(Doc::SoftBreak { flat_spaces: 1 }),
         _ => None,
     }
 }
