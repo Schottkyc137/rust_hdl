@@ -567,14 +567,26 @@ end pkg;
     insta::assert_snapshot!(formatted);
 }
 
-// #[test]
-// fn does_not_split_into_multiple_lines_for_elements_shorter_than_the_maximum_column_width() {
-//     let formatted = fmt_str(
-//         "\
-// package foo is
-//     function f(short_arg : std_logic);
-// end;
-// ",
-//     );
-//     insta::assert_snapshot!(formatted);
-// }
+#[test]
+fn does_not_split_into_multiple_lines_for_elements_shorter_than_the_maximum_column_width() {
+    let formatted = fmt_str(
+        "\
+package foo is
+    function f(short_arg : std_logic);
+end;
+",
+    );
+    insta::assert_snapshot!(formatted);
+}
+
+#[test]
+fn splits_into_multiple_lines_for_elements_longer_than_the_maximum_column_width() {
+    let formatted = fmt_str(
+        "\
+package foo is
+    function function_with_long_name(argument_name_that_is_very_long : type_name_that_is_equally_long);
+end;
+",
+    );
+    insta::assert_snapshot!(formatted);
+}

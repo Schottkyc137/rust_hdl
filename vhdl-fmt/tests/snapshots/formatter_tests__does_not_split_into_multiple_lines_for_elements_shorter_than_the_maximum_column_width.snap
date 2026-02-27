@@ -3,5 +3,5 @@ source: vhdl-fmt/tests/formatter_tests.rs
 expression: formatted
 ---
 package foo is
-    function f( short_arg : std_logic);
+    function f(short_arg : std_logic);
 end;

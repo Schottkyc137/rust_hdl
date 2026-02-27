@@ -28,7 +28,7 @@ impl DocComment {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Docs(pub Vec<Doc>);
 
 impl Docs {
@@ -328,16 +328,14 @@ fn break_kind_before(node: NodeKind) -> Option<Doc> {
         | Nk::SimpleWaveformAssignment
         | Nk::SimpleForceAssignment
         | Nk::SimpleReleaseAssignment => Some(Doc::HardBreak),
-        Nk::InterfaceList
-        | Nk::InterfaceConstantDeclaration
-        | Nk::InterfaceSignalDeclaration
-        | Nk::InterfaceVariableDeclaration
-        | Nk::InterfaceFileDeclaration
-        | Nk::InterfaceIncompleteTypeDeclaration
-        | Nk::InterfaceSubprogramDeclaration
-        | Nk::InterfacePackageDeclaration
-        | Nk::PortClauseEpilogue
-        | Nk::GenericClauseEpilogue => Some(Doc::SoftBreak { flat_spaces: 1 }),
+        _ => None,
+    }
+}
+
+fn break_kind_after(node: NodeKind) -> Option<Doc> {
+    use vhdl_syntax::syntax::NodeKind as Nk;
+    match node {
+        Nk::InterfaceList => Some(Doc::SoftBreak { flat_spaces: 0 }),
         _ => None,
     }
 }
@@ -351,6 +349,24 @@ impl Doc {
         for event in preorder {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
+                    use vhdl_syntax::syntax::NodeKind as Nk;
+                    if matches!(
+                        node.kind(),
+                        Nk::InterfaceConstantDeclaration
+                            | Nk::InterfaceSignalDeclaration
+                            | Nk::InterfaceVariableDeclaration
+                            | Nk::InterfaceFileDeclaration
+                            | Nk::InterfaceIncompleteTypeDeclaration
+                            | Nk::InterfaceSubprogramDeclaration
+                            | Nk::InterfacePackageDeclaration
+                    ) {
+                        // First interface element
+                        if node.prev_sibling().is_none() {
+                            pending_break = Some(Doc::SoftBreak { flat_spaces: 0 });
+                        } else {
+                            pending_break = Some(Doc::SoftBreak { flat_spaces: 1 })
+                        }
+                    }
                     if let Some(doc) = break_kind_before(node.kind()) {
                         // No breaks on the first token
                         if node
@@ -467,14 +483,17 @@ impl Doc {
                 }
                 WalkEvent::Leave(SyntaxElement::Token(_)) => {}
                 WalkEvent::Leave(SyntaxElement::Node(node)) => {
+                    if indents(&node) {
+                        builder.end_indent();
+                    }
+
+                    if let Some(bk) = break_kind_after(node.kind()) {
+                        builder.push(bk);
+                    }
                     if groups(&node) {
                         builder.end_group();
                     } else {
                         builder.end_concat();
-                    }
-
-                    if indents(&node) {
-                        builder.end_indent();
                     }
                 }
             }
