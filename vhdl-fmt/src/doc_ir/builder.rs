@@ -135,9 +135,6 @@ impl DocBuilder {
                 }
             }
         }
-        assert!(children.len() == 1);
-        let doc = children.pop().unwrap();
-        println!("{doc:#?}");
-        doc
+        children.pop().unwrap()
     }
 }

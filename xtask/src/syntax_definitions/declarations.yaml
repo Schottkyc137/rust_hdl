@@ -310,6 +310,7 @@ InterfaceProcedureSpecification: !Sequence
   - keyword: Procedure
   - node: Designator
   - keyword: Parameter
+    optional: true
   - token: LeftPar
   - node: InterfaceList
     optional: true

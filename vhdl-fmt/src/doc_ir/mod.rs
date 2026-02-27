@@ -11,7 +11,7 @@ use vhdl_syntax::{
         node::{SyntaxElement, SyntaxNode, SyntaxToken},
         visitor::{PreorderWithTokens, WalkEvent},
     },
-    tokens::{Trivia, TriviaPiece, trivia_piece::Comment},
+    tokens::{TokenKind, Trivia, TriviaPiece, trivia_piece::Comment},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -326,8 +326,7 @@ fn break_kind_before(node: NodeKind) -> Option<Doc> {
         | Nk::SecondaryUnitDeclaration
         | Nk::ElementDeclaration
         | Nk::SimpleWaveformAssignment
-        | Nk::SimpleForceAssignment
-        | Nk::SimpleReleaseAssignment => Some(Doc::HardBreak),
+        | Nk::SimpleForceAssignment => Some(Doc::HardBreak),
         _ => None,
     }
 }
@@ -336,6 +335,178 @@ fn break_kind_after(node: NodeKind) -> Option<Doc> {
     use vhdl_syntax::syntax::NodeKind as Nk;
     match node {
         Nk::InterfaceList => Some(Doc::SoftBreak { flat_spaces: 0 }),
+        _ => None,
+    }
+}
+
+/// Returns the separator `Doc` to emit before a direct child node of its parent.
+/// `None` means no separator should be injected (first child, or unrecognized parent).
+fn separation_before_child_node(child: &SyntaxNode) -> Option<Doc> {
+    use vhdl_syntax::syntax::NodeKind as Nk;
+    let parent_kind = child.parent()?.kind();
+    let is_first = child.prev_sibling().is_none();
+    match parent_kind {
+        // Inline list: SoftBreak (flat=space, broken=newline)
+        Nk::InterfaceList => Some(Doc::SoftBreak {
+            flat_spaces: if is_first { 0 } else { 1 },
+        }),
+        // Space-separated keyword/identifier sequences
+        _ => space_sep_before(parent_kind, is_first),
+    }
+}
+
+/// Returns the separator `Doc` to emit before a direct child **token** of its parent.
+/// `None` means no separator should be injected (first child, or unrecognized parent).
+///
+/// Note: `InterfaceList` is intentionally excluded here because its direct token children
+/// are semicolons which must not receive a separator.
+fn separation_before_child_token(token: &SyntaxToken) -> Option<Doc> {
+    let parent = token.parent();
+    // No space before SemiColons
+    if token.kind() == TokenKind::SemiColon {
+        return None;
+    }
+    let is_first = token.prev_sibling_or_token().is_none();
+    space_sep_before(parent.kind(), is_first)
+}
+
+/// Space-separation logic for preamble/epilogue nodes.
+///
+/// Returns `Some(Spaces(1))` for non-first children of recognized parents,
+/// `None` otherwise (first child, or unrecognized parent).
+fn space_sep_before(parent_kind: NodeKind, is_first: bool) -> Option<Doc> {
+    use vhdl_syntax::syntax::NodeKind as Nk;
+    match parent_kind {
+        Nk::ArchitecturePreamble
+        | Nk::BlockPreamble
+        | Nk::EntityDeclarationPreamble
+        | Nk::PackagePreamble
+        | Nk::PackageBodyPreamble
+        | Nk::ContextDeclarationPreamble
+        | Nk::ArchitectureEpilogue
+        | Nk::BlockEpilogue
+        | Nk::CaseGenerateStatementPreamble
+        | Nk::CaseGenerateStatementEpilogue
+        | Nk::EntityDeclarationEpilogue
+        | Nk::CaseStatementAlternative
+        | Nk::ConcurrentAssertionStatement
+        | Nk::ConcurrentSimpleSignalAssignment
+        | Nk::ConcurrentConditionalSignalAssignment
+        | Nk::ConcurrentSelectedSignalAssignment
+        | Nk::ConcurrentSelectedSignalAssignmentPreamble
+        | Nk::ForGenerateStatementPreamble
+        | Nk::ForGenerateStatementEpilogue
+        | Nk::GenerateStatementBodyEpilogue
+        | Nk::IfGenerateElsif
+        | Nk::IfGenerateElse
+        | Nk::IfGenerateStatementPreamble
+        | Nk::IfGenerateStatementEpilogue
+        | Nk::ComponentInstantiatedUnit
+        | Nk::EntityInstantiatedUnit
+        | Nk::ConfigurationInstantiatedUnit
+        | Nk::ProcessStatementPreamble
+        | Nk::ProcessStatementEpilogue
+        | Nk::AliasDeclaration
+        | Nk::AssociationElement
+        | Nk::AttributeDeclaration
+        | Nk::ComponentDeclarationPreamble
+        | Nk::ComponentDeclarationEpilogue
+        | Nk::ConstantDeclaration
+        | Nk::FileDeclaration
+        | Nk::FileOpenInformation
+        | Nk::FullTypeDeclaration
+        | Nk::GroupDeclaration
+        | Nk::GroupTemplateDeclaration
+        | Nk::InterfaceConstantDeclaration
+        | Nk::InterfaceFileDeclaration
+        | Nk::InterfaceFunctionSpecification
+        | Nk::InterfaceIncompleteTypeDeclaration
+        | Nk::InterfacePackageDeclarationPreamble
+        | Nk::InterfaceProcedureSpecification
+        | Nk::InterfaceSignalDeclaration
+        | Nk::InterfaceSubprogramDeclaration
+        | Nk::InterfaceVariableDeclaration
+        | Nk::RecordElementResolution
+        | Nk::SignalDeclaration
+        | Nk::SubtypeDeclaration
+        | Nk::VariableDeclaration
+        | Nk::SharedVariableDeclaration
+        | Nk::BlockConfigurationPreamble
+        | Nk::BlockConfigurationEpilogue
+        | Nk::ComponentConfigurationPreamble
+        | Nk::ComponentConfigurationEpilogue
+        | Nk::ConfigurationDeclarationPreamble
+        | Nk::ConfigurationDeclarationEpilogue
+        | Nk::SimpleReleaseAssignment
+        | Nk::ContextReference
+        | Nk::BinaryExpression
+        | Nk::ExpressionAllocator
+        | Nk::Assertion
+        | Nk::AssertionStatement
+        | Nk::CaseStatementAlternativePreamble
+        | Nk::CaseStatementPreamble
+        | Nk::CaseStatementEpilogue
+        | Nk::ConditionClause
+        | Nk::ConditionalElseWhenExpression
+        | Nk::ConditionalElseItem
+        | Nk::ConditionalExpression
+        | Nk::ConditionalForceAssignment
+        | Nk::ConditionalVariableAssignment
+        | Nk::ConditionalWaveformAssignment
+        | Nk::ConditionalWaveformElseWhenExpression
+        | Nk::ConditionalWaveformElseItem
+        | Nk::ConditionalWaveform
+        | Nk::InertialDelayMechanism
+        | Nk::IfStatementElsif
+        | Nk::IfStatementElse
+        | Nk::IfStatementPreamble
+        | Nk::IfStatementEpilogue
+        | Nk::LoopStatementPreamble
+        | Nk::LoopStatementEpilogue
+        | Nk::NextStatement
+        | Nk::NullStatement
+        | Nk::WhileIterationScheme
+        | Nk::ForIterationScheme
+        | Nk::ParameterSpecification
+        | Nk::ProcedureCallStatement
+        | Nk::ReportStatement
+        | Nk::ReturnStatement
+        | Nk::SelectedExpressionItem
+        | Nk::SelectedForceAssignment
+        | Nk::SelectedWaveformItem
+        | Nk::SelectedWaveformAssignment
+        | Nk::SelectedAssignmentPreamble
+        | Nk::SensitivityClause
+        | Nk::SimpleVariableAssignment
+        | Nk::WaitStatement
+        | Nk::WaveformElement
+        | Nk::AttributeSpecification
+        | Nk::BindingIndication
+        | Nk::ComponentSpecification
+        | Nk::DisconnectionSpecification
+        | Nk::EntityEntityAspect
+        | Nk::EntityConfigurationAspect
+        | Nk::EntitySpecification
+        | Nk::GuardedSignalSpecification
+        | Nk::VerificationUnitBindingIndication
+        | Nk::ProcedureSpecification
+        | Nk::FunctionSpecification
+        | Nk::SubprogramBodyPreamble
+        | Nk::SubprogramBodyEpilogue
+        | Nk::SubprogramInstantiationDeclaration
+        | Nk::SubprogramInstantiationDeclarationPreamble
+        | Nk::Package
+        | Nk::PackageInstantiationPreamble
+        | Nk::PackageInstantiation
+        | Nk::LibraryClause
+        | Nk::UseClause
+        | Nk::RangeExpression => {
+            if is_first {
+                None
+            } else {
+                Some(Doc::Spaces(1))
+            }
+        }
         _ => None,
     }
 }
@@ -349,23 +520,10 @@ impl Doc {
         for event in preorder {
             match event {
                 WalkEvent::Enter(SyntaxElement::Node(node)) => {
-                    use vhdl_syntax::syntax::NodeKind as Nk;
-                    if matches!(
-                        node.kind(),
-                        Nk::InterfaceConstantDeclaration
-                            | Nk::InterfaceSignalDeclaration
-                            | Nk::InterfaceVariableDeclaration
-                            | Nk::InterfaceFileDeclaration
-                            | Nk::InterfaceIncompleteTypeDeclaration
-                            | Nk::InterfaceSubprogramDeclaration
-                            | Nk::InterfacePackageDeclaration
-                    ) {
-                        // First interface element
-                        if node.prev_sibling().is_none() {
-                            pending_break = Some(Doc::SoftBreak { flat_spaces: 0 });
-                        } else {
-                            pending_break = Some(Doc::SoftBreak { flat_spaces: 1 })
-                        }
+                    // Inject space-sep / soft-break before break_kind_before so that
+                    // structural HardBreak can override it.
+                    if pending_break.is_none() {
+                        pending_break = separation_before_child_node(&node);
                     }
                     if let Some(doc) = break_kind_before(node.kind()) {
                         // No breaks on the first token
@@ -389,6 +547,11 @@ impl Doc {
                     }
                 }
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
+                    // Step 0: inject space-sep before comment lifting, so that a HardBreak
+                    // from comments in Step 1 can still override the injected Spaces(1).
+                    if pending_break.is_none() {
+                        pending_break = separation_before_child_token(&token);
+                    }
                     // Step 1: lift comment trivia (or record blank lines for the plain case).
                     if token.leading_trivia().contains_comments() {
                         let mut last_sep: Option<PendingSep> = None;

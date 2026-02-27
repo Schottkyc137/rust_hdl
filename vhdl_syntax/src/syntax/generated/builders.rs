@@ -6049,18 +6049,14 @@ impl From<EntityHeaderBuilder> for EntityHeaderSyntax {
 pub struct EntityInstantiatedUnitBuilder {
     entity_token: Token,
     name: NameSyntax,
-    left_par_token: Option<Token>,
     identifier_token: Option<Token>,
-    right_par_token: Option<Token>,
 }
 impl EntityInstantiatedUnitBuilder {
     pub fn new(name: impl Into<NameSyntax>) -> Self {
         Self {
             entity_token: Kw::Entity.canonical_token(),
             name: name.into(),
-            left_par_token: None,
             identifier_token: None,
-            right_par_token: None,
         }
     }
     pub fn with_entity_token(mut self, t: impl Into<Token>) -> Self {
@@ -6075,17 +6071,6 @@ impl EntityInstantiatedUnitBuilder {
         self.name = n.into();
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = Some(t.into());
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        let tok = self
-            .left_par_token
-            .get_or_insert_with(|| TokenKind::LeftPar.canonical_token().unwrap());
-        tok.set_leading_trivia(trivia);
-        self
-    }
     pub fn with_identifier_token(mut self, t: impl Into<crate::builder::Identifier>) -> Self {
         self.identifier_token = Some(t.into().into());
         self
@@ -6096,29 +6081,12 @@ impl EntityInstantiatedUnitBuilder {
         }
         self
     }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = Some(t.into());
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        let tok = self
-            .right_par_token
-            .get_or_insert_with(|| TokenKind::RightPar.canonical_token().unwrap());
-        tok.set_leading_trivia(trivia);
-        self
-    }
     pub fn build(self) -> EntityInstantiatedUnitSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::EntityInstantiatedUnit);
         builder.push(self.entity_token);
         builder.push_node(self.name.raw().green().clone());
-        if let Some(t) = self.left_par_token {
-            builder.push(t);
-        }
         if let Some(t) = self.identifier_token {
-            builder.push(t);
-        }
-        if let Some(t) = self.right_par_token {
             builder.push(t);
         }
         builder.end_node();

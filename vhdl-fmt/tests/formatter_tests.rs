@@ -590,3 +590,34 @@ end;
     );
     insta::assert_snapshot!(formatted);
 }
+
+// ---------------------------------------------------------------------------
+// Space normalization in preamble / epilogue nodes
+// ---------------------------------------------------------------------------
+
+/// Multiple spaces between tokens in an architecture preamble are normalized
+/// to a single space each.
+#[test]
+fn architecture_preamble_spaces_are_normalized() {
+    insta::assert_snapshot!(fmt_str("architecture  my_arch  of  work  is\nbegin\nend ;"));
+}
+
+/// Multiple spaces between tokens in an entity declaration preamble are
+/// normalized to a single space each.
+#[test]
+fn entity_preamble_spaces_are_normalized() {
+    insta::assert_snapshot!(fmt_str("entity  my_entity  is\nend ;"));
+}
+
+/// A trailing line comment after the `is` keyword in an architecture preamble
+/// is still correctly hoisted.  The space-sep injection (Spaces(1)) must be
+/// overridden by the HardBreak that the comment lifting emits.
+#[test]
+fn architecture_preamble_trailing_comment_is_handled() {
+    insta::assert_snapshot!(fmt_str(
+        "\
+architecture rtl of my_entity is -- top comment
+begin
+end ;"
+    ));
+}

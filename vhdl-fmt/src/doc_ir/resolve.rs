@@ -159,7 +159,6 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 None => false,
                 Some(w) => state.column + w <= config.max_line_length,
             };
-            println!("doc: {docs:?}, layout_as_flat: {layout_as_flat}");
             for doc in docs {
                 resolve_layout_recursive(doc, config, state, layout_as_flat);
             }
