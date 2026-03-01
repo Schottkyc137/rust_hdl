@@ -56,7 +56,7 @@ fn fmt(node: impl AstNode) -> String {
 fn empty_entity_formatting() {
     let entity =
         EntityDeclarationBuilder::new(EntityDeclarationPreambleBuilder::new(b"my_entity")).build();
-    assert_eq!(fmt(entity), " entity my_entity is\nend ;");
+    assert_eq!(fmt(entity), "entity my_entity is\nend;");
 }
 
 /// The optional identifier in the epilogue is preserved and formatted
@@ -68,7 +68,7 @@ fn entity_formatting_with_epilogue_name() {
             EntityDeclarationEpilogueBuilder::new().with_identifier_token(b"my_entity"),
         )
         .build();
-    assert_eq!(fmt(entity), " entity my_entity is\nend my_entity ;");
+    assert_eq!(fmt(entity), "entity my_entity is\nend my_entity;");
 }
 
 /// The optional `entity` keyword in the epilogue is included when set.
@@ -87,7 +87,7 @@ fn entity_formatting_with_full_epilogue() {
                 .with_identifier_token(b"my_entity"),
         )
         .build();
-    assert_eq!(fmt(entity), " entity my_entity is\nend entity my_entity ;");
+    assert_eq!(fmt(entity), "entity my_entity is\nend entity my_entity;");
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ fn empty_architecture_formatting() {
         simple_name(b"my_entity"),
     ))
     .build();
-    assert_eq!(fmt(arch), " architecture rtl of my_entity is\nbegin\nend ;");
+    assert_eq!(fmt(arch), "architecture rtl of my_entity is\nbegin\nend;");
 }
 
 /// Declarations inside an architecture body are indented by one level (4
@@ -126,7 +126,7 @@ fn architecture_declarations_are_indented() {
     .build();
     assert_eq!(
         fmt(arch),
-        " architecture rtl of my_entity is\n    use ;\nbegin\nend ;"
+        "architecture rtl of my_entity is\n    use;\nbegin\nend;"
     );
 }
 
@@ -153,7 +153,7 @@ fn architecture_concurrent_statements_are_indented() {
     .build();
     assert_eq!(
         fmt(arch),
-        " architecture rtl of my_entity is\nbegin\n    p1 : process\n    begin\n    end process ;\nend ;"
+        "architecture rtl of my_entity is\nbegin\n    p1 : process\n    begin\n    end process;\nend;"
     );
 }
 
@@ -186,7 +186,7 @@ fn design_file_entity_and_architecture() {
     // canonical_token()) is preserved as-is when BreakKind::Unset applies.
     assert_eq!(
         fmt(file),
-        " entity foo is\nend ;\narchitecture rtl of foo is\nbegin\nend ; "
+        "entity foo is\nend;\narchitecture rtl of foo is\nbegin\nend;"
     );
 }
 
@@ -205,7 +205,7 @@ fn crlf_newline_style() {
         ..Config::default()
     };
     let formatted = format_with_config(entity.raw(), config).to_string();
-    assert_eq!(formatted, " entity my_entity is\r\nend ;");
+    assert_eq!(formatted, "entity my_entity is\r\nend;");
 }
 
 /// Indentation width is configurable. Here 2-space indentation is verified
@@ -233,7 +233,7 @@ fn two_space_indentation() {
     let formatted = format_with_config(arch.raw(), config).to_string();
     assert_eq!(
         formatted,
-        " architecture rtl of my_entity is\n  use ;\nbegin\nend ;"
+        "architecture rtl of my_entity is\n  use;\nbegin\nend;"
     );
 }
 
@@ -261,7 +261,7 @@ fn tab_indentation() {
     let formatted = format_with_config(arch.raw(), config).to_string();
     assert_eq!(
         formatted,
-        " architecture rtl of my_entity is\n\tuse ;\nbegin\nend ;"
+        "architecture rtl of my_entity is\n\tuse;\nbegin\nend;"
     );
 }
 
@@ -358,12 +358,6 @@ fn blank_line_between_comments_preserved() {
 /// A line comment followed by a blank line before a `wants_newline_before` node
 /// (here a use-clause declaration) must preserve the blank line and must NOT
 /// insert a spurious extra newline.
-///
-/// Previously, `pending_break` (set by `wants_newline_before`) was always pushed
-/// after the comment trivia loop, producing two consecutive `HardBreak` nodes for
-/// the same boundary (comment → token). The fix drops `pending_break` when the
-/// trivia loop already emitted a hard trailing separator, so there is exactly one
-/// `HardBreak` per boundary and the blank line is preserved correctly.
 #[test]
 fn comment_blank_line_before_wants_newline_before_node() {
     // One blank line between the comment and the use clause.
@@ -572,7 +566,7 @@ fn does_not_split_into_multiple_lines_for_elements_shorter_than_the_maximum_colu
     let formatted = fmt_str(
         "\
 package foo is
-    function f(short_arg : std_logic);
+    procedure f(short_arg : std_logic);
 end;
 ",
     );
@@ -584,7 +578,7 @@ fn splits_into_multiple_lines_for_elements_longer_than_the_maximum_column_width(
     let formatted = fmt_str(
         "\
 package foo is
-    function function_with_long_name(argument_name_that_is_very_long : type_name_that_is_equally_long);
+    procedure function_with_long_name(argument_name_that_is_very_long : type_name_that_is_equally_long);
 end;
 ",
     );

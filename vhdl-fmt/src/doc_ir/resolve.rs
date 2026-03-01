@@ -4,7 +4,7 @@ use crate::{
     config::Config,
     doc_ir::{
         Doc,
-        boundary::{BoundaryDecision, BreakKind},
+        boundary::{BoundaryDecision, RuleSep},
     },
 };
 use std::{collections::HashMap, mem::take};
@@ -13,7 +13,7 @@ use std::{collections::HashMap, mem::take};
 /// that the formatter will actually emit for that token.
 ///
 /// The formatter emits (in this order):
-///   1. Verbatim trivia (only when `break_kind == Unset`)
+///   1. Verbatim trivia (only when `rule_sep == Unset`)
 ///   2. For each comment: the comment's preceding `BreakKind`, then the comment text
 ///   3. The token's own `BreakKind`
 ///
@@ -21,9 +21,8 @@ use std::{collections::HashMap, mem::take};
 /// resets to 0 after them; the subsequent `BreakKind` then provides the
 /// fresh indent.
 fn col_before_token(decision: &BoundaryDecision, mut column: usize) -> usize {
-    if decision.break_kind == BreakKind::Unset {
+    if decision.rule_sep == RuleSep::Unset {
         // Verbatim trivia: walk the trivia pieces and track the column exactly.
-        decision.trivia.byte_len();
         for trivia in &decision.trivia {
             match trivia {
                 TriviaPiece::HorizontalTabs(_) => unimplemented!("Column count for tabs"),
@@ -48,15 +47,15 @@ fn col_before_token(decision: &BoundaryDecision, mut column: usize) -> usize {
         column = col_after_break(column, break_kind);
         column += comment.byte_len();
     }
-    col_after_break(column, &decision.break_kind)
+    col_after_break(column, &decision.rule_sep)
 }
 
 /// Apply a single `BreakKind` to the current column and return the new column.
-fn col_after_break(column: usize, break_kind: &BreakKind) -> usize {
+fn col_after_break(column: usize, break_kind: &RuleSep) -> usize {
     match break_kind {
-        BreakKind::Unset | BreakKind::Empty => column,
-        BreakKind::Spaces(n) => column + n,
-        BreakKind::Newline { indent, .. } => *indent,
+        RuleSep::Unset => column,
+        RuleSep::Spaces(n) => column + n,
+        RuleSep::Newline { indent, .. } => *indent,
     }
 }
 
@@ -99,7 +98,7 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
     match doc {
         Doc::Token(syntax_token) => {
             let mut boundary_decision = take(&mut state.pending);
-            if let BreakKind::Newline { blank_lines, .. } = &mut boundary_decision.break_kind {
+            if let RuleSep::Newline { blank_lines, .. } = &mut boundary_decision.rule_sep {
                 state.current_line_start = Some(syntax_token.text_pos());
                 if state.blank_lines_hint != 0 {
                     *blank_lines += state.blank_lines_hint;
@@ -121,8 +120,8 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             // break to Newline. If Newline is already pending the HardBreak is a
             // no-op — blank_lines_hint is intentionally left intact so the Token
             // handler can still apply it to the existing Newline boundary.
-            if !matches!(state.pending.break_kind, BreakKind::Newline { .. }) {
-                state.pending.break_kind = BreakKind::Newline {
+            if !matches!(state.pending.rule_sep, RuleSep::Newline { .. }) {
+                state.pending.rule_sep = RuleSep::Newline {
                     blank_lines: state.blank_lines_hint,
                     indent: state.indent,
                 };
@@ -142,11 +141,11 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             // that boundary is now emitted after any lifted comment trivia in
             // `from_node`, so a SoftBreak that precedes a structural boundary will
             // always arrive before the HardBreak and will not compete with it.
-            if !matches!(state.pending.break_kind, BreakKind::Newline { .. }) {
-                state.pending.break_kind = if flat {
-                    BreakKind::Spaces(flat_spaces)
+            if !matches!(state.pending.rule_sep, RuleSep::Newline { .. }) {
+                state.pending.rule_sep = if flat {
+                    RuleSep::Spaces(flat_spaces)
                 } else {
-                    BreakKind::Newline {
+                    RuleSep::Newline {
                         blank_lines: state.blank_lines_hint,
                         indent: state.indent,
                     }
@@ -169,32 +168,32 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
             }
         }
         Doc::Comment(comment) => {
-            let break_kind = take(&mut state.pending.break_kind);
-            state.column = col_after_break(state.column, &break_kind);
+            let rule_sep = take(&mut state.pending.rule_sep);
+            state.column = col_after_break(state.column, &rule_sep);
             state.column += comment.byte_len();
-            state.pending.comments.push((break_kind, comment));
+            state.pending.comments.push((rule_sep, comment));
         }
         Doc::TrailingComment(comment) => {
-            let break_kind = take(&mut state.pending.break_kind);
-            state.column = col_after_break(state.column, &break_kind);
+            let rule_sep = take(&mut state.pending.rule_sep);
+            state.column = col_after_break(state.column, &rule_sep);
             state.column += comment.byte_len();
             if flat {
                 // Flat layout: keep inline just like a regular Comment.
-                state.pending.comments.push((break_kind, comment));
+                state.pending.comments.push((rule_sep, comment));
             } else {
                 // Broken layout: hoist the comment to appear before the
                 // current statement by prepending it to the boundary decision
                 // of that statement's first token.
                 let hoisted = if let Some(stmt_pos) = state.current_line_start {
                     if let Some(decision) = state.plan.get_mut(&stmt_pos) {
-                        let indent = match decision.break_kind {
-                            BreakKind::Newline { indent, .. } => indent,
+                        let indent = match decision.rule_sep {
+                            RuleSep::Newline { indent, .. } => indent,
                             _ => 0,
                         };
-                        // Insert at the front so that the trailing comment
-                        // precedes any leading comments already on that token.
+                        // Insert at the back so that the trailing comment
+                        // comes after any leading comments already on that token.
                         decision.comments.push((
-                            BreakKind::Newline {
+                            RuleSep::Newline {
                                 blank_lines: 0,
                                 indent,
                             },
@@ -209,7 +208,7 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
                 };
                 if !hoisted {
                     // Fallback: treat like a regular comment.
-                    state.pending.comments.push((break_kind, comment));
+                    state.pending.comments.push((rule_sep, comment));
                 }
             }
         }
@@ -218,28 +217,28 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
         // and always part of tokens, but here it would be more sensible to handle them
         // closer to tokens.
         Doc::Trivia(trivia) => {
-            if state.pending.break_kind == BreakKind::Unset {
+            if state.pending.rule_sep == RuleSep::Unset {
                 state.pending.trivia = trivia
             }
         }
         Doc::Spaces(n) => {
             // Do not override newlines with space
             if matches!(
-                state.pending.break_kind,
-                BreakKind::Empty | BreakKind::Unset
+                state.pending.rule_sep,
+                RuleSep::Unset
             ) {
-                state.pending.break_kind = BreakKind::Spaces(n);
+                state.pending.rule_sep = RuleSep::Spaces(n);
                 state.blank_lines_hint = 0;
             }
             // Existing Newline: don't override; keep blank_lines_hint for the newline
         }
         Doc::AlignedSpace(n) => {
             // AlignedSpace never overrides a pending Newline.
-            if !matches!(state.pending.break_kind, BreakKind::Newline { .. }) {
-                state.pending.break_kind = if flat {
-                    BreakKind::Spaces(1)
+            if !matches!(state.pending.rule_sep, RuleSep::Newline { .. }) {
+                state.pending.rule_sep = if flat {
+                    RuleSep::Spaces(1)
                 } else {
-                    BreakKind::Spaces(n)
+                    RuleSep::Spaces(n)
                 };
             }
         }

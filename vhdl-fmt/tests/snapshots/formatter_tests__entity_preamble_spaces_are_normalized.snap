@@ -1,0 +1,6 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: "fmt_str(\"entity  my_entity  is\\nend ;\")"
+---
+entity my_entity is
+end;

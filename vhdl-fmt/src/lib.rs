@@ -1,6 +1,7 @@
 mod align;
 pub mod config;
 mod doc_ir;
+mod props;
 pub mod formatter;
 
 use vhdl_syntax::syntax::node::SyntaxNode;

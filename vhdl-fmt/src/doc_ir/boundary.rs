@@ -4,15 +4,12 @@ use vhdl_syntax::tokens::Trivia;
 use crate::doc_ir::DocComment;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-#[allow(dead_code)]
-pub enum BreakKind {
-    /// No explicit break kind.
+pub enum RuleSep {
+    /// No explicit separator.
     /// This is currently for debug purposes and simply
     /// instructs the formatter to keep all trivia.
     #[default]
     Unset,
-    /// No trivia before a token
-    Empty,
     /// Exactly `n` spaces before a token
     Spaces(usize),
     /// Add a newline with blank lines and given indent
@@ -23,9 +20,9 @@ pub enum BreakKind {
 /// Boundary decisions that always apply _before_ a token.
 pub struct BoundaryDecision {
     /// How to separate this token from the last one.
-    pub break_kind: BreakKind,
+    pub rule_sep: RuleSep,
     /// Any verbatim trivia (comments, whitespaces, unknown trivia)
     /// that should be printed before this token
     pub trivia: Trivia,
-    pub comments: Vec<(BreakKind, DocComment)>,
+    pub comments: Vec<(RuleSep, DocComment)>,
 }

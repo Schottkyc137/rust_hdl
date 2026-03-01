@@ -5,7 +5,7 @@ use crate::{
     config::Config,
     doc_ir::{
         Doc, DocComment,
-        boundary::{BoundaryDecision, BreakKind},
+        boundary::{BoundaryDecision, RuleSep},
         resolve::resolve_layout,
     },
 };
@@ -37,7 +37,6 @@ impl Formatter {
         let layout = resolve_layout(doc, &self.config);
         let layout_rewriter = LayoutBasedTokenRewriter {
             layout,
-            previous_trailing_trivia: None,
             config: self.config.clone(),
         };
         let mut rewriter = TokenRewriter::new(layout_rewriter);
@@ -47,17 +46,14 @@ impl Formatter {
 
 struct LayoutBasedTokenRewriter {
     layout: HashMap<usize, BoundaryDecision>,
-    #[allow(dead_code)]
-    previous_trailing_trivia: Option<Trivia>,
     config: Config,
 }
 
-fn break_kind_to_trivia(break_kind: BreakKind, trivia: &mut Trivia, config: &Config) {
+fn rule_kind_to_trivia(break_kind: RuleSep, trivia: &mut Trivia, config: &Config) {
     match break_kind {
-        BreakKind::Unset => {}
-        BreakKind::Spaces(n) => trivia.push(TriviaPiece::Spaces(n)),
-        BreakKind::Empty => {}
-        BreakKind::Newline {
+        RuleSep::Unset => {}
+        RuleSep::Spaces(n) => trivia.push(TriviaPiece::Spaces(n)),
+        RuleSep::Newline {
             blank_lines,
             indent,
         } => {
@@ -79,7 +75,7 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
             leading_trivia = formatting.trivia.clone();
 
             for (break_kind, comment) in &formatting.comments {
-                break_kind_to_trivia(*break_kind, &mut leading_trivia, &self.config);
+                rule_kind_to_trivia(*break_kind, &mut leading_trivia, &self.config);
                 match comment {
                     DocComment::Line(comment) => {
                         leading_trivia.push(TriviaPiece::LineComment(comment.clone()))
@@ -89,7 +85,7 @@ impl TokenRewrite for LayoutBasedTokenRewriter {
                     }
                 }
             }
-            break_kind_to_trivia(formatting.break_kind, &mut leading_trivia, &self.config);
+            rule_kind_to_trivia(formatting.rule_sep, &mut leading_trivia, &self.config);
         } else {
             debug_assert!(false, "No decision for token {:?}", token);
         }
