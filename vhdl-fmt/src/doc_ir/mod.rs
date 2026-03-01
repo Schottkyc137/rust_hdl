@@ -4,7 +4,7 @@ pub(crate) mod resolve;
 
 use crate::doc_ir::builder::DocBuilder;
 use crate::props::node_prop::BreakKind;
-use crate::{align::AlignmentMap, props::node_kind_prop};
+use crate::{align::AlignmentMap, config::Config, props::node_kind_prop};
 use std::mem::take;
 use std::{fmt::Debug, vec};
 use vhdl_syntax::{
@@ -96,7 +96,7 @@ impl Doc {
             // Count soft break as space with flat layouting
             Doc::SoftBreak { flat_spaces } => Some(*flat_spaces),
             Doc::Spaces(n) => Some(*n),
-            Doc::AlignedSpace(_) => Some(1),
+            Doc::AlignedSpace(_) => Some(0),
             Doc::Trivia(trivia) => {
                 if trivia.has_newline() {
                     None
@@ -185,14 +185,18 @@ fn separation_before_child_node(child: &SyntaxNode) -> BreakKind {
 ///
 /// Note: `InterfaceList` is intentionally excluded here because its direct token children
 /// are semicolons which must not receive a separator.
-fn separation_before_child_token(token: &SyntaxToken) -> BreakKind {
+fn separation_before_child_token(token: &SyntaxToken, config: &Config) -> BreakKind {
     let parent = token.parent();
     // No space before SemiColons
     if matches!(token.kind(), TokenKind::SemiColon | TokenKind::Eof) {
         return BreakKind::Void;
     }
     if token.kind() == TokenKind::Colon {
-        return BreakKind::Spaces(1);
+        return if config.space_before_colon {
+            BreakKind::Spaces(1)
+        } else {
+            BreakKind::Void
+        };
     }
     let is_first = token.prev_sibling_or_token().is_none();
     space_sep_before(parent.kind(), is_first)
@@ -211,7 +215,7 @@ fn space_sep_before(parent_kind: NodeKind, is_first: bool) -> BreakKind {
 }
 
 impl Doc {
-    pub fn from_node(node: SyntaxNode, alignment: &AlignmentMap) -> Doc {
+    pub fn from_node(node: SyntaxNode, alignment: &AlignmentMap, config: &Config) -> Doc {
         let mut builder = DocBuilder::new();
         let preorder = PreorderWithTokens::new(node);
         let mut pending_break = BreakKind::Unset;
@@ -252,7 +256,7 @@ impl Doc {
                 WalkEvent::Enter(SyntaxElement::Token(token)) => {
                     // Step 0: inject space-sep before comment lifting, so that a HardBreak
                     // from comments in Step 1 can still override the injected Spaces(1).
-                    let separation = separation_before_child_token(&token);
+                    let separation = separation_before_child_token(&token, config);
                     if separation.priority() > pending_break.priority() {
                         pending_break = separation;
                     }

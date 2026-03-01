@@ -81,6 +81,10 @@ pub struct Config {
     pub max_line_length: usize,
     pub blank_lines: UserBlankLinePolicy,
     pub horizontal_alignment: HorizontalAlignment,
+    /// Whether to emit a single space before `:` tokens.
+    /// `true`  ->  `foo : bar`  (default)
+    /// `false` ->  `foo: bar`
+    pub space_before_colon: bool,
 }
 
 impl Default for Config {
@@ -92,6 +96,7 @@ impl Default for Config {
             max_line_length: 80,
             blank_lines: UserBlankLinePolicy::default(),
             horizontal_alignment: HorizontalAlignment::default(),
+            space_before_colon: true,
         }
     }
 }

@@ -16,10 +16,6 @@ use std::{collections::HashMap, mem::take};
 ///   1. Verbatim trivia (only when `rule_sep == Unset`)
 ///   2. For each comment: the comment's preceding `BreakKind`, then the comment text
 ///   3. The token's own `BreakKind`
-///
-/// Line comments (`--`) consume the rest of the current line, so the column
-/// resets to 0 after them; the subsequent `BreakKind` then provides the
-/// fresh indent.
 fn col_before_token(decision: &BoundaryDecision, mut column: usize) -> usize {
     if decision.rule_sep == RuleSep::Unset {
         // Verbatim trivia: walk the trivia pieces and track the column exactly.
@@ -223,24 +219,27 @@ fn resolve_layout_recursive(doc: Doc, config: &Config, state: &mut ResolveState,
         }
         Doc::Spaces(n) => {
             // Do not override newlines with space
-            if matches!(
-                state.pending.rule_sep,
-                RuleSep::Unset
-            ) {
+            if matches!(state.pending.rule_sep, RuleSep::Unset) {
                 state.pending.rule_sep = RuleSep::Spaces(n);
                 state.blank_lines_hint = 0;
             }
             // Existing Newline: don't override; keep blank_lines_hint for the newline
         }
         Doc::AlignedSpace(n) => {
-            // AlignedSpace never overrides a pending Newline.
-            if !matches!(state.pending.rule_sep, RuleSep::Newline { .. }) {
-                state.pending.rule_sep = if flat {
-                    RuleSep::Spaces(1)
-                } else {
-                    RuleSep::Spaces(n)
-                };
+            // Flat layout: alignment padding does not contribute
+            if flat {
+                return;
             }
+            // Broken layout: add alignment padding on top of base space.
+            match &mut state.pending.rule_sep {
+                RuleSep::Spaces(m) => {
+                    *m += n;
+                }
+                // Unset = no base space (space_before_colon=false):
+                // emit only the alignment padding, or nothing for widest item.
+                RuleSep::Unset => state.pending.rule_sep = RuleSep::Spaces(n),
+                _ => {}
+            };
         }
         Doc::BlankLines(n) => {
             let hint = match config.blank_lines {

@@ -94,8 +94,8 @@ fn apply_group_alignment(items: &[(usize, SyntaxToken)], map: &mut AlignmentMap)
         return;
     };
     for (width, token) in items {
-        // Pad each item so its colon lands at column (max_width + 1 space).
-        let spaces = max_width - width + 1;
+        // Pad each item so its colon lands at the same column as the widest item.
+        let spaces = max_width - width;
         map.insert(token.clone(), spaces);
     }
 }

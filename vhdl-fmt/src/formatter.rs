@@ -33,7 +33,7 @@ impl Formatter {
         } else {
             AlignmentMap::default()
         };
-        let doc = Doc::from_node(node.clone(), &alignment);
+        let doc = Doc::from_node(node.clone(), &alignment, &self.config);
         let layout = resolve_layout(doc, &self.config);
         let layout_rewriter = LayoutBasedTokenRewriter {
             layout,
@@ -52,7 +52,11 @@ struct LayoutBasedTokenRewriter {
 fn rule_kind_to_trivia(break_kind: RuleSep, trivia: &mut Trivia, config: &Config) {
     match break_kind {
         RuleSep::Unset => {}
-        RuleSep::Spaces(n) => trivia.push(TriviaPiece::Spaces(n)),
+        RuleSep::Spaces(n) => {
+            if n > 0 {
+                trivia.push(TriviaPiece::Spaces(n))
+            }
+        }
         RuleSep::Newline {
             blank_lines,
             indent,

@@ -10,7 +10,8 @@ pub enum RuleSep {
     /// instructs the formatter to keep all trivia.
     #[default]
     Unset,
-    /// Exactly `n` spaces before a token
+    /// Exactly `n` spaces before a token.
+    /// `n` may be 0, indicating no space before a token.
     Spaces(usize),
     /// Add a newline with blank lines and given indent
     Newline { blank_lines: usize, indent: usize },

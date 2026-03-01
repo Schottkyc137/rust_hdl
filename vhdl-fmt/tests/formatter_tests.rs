@@ -316,6 +316,12 @@ fn fmt_str(src: &str) -> String {
     format(design_file.raw()).to_string()
 }
 
+/// Helper: parse VHDL source and format it with the given config.
+fn fmt_str_with_config(src: &str, config: Config) -> String {
+    let (design_file, _) = parser::parse(src);
+    format_with_config(design_file.raw(), config).to_string()
+}
+
 /// A single blank line between two use clauses inside an architecture body is
 /// preserved in the formatted output.
 #[test]
@@ -614,4 +620,66 @@ architecture rtl of my_entity is -- top comment
 begin
 end ;"
     ));
+}
+
+// ---------------------------------------------------------------------------
+// Configurable space before colon
+// ---------------------------------------------------------------------------
+
+/// The default config (`space_before_colon: true`) emits a space before `:`.
+#[test]
+fn space_before_colon_true_is_default() {
+    let src = "architecture rtl of e is\n    signal foo : std_logic;\nbegin\nend;";
+    let result = fmt_str(src); // default config
+    assert!(
+        result.contains("foo :"),
+        "Expected single space before colon, got:\n{result}"
+    );
+}
+
+/// With `space_before_colon: false` the space before `:` is suppressed.
+#[test]
+fn space_before_colon_false_removes_space_in_signal_declaration() {
+    let config = Config {
+        space_before_colon: false,
+        ..Config::default()
+    };
+    let src = "architecture rtl of e is\n    signal foo : std_logic;\nbegin\nend;";
+    let result = fmt_str_with_config(src, config);
+    assert!(
+        result.contains("foo:"),
+        "Expected no space before colon, got:\n{result}"
+    );
+    assert!(
+        !result.contains("foo :"),
+        "Unexpected space before colon, got:\n{result}"
+    );
+}
+
+/// With `space_before_colon: false` colons in an aligned group remain aligned,
+/// but no base space is added — only the extra alignment padding appears.
+/// The widest identifier gets no space before its colon.
+#[test]
+fn space_before_colon_false_colons_remain_aligned() {
+    let config = Config {
+        space_before_colon: false,
+        ..Config::default()
+    };
+    // clk_i (5 chars) and data_output_bus_x (17 chars).
+    // AlignedSpace for clk_i = 17 - 5 = 12.
+    // With space_before_colon=false:
+    //   data_output_bus_x → AlignedSpace(0) → no space → "data_output_bus_x:"
+    //   clk_i             → AlignedSpace(12) → "clk_i            :" (colons aligned)
+    // The longer name ensures flat_width > 70, forcing broken layout even without
+    // the base space (which would otherwise make the group fit on one line).
+    let src = "entity e is\n    port (\n        clk_i : in std_logic;\n        data_output_bus_x : in std_logic_vector(15 downto 0)\n    );\nend;";
+    let result = fmt_str_with_config(src, config);
+    assert!(
+        result.contains("data_output_bus_x:"),
+        "Expected no space before colon for widest identifier, got:\n{result}"
+    );
+    assert!(
+        result.contains("clk_i            :"),
+        "Expected alignment-only spaces before colon for shorter identifier, got:\n{result}"
+    );
 }
