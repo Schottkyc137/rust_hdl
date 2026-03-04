@@ -70,6 +70,22 @@ impl NodeProp {
         Self::default()
     }
 
+
+    // Standard compound styles
+
+    pub fn list() -> Self {
+        Self {
+            indents: true,
+            groups: true,
+            parenthesized: false,
+            break_kind: BreakKind::Void,
+            break_kind_after: BreakKind::Soft { flat_spaces: 0 },
+            child_break_kind: BreakKind::Unset,
+        }
+    }
+
+    // Modifiers
+
     pub fn indents(mut self) -> Self {
         self.indents = true;
         self
