@@ -264,12 +264,6 @@ ComponentInstantiatedUnit: !Sequence
 EntityInstantiatedUnit: !Sequence
   - keyword: Entity
   - node: Name
-  - token: LeftPar
-    optional: true
-  - token: Identifier
-    optional: true
-  - token: RightPar
-    optional: true
 
 ConfigurationInstantiatedUnit: !Sequence
   - keyword: Configuration

@@ -9,16 +9,17 @@ SubprogramDeclaration
     SubprogramHeader
       SubprogramHeaderGenericClause
         Keyword(Generic)
-        LeftPar
-        InterfaceList
-          InterfaceConstantDeclaration
-            IdentifierList
-              Identifier 'abc_def'
-            Colon
-            SubtypeIndication
-              Name
-                Identifier 'natural'
-        RightPar
+        ParenthesizedInterfaceList
+          LeftPar
+          InterfaceList
+            InterfaceConstantDeclaration
+              IdentifierList
+                Identifier 'abc_def'
+              Colon
+              SubtypeIndication
+                Name
+                  Identifier 'natural'
+          RightPar
     ParameterList
       Keyword(Parameter)
       ParenthesizedInterfaceList

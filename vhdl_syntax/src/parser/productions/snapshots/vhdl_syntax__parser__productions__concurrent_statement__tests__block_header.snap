@@ -11,70 +11,70 @@ BlockStatement
     Keyword(Is)
   BlockHeader
     GenericClause
-      GenericClausePreamble
-        Keyword(Generic)
+      Keyword(Generic)
+      ParenthesizedInterfaceList
         LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          IdentifierList
-            Identifier 'gen'
-          Colon
-          SubtypeIndication
-            Name
-              Identifier 'integer'
-          ColonEq
-          LiteralExpression
-            AbstractLiteral '1'
-      GenericClauseEpilogue
+        InterfaceList
+          InterfaceConstantDeclaration
+            IdentifierList
+              Identifier 'gen'
+            Colon
+            SubtypeIndication
+              Name
+                Identifier 'integer'
+            ColonEq
+            LiteralExpression
+              AbstractLiteral '1'
         RightPar
-        SemiColon
+      SemiColon
     SemiColonTerminatedGenericMapAspect
       GenericMapAspect
         Keyword(Generic)
         Keyword(Map)
+        ParenthesizedAssociationList
+          LeftPar
+          AssociationList
+            AssociationElement
+              FormalPart
+                Name
+                  Identifier 'gen'
+              RightArrow
+              ActualPart
+                AbstractLiteral '1'
+          RightPar
+      SemiColon
+    PortClause
+      Keyword(Port)
+      ParenthesizedInterfaceList
         LeftPar
-        AssociationList
-          AssociationElement
-            FormalPart
+        InterfaceList
+          InterfaceConstantDeclaration
+            IdentifierList
+              Identifier 'prt'
+            Colon
+            SubtypeIndication
               Name
-                Identifier 'gen'
-            RightArrow
-            ActualPart
+                Identifier 'integer'
+            ColonEq
+            LiteralExpression
               AbstractLiteral '1'
         RightPar
       SemiColon
-    PortClause
-      PortClausePreamble
-        Keyword(Port)
-        LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          IdentifierList
-            Identifier 'prt'
-          Colon
-          SubtypeIndication
-            Name
-              Identifier 'integer'
-          ColonEq
-          LiteralExpression
-            AbstractLiteral '1'
-      PortClauseEpilogue
-        RightPar
-        SemiColon
     SemiColonTerminatedPortMapAspect
       PortMapAspect
         Keyword(Port)
         Keyword(Map)
-        LeftPar
-        AssociationList
-          AssociationElement
-            FormalPart
-              Name
-                Identifier 'prt'
-            RightArrow
-            ActualPart
-              AbstractLiteral '2'
-        RightPar
+        ParenthesizedAssociationList
+          LeftPar
+          AssociationList
+            AssociationElement
+              FormalPart
+                Name
+                  Identifier 'prt'
+              RightArrow
+              ActualPart
+                AbstractLiteral '2'
+          RightPar
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)

@@ -102,11 +102,13 @@ impl Parser {
     pub fn subprogram_header_generic_clause(&mut self) {
         self.start_node(SubprogramHeaderGenericClause);
         self.expect_kw(Kw::Generic);
+        self.start_node(ParenthesizedInterfaceList);
         self.expect_token(LeftPar);
         if !(self.next_is(RightPar)) {
             self.interface_list();
         }
         self.expect_token(RightPar);
+        self.end_node();
         self.end_node();
     }
 

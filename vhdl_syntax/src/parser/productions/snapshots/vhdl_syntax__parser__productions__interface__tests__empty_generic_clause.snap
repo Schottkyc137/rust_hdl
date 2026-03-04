@@ -3,9 +3,8 @@ source: vhdl_syntax/src/parser/productions/interface.rs
 expression: "to_test_text(Parser::generic_clause, \"generic();\",)"
 ---
 GenericClause
-  GenericClausePreamble
-    Keyword(Generic)
+  Keyword(Generic)
+  ParenthesizedInterfaceList
     LeftPar
-  GenericClauseEpilogue
     RightPar
-    SemiColon
+  SemiColon

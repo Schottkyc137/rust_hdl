@@ -9,20 +9,19 @@ ComponentDeclaration
     Keyword(Is)
   ComponentDeclarationItems
     GenericClause
-      GenericClausePreamble
-        Keyword(Generic)
+      Keyword(Generic)
+      ParenthesizedInterfaceList
         LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          IdentifierList
-            Identifier 'foo'
-          Colon
-          SubtypeIndication
-            Name
-              Identifier 'natural'
-      GenericClauseEpilogue
+        InterfaceList
+          InterfaceConstantDeclaration
+            IdentifierList
+              Identifier 'foo'
+            Colon
+            SubtypeIndication
+              Name
+                Identifier 'natural'
         RightPar
-        SemiColon
+      SemiColon
   ComponentDeclarationEpilogue
     Keyword(End)
     Keyword(Component)

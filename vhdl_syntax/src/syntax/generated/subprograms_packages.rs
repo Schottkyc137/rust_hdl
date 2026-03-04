@@ -162,42 +162,6 @@ impl FunctionSpecificationSyntax {
     }
 }
 #[derive(Debug, Clone)]
-pub struct ParenthesizedInterfaceListSyntax(pub(crate) SyntaxNode);
-impl AstNode for ParenthesizedInterfaceListSyntax {
-    fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::ParenthesizedInterfaceList => Some(ParenthesizedInterfaceListSyntax(node)),
-            _ => None,
-        }
-    }
-    fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::ParenthesizedInterfaceList)
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl ParenthesizedInterfaceListSyntax {
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
-        self.0
-            .children()
-            .filter_map(InterfaceListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
-            .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
 pub struct ParameterListSyntax(pub(crate) SyntaxNode);
 impl AstNode for ParameterListSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -302,22 +266,10 @@ impl SubprogramHeaderGenericClauseSyntax {
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Generic))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
+    pub fn parenthesized_interface_list(&self) -> Option<ParenthesizedInterfaceListSyntax> {
         self.0
             .children()
-            .filter_map(InterfaceListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedInterfaceListSyntax::cast)
             .nth(0)
     }
 }

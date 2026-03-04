@@ -20,14 +20,15 @@ PackageInstantiationDeclaration
     GenericMapAspect
       Keyword(Generic)
       Keyword(Map)
-      LeftPar
-      AssociationList
-        AssociationElement
-          FormalPart
-            Name
-              Identifier 'foo'
-          RightArrow
-          ActualPart
-            Identifier 'bar'
-      RightPar
+      ParenthesizedAssociationList
+        LeftPar
+        AssociationList
+          AssociationElement
+            FormalPart
+              Name
+                Identifier 'foo'
+            RightArrow
+            ActualPart
+              Identifier 'bar'
+        RightPar
   SemiColon

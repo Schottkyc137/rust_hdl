@@ -36,9 +36,13 @@ impl Parser {
 
     pub fn enumeration_type_definition(&mut self) {
         self.start_node(EnumerationTypeDefinition);
+        self.start_node(ParenthesizedEnumerationTypeDefinitionItems);
         self.expect_token(LeftPar);
+        self.start_node(EnumerationTypeDefinitionItems);
         self.separated_list(Parser::enumeration_literal, Comma);
+        self.end_node();
         self.expect_token(RightPar);
+        self.end_node();
         self.end_node();
     }
 

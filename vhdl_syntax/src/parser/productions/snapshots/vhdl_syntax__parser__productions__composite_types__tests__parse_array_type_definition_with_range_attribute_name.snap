@@ -9,12 +9,14 @@ FullTypeDeclaration
   ConstrainedArrayDefinition
     Keyword(Array)
     IndexConstraint
-      LeftPar
-      RawTokens
-        Identifier 'arr_t'
-        Tick
-        Keyword(Range)
-      RightPar
+      ParenthesizedIndexConstraintItems
+        LeftPar
+        IndexConstraintItems
+          RawTokens
+            Identifier 'arr_t'
+            Tick
+            Keyword(Range)
+        RightPar
     Keyword(Of)
     SubtypeIndication
       Name

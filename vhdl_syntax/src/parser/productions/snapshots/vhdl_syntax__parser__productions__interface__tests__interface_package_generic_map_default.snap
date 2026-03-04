@@ -16,7 +16,8 @@ InterfacePackageDeclaration
   InterfacePackageGenericMapAspect
     Keyword(Generic)
     Keyword(Map)
-    LeftPar
-    InterfacePackageGenericMapAspectDefault
-      Keyword(Default)
-    RightPar
+    ParenthesizedInterfacePackageGenericMapAspectInner
+      LeftPar
+      InterfacePackageGenericMapAspectDefault
+        Keyword(Default)
+      RightPar

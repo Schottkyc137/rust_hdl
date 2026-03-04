@@ -9,14 +9,16 @@ FullTypeDeclaration
   ConstrainedArrayDefinition
     Keyword(Array)
     IndexConstraint
-      LeftPar
-      RawTokens
-        Identifier 'lib'
-        Dot
-        Identifier 'pkg'
-        Dot
-        Identifier 'foo'
-      RightPar
+      ParenthesizedIndexConstraintItems
+        LeftPar
+        IndexConstraintItems
+          RawTokens
+            Identifier 'lib'
+            Dot
+            Identifier 'pkg'
+            Dot
+            Identifier 'foo'
+        RightPar
     Keyword(Of)
     SubtypeIndication
       Name

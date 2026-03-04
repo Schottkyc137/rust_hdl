@@ -9,41 +9,43 @@ SubprogramDeclaration
     SubprogramHeader
       SubprogramHeaderGenericClause
         Keyword(Generic)
-        LeftPar
-        InterfaceList
-          InterfaceConstantDeclaration
-            IdentifierList
-              Identifier 'x'
-            Colon
-            SubtypeIndication
-              Name
-                Identifier 'natural'
-            ColonEq
-            LiteralExpression
-              AbstractLiteral '4'
-          SemiColon
-          InterfaceConstantDeclaration
-            IdentifierList
-              Identifier 'y'
-            Colon
-            SubtypeIndication
-              Name
-                Identifier 'real'
-            ColonEq
-            LiteralExpression
-              AbstractLiteral '4'
-        RightPar
+        ParenthesizedInterfaceList
+          LeftPar
+          InterfaceList
+            InterfaceConstantDeclaration
+              IdentifierList
+                Identifier 'x'
+              Colon
+              SubtypeIndication
+                Name
+                  Identifier 'natural'
+              ColonEq
+              LiteralExpression
+                AbstractLiteral '4'
+            SemiColon
+            InterfaceConstantDeclaration
+              IdentifierList
+                Identifier 'y'
+              Colon
+              SubtypeIndication
+                Name
+                  Identifier 'real'
+              ColonEq
+              LiteralExpression
+                AbstractLiteral '4'
+          RightPar
       GenericMapAspect
         Keyword(Generic)
         Keyword(Map)
-        LeftPar
-        AssociationList
-          AssociationElement
-            FormalPart
-              Name
-                Identifier 'x'
-            RightArrow
-            ActualPart
-              AbstractLiteral '42'
-        RightPar
+        ParenthesizedAssociationList
+          LeftPar
+          AssociationList
+            AssociationElement
+              FormalPart
+                Name
+                  Identifier 'x'
+              RightArrow
+              ActualPart
+                AbstractLiteral '42'
+          RightPar
   SemiColon

@@ -8,14 +8,15 @@ FullTypeDeclaration
   Keyword(Is)
   UnboundedArrayDefinition
     Keyword(Array)
-    LeftPar
-    IndexSubtypeDefinitionList
-      IndexSubtypeDefinition
-        Name
-          Identifier 'natural'
-        Keyword(Range)
-        BOX
-    RightPar
+    ParenthesizedIndexSubtypeDefinitionList
+      LeftPar
+      IndexSubtypeDefinitionList
+        IndexSubtypeDefinition
+          Name
+            Identifier 'natural'
+          Keyword(Range)
+          BOX
+      RightPar
     Keyword(Of)
     SubtypeIndication
       Name

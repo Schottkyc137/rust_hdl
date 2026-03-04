@@ -32,6 +32,8 @@ pub struct NodeProp {
     pub indents: bool,
     /// Whether this node groups its children (flat vs broken layout)
     pub groups: bool,
+    /// Whether this node's first token is `(` and last token is `)`.
+    pub parenthesized: bool,
     /// How to break before this node
     pub break_kind: BreakKind,
     /// How to break after this node
@@ -75,6 +77,11 @@ impl NodeProp {
 
     pub fn groups(mut self) -> Self {
         self.groups = true;
+        self
+    }
+
+    pub fn parenthesized(mut self) -> Self {
+        self.parenthesized = true;
         self
     }
 

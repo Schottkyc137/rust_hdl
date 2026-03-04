@@ -20,27 +20,29 @@ ComponentInstantiationStatement
     GenericMapAspect
       Keyword(Generic)
       Keyword(Map)
-      LeftPar
-      AssociationList
-        AssociationElement
-          FormalPart
-            Name
-              Identifier 'const'
-          RightArrow
-          ActualPart
-            AbstractLiteral '1'
-      RightPar
+      ParenthesizedAssociationList
+        LeftPar
+        AssociationList
+          AssociationElement
+            FormalPart
+              Name
+                Identifier 'const'
+            RightArrow
+            ActualPart
+              AbstractLiteral '1'
+        RightPar
     PortMapAspect
       Keyword(Port)
       Keyword(Map)
-      LeftPar
-      AssociationList
-        AssociationElement
-          FormalPart
-            Name
-              Identifier 'clk'
-          RightArrow
-          ActualPart
-            Identifier 'clk_foo'
-      RightPar
+      ParenthesizedAssociationList
+        LeftPar
+        AssociationList
+          AssociationElement
+            FormalPart
+              Name
+                Identifier 'clk'
+            RightArrow
+            ActualPart
+              Identifier 'clk_foo'
+        RightPar
   SemiColon

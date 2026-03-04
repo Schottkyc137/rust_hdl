@@ -1498,12 +1498,6 @@ impl EntityInstantiatedUnitSyntax {
     pub fn name(&self) -> Option<NameSyntax> {
         self.0.children().filter_map(NameSyntax::cast).nth(0)
     }
-    pub fn identifier_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::Identifier)
-            .nth(0)
-    }
 }
 #[derive(Debug, Clone)]
 pub struct ConfigurationInstantiatedUnitSyntax(pub(crate) SyntaxNode);

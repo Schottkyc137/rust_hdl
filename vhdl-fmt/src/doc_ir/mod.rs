@@ -166,13 +166,25 @@ fn count_user_blank_lines(trivia: &Trivia) -> usize {
 /// Returns the separator `Doc` to emit before a direct child node of its parent.
 /// `None` means no separator should be injected (first child, or unrecognized parent).
 fn separation_before_child_node(child: &SyntaxNode) -> BreakKind {
-    let Some(parent_kind) = child.parent().map(|parent| parent.kind()) else {
+    let Some(parent) = child.parent() else {
         return BreakKind::Unset;
     };
+    let parent_kind = parent.kind();
+    let parent_props = node_kind_prop(parent_kind);
+
+    // Parenthesized wrapper: SoftBreak(0) before the content node (after `(`)
+    if parent_props.parenthesized {
+        return BreakKind::Soft { flat_spaces: 0 };
+    }
+
     let is_first = child.prev_sibling().is_none();
     match parent_kind {
         // Inline list: SoftBreak (flat=space, broken=newline)
-        NodeKind::InterfaceList => BreakKind::Soft {
+        NodeKind::InterfaceList
+        | NodeKind::AssociationList
+        | NodeKind::EnumerationTypeDefinitionItems
+        | NodeKind::IndexConstraintItems
+        | NodeKind::RecordConstraintItems => BreakKind::Soft {
             flat_spaces: if is_first { 0 } else { 1 },
         },
         // Space-separated keyword/identifier sequences
@@ -197,6 +209,11 @@ fn separation_before_child_token(token: &SyntaxToken, config: &Config) -> BreakK
         } else {
             BreakKind::Void
         };
+    }
+    // Parenthesized wrapper: SoftBreak(0) before closing `)`
+    let parent_props = node_kind_prop(parent.kind());
+    if parent_props.parenthesized && token.kind() == TokenKind::RightPar {
+        return BreakKind::Soft { flat_spaces: 0 };
     }
     let is_first = token.prev_sibling_or_token().is_none();
     space_sep_before(parent.kind(), is_first)

@@ -18,16 +18,15 @@ impl Parser {
 
     pub fn generic_clause(&mut self) {
         self.start_node(GenericClause);
-        self.start_node(GenericClausePreamble);
         self.expect_kw(Kw::Generic);
+        self.start_node(ParenthesizedInterfaceList);
         self.expect_token(LeftPar);
-        self.end_node();
         if !(self.next_is(RightPar)) {
             self.interface_list();
         }
-        self.start_node(GenericClauseEpilogue);
-        self.expect_tokens([RightPar, SemiColon]);
+        self.expect_token(RightPar);
         self.end_node();
+        self.expect_token(SemiColon);
         self.end_node();
     }
 
@@ -39,16 +38,15 @@ impl Parser {
 
     pub fn port_clause(&mut self) {
         self.start_node(PortClause);
-        self.start_node(PortClausePreamble);
         self.expect_kw(Kw::Port);
+        self.start_node(ParenthesizedInterfaceList);
         self.expect_token(LeftPar);
-        self.end_node();
         if !(self.next_is(RightPar)) {
             self.interface_list();
         }
-        self.start_node(PortClauseEpilogue);
-        self.expect_tokens([RightPar, SemiColon]);
+        self.expect_token(RightPar);
         self.end_node();
+        self.expect_token(SemiColon);
         self.end_node();
     }
 
@@ -168,6 +166,7 @@ impl Parser {
         self.start_node(InterfacePackageGenericMapAspect);
         self.expect_kw(Kw::Generic);
         self.expect_kw(Kw::Map);
+        self.start_node(ParenthesizedInterfacePackageGenericMapAspectInner);
         self.expect_token(LeftPar);
         if self.next_is(BOX) {
             self.skip_into_node(InterfacePackageGenericMapAspectBox);
@@ -179,6 +178,7 @@ impl Parser {
             self.end_node();
         }
         self.expect_token(RightPar);
+        self.end_node();
         self.end_node();
     }
 

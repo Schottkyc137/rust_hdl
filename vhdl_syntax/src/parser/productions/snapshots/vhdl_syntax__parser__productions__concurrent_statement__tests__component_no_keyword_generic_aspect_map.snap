@@ -19,14 +19,15 @@ ComponentInstantiationStatement
     GenericMapAspect
       Keyword(Generic)
       Keyword(Map)
-      LeftPar
-      AssociationList
-        AssociationElement
-          FormalPart
-            Name
-              Identifier 'const'
-          RightArrow
-          ActualPart
-            AbstractLiteral '1'
-      RightPar
+      ParenthesizedAssociationList
+        LeftPar
+        AssociationList
+          AssociationElement
+            FormalPart
+              Name
+                Identifier 'const'
+            RightArrow
+            ActualPart
+              AbstractLiteral '1'
+        RightPar
   SemiColon

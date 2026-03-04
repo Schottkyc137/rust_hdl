@@ -9,12 +9,11 @@ EntityDeclaration
     Keyword(Is)
   EntityHeader
     PortClause
-      PortClausePreamble
-        Keyword(Port)
+      Keyword(Port)
+      ParenthesizedInterfaceList
         LeftPar
-      PortClauseEpilogue
         RightPar
-        SemiColon
+      SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
   EntityDeclarationEpilogue

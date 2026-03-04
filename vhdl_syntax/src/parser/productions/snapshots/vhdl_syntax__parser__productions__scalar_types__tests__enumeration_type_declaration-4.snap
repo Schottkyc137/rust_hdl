@@ -7,9 +7,11 @@ FullTypeDeclaration
   Identifier 'chars_t'
   Keyword(Is)
   EnumerationTypeDefinition
-    LeftPar
-    CharacterLiteral ''A''
-    Comma
-    Identifier 'B'
-    RightPar
+    ParenthesizedEnumerationTypeDefinitionItems
+      LeftPar
+      EnumerationTypeDefinitionItems
+        CharacterLiteral ''A''
+        Comma
+        Identifier 'B'
+      RightPar
   SemiColon

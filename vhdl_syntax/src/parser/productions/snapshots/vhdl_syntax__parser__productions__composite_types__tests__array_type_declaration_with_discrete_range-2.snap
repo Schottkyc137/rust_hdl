@@ -9,22 +9,24 @@ FullTypeDeclaration
   ConstrainedArrayDefinition
     Keyword(Array)
     IndexConstraint
-      LeftPar
-      RawTokens
-        AbstractLiteral '10'
-        Keyword(Downto)
-        AbstractLiteral '5'
-      Comma
-      RawTokens
-        CharacterLiteral ''A''
-        Keyword(To)
-        CharacterLiteral ''B''
-      Comma
-      RawTokens
-        Identifier 'enum_t'
-        Tick
-        Keyword(Range)
-      RightPar
+      ParenthesizedIndexConstraintItems
+        LeftPar
+        IndexConstraintItems
+          RawTokens
+            AbstractLiteral '10'
+            Keyword(Downto)
+            AbstractLiteral '5'
+          Comma
+          RawTokens
+            CharacterLiteral ''A''
+            Keyword(To)
+            CharacterLiteral ''B''
+          Comma
+          RawTokens
+            Identifier 'enum_t'
+            Tick
+            Keyword(Range)
+        RightPar
     Keyword(Of)
     SubtypeIndication
       Name

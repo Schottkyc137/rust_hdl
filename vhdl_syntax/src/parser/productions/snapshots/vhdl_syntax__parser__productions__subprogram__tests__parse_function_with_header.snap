@@ -10,19 +10,20 @@ SubprogramBody
       SubprogramHeader
         SubprogramHeaderGenericClause
           Keyword(Generic)
-          LeftPar
-          InterfaceList
-            InterfaceConstantDeclaration
-              IdentifierList
-                Identifier 'x'
-              Colon
-              SubtypeIndication
-                Name
-                  Identifier 'natural'
-              ColonEq
-              LiteralExpression
-                AbstractLiteral '4'
-          RightPar
+          ParenthesizedInterfaceList
+            LeftPar
+            InterfaceList
+              InterfaceConstantDeclaration
+                IdentifierList
+                  Identifier 'x'
+                Colon
+                SubtypeIndication
+                  Name
+                    Identifier 'natural'
+                ColonEq
+                LiteralExpression
+                  AbstractLiteral '4'
+            RightPar
       ParameterList
         ParenthesizedInterfaceList
           LeftPar

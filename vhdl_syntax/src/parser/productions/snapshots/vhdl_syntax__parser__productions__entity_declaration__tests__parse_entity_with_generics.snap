@@ -9,12 +9,11 @@ EntityDeclaration
     Keyword(Is)
   EntityHeader
     GenericClause
-      GenericClausePreamble
-        Keyword(Generic)
+      Keyword(Generic)
+      ParenthesizedInterfaceList
         LeftPar
-      GenericClauseEpilogue
         RightPar
-        SemiColon
+      SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
   EntityDeclarationEpilogue
