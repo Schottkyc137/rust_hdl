@@ -19,7 +19,7 @@ impl BreakKind {
         match self {
             BreakKind::Unset => 0,
             BreakKind::Hard => 4,
-            BreakKind::Soft { flat_spaces: _ } => 3,
+            BreakKind::Soft { .. } => 3,
             BreakKind::Void => 1,
             BreakKind::Spaces(_) => 2,
         }

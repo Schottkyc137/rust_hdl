@@ -10,6 +10,7 @@ pub enum NodeKind {
 
 pub enum Event {
     Push(Doc),
+    #[allow(dead_code)]
     Start(NodeKind),
     End(NodeKind),
 }
@@ -43,10 +44,6 @@ impl DocBuilder {
 
     pub fn hard_break(&mut self) {
         self.push(Doc::HardBreak);
-    }
-
-    pub fn space(&mut self) {
-        self.push(Doc::Spaces(1));
     }
 
     pub fn spaces(&mut self, n: usize) {
