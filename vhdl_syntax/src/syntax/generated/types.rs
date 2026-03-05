@@ -344,6 +344,77 @@ impl ElementDeclarationSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct EnumerationTypeDefinitionItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for EnumerationTypeDefinitionItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::EnumerationTypeDefinitionItems => {
+                Some(EnumerationTypeDefinitionItemsSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::EnumerationTypeDefinitionItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl EnumerationTypeDefinitionItemsSyntax {
+    pub fn discrete_ranges(&self) -> impl Iterator<Item = DiscreteRangeSyntax> + use<'_> {
+        self.0.children().filter_map(DiscreteRangeSyntax::cast)
+    }
+    pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ParenthesizedEnumerationTypeDefinitionItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedEnumerationTypeDefinitionItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedEnumerationTypeDefinitionItems => {
+                Some(ParenthesizedEnumerationTypeDefinitionItemsSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(
+            node.kind(),
+            NodeKind::ParenthesizedEnumerationTypeDefinitionItems
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedEnumerationTypeDefinitionItemsSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn enumeration_type_definition_items(
+        &self,
+    ) -> Option<EnumerationTypeDefinitionItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(EnumerationTypeDefinitionItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct EnumerationTypeDefinitionSyntax(pub(crate) SyntaxNode);
 impl AstNode for EnumerationTypeDefinitionSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -360,24 +431,12 @@ impl AstNode for EnumerationTypeDefinitionSyntax {
     }
 }
 impl EnumerationTypeDefinitionSyntax {
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+    pub fn parenthesized_enumeration_type_definition_items(
+        &self,
+    ) -> Option<ParenthesizedEnumerationTypeDefinitionItemsSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn discrete_ranges(&self) -> impl Iterator<Item = DiscreteRangeSyntax> + use<'_> {
-        self.0.children().filter_map(DiscreteRangeSyntax::cast)
-    }
-    pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::Comma)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .children()
+            .filter_map(ParenthesizedEnumerationTypeDefinitionItemsSyntax::cast)
             .nth(0)
     }
 }
@@ -1029,6 +1088,74 @@ impl RangeConstraintSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct RecordConstraintItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for RecordConstraintItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::RecordConstraintItems => Some(RecordConstraintItemsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::RecordConstraintItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl RecordConstraintItemsSyntax {
+    pub fn record_element_constraints(
+        &self,
+    ) -> impl Iterator<Item = RecordElementConstraintSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(RecordElementConstraintSyntax::cast)
+    }
+    pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ParenthesizedRecordConstraintItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedRecordConstraintItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedRecordConstraintItems => {
+                Some(ParenthesizedRecordConstraintItemsSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ParenthesizedRecordConstraintItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedRecordConstraintItemsSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn record_constraint_items(&self) -> Option<RecordConstraintItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(RecordConstraintItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct RecordConstraintSyntax(pub(crate) SyntaxNode);
 impl AstNode for RecordConstraintSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -1045,28 +1172,12 @@ impl AstNode for RecordConstraintSyntax {
     }
 }
 impl RecordConstraintSyntax {
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn record_element_constraints(
+    pub fn parenthesized_record_constraint_items(
         &self,
-    ) -> impl Iterator<Item = RecordElementConstraintSyntax> + use<'_> {
+    ) -> Option<ParenthesizedRecordConstraintItemsSyntax> {
         self.0
             .children()
-            .filter_map(RecordElementConstraintSyntax::cast)
-    }
-    pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::Comma)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedRecordConstraintItemsSyntax::cast)
             .nth(0)
     }
 }
@@ -1320,6 +1431,70 @@ impl SecondaryUnitDeclarationSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct IndexConstraintItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for IndexConstraintItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::IndexConstraintItems => Some(IndexConstraintItemsSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::IndexConstraintItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl IndexConstraintItemsSyntax {
+    pub fn discrete_ranges(&self) -> impl Iterator<Item = DiscreteRangeSyntax> + use<'_> {
+        self.0.children().filter_map(DiscreteRangeSyntax::cast)
+    }
+    pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::Comma)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ParenthesizedIndexConstraintItemsSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedIndexConstraintItemsSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedIndexConstraintItems => {
+                Some(ParenthesizedIndexConstraintItemsSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ParenthesizedIndexConstraintItems)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedIndexConstraintItemsSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn index_constraint_items(&self) -> Option<IndexConstraintItemsSyntax> {
+        self.0
+            .children()
+            .filter_map(IndexConstraintItemsSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct IndexConstraintSyntax(pub(crate) SyntaxNode);
 impl AstNode for IndexConstraintSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -1336,24 +1511,12 @@ impl AstNode for IndexConstraintSyntax {
     }
 }
 impl IndexConstraintSyntax {
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+    pub fn parenthesized_index_constraint_items(
+        &self,
+    ) -> Option<ParenthesizedIndexConstraintItemsSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn discrete_ranges(&self) -> impl Iterator<Item = DiscreteRangeSyntax> + use<'_> {
-        self.0.children().filter_map(DiscreteRangeSyntax::cast)
-    }
-    pub fn comma_token(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::Comma)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .children()
+            .filter_map(ParenthesizedIndexConstraintItemsSyntax::cast)
             .nth(0)
     }
 }
@@ -1388,6 +1551,47 @@ impl IndexSubtypeDefinitionListSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct ParenthesizedIndexSubtypeDefinitionListSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedIndexSubtypeDefinitionListSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedIndexSubtypeDefinitionList => {
+                Some(ParenthesizedIndexSubtypeDefinitionListSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(
+            node.kind(),
+            NodeKind::ParenthesizedIndexSubtypeDefinitionList
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedIndexSubtypeDefinitionListSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn index_subtype_definition_list(&self) -> Option<IndexSubtypeDefinitionListSyntax> {
+        self.0
+            .children()
+            .filter_map(IndexSubtypeDefinitionListSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct UnboundedArrayDefinitionSyntax(pub(crate) SyntaxNode);
 impl AstNode for UnboundedArrayDefinitionSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -1410,22 +1614,12 @@ impl UnboundedArrayDefinitionSyntax {
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Array))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn index_subtype_definition_list(&self) -> Option<IndexSubtypeDefinitionListSyntax> {
+    pub fn parenthesized_index_subtype_definition_list(
+        &self,
+    ) -> Option<ParenthesizedIndexSubtypeDefinitionListSyntax> {
         self.0
             .children()
-            .filter_map(IndexSubtypeDefinitionListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedIndexSubtypeDefinitionListSyntax::cast)
             .nth(0)
     }
     pub fn of_token(&self) -> Option<SyntaxToken> {

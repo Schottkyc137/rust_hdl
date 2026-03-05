@@ -1,0 +1,9 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: formatted
+---
+package foo is
+    procedure function_with_long_name(
+        argument_name_that_is_very_long : type_name_that_is_equally_long
+    );
+end;

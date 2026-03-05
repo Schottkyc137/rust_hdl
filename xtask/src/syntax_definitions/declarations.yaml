@@ -176,26 +176,18 @@ FullTypeDeclaration: !Sequence
   - token: SemiColon
 
 GenericClause: !Sequence
-  - node: GenericClausePreamble
-  - node: InterfaceList
-    optional: true
-  - node: GenericClauseEpilogue
-
-GenericClausePreamble: !Sequence
   - keyword: Generic
-  - token: LeftPar
-
-GenericClauseEpilogue: !Sequence
-  - token: RightPar
+  - node: InterfaceList
+    parenthesized: true
+    optional: true
   - token: SemiColon
 
 GenericMapAspect: !Sequence
   - keyword: Generic
   - keyword: Map
-  - token: LeftPar
   - node: AssociationList
+    parenthesized: true
     optional: true
-  - token: RightPar
 
 GroupConstituentList: !Sequence
   - node: Name
@@ -208,20 +200,18 @@ GroupDeclaration: !Sequence
   - token: Identifier
   - token: Colon
   - node: Name
-  - token: LeftPar
   - node: GroupConstituentList
+    parenthesized: true
     optional: true
-  - token: RightPar
   - token: SemiColon
 
 GroupTemplateDeclaration: !Sequence
   - keyword: Group
   - token: Identifier
   - keyword: Is
-  - token: LeftPar
   - node: EntityClassEntryList
+    parenthesized: true
     optional: true
-  - token: RightPar
   - token: SemiColon
 
 InterfaceConstantDeclaration: !Sequence
@@ -287,9 +277,8 @@ InterfacePackageDeclarationPreamble: !Sequence
 InterfacePackageGenericMapAspect: !Sequence
   - keyword: Generic
   - keyword: Map
-  - token: LeftPar
   - node: InterfacePackageGenericMapAspectInner
-  - token: RightPar
+    parenthesized: true
 
 InterfacePackageGenericMapAspectBox: !Sequence
   - token: BOX
@@ -310,6 +299,7 @@ InterfaceProcedureSpecification: !Sequence
   - keyword: Procedure
   - node: Designator
   - keyword: Parameter
+    optional: true
   - token: LeftPar
   - node: InterfaceList
     optional: true
@@ -375,26 +365,18 @@ Mode: !Choice
   - keyword: Linkage
 
 PortClause: !Sequence
-  - node: PortClausePreamble
-  - node: InterfaceList
-    optional: true
-  - node: PortClauseEpilogue
-
-PortClausePreamble: !Sequence
   - keyword: Port
-  - token: LeftPar
-
-PortClauseEpilogue: !Sequence
-  - token: RightPar
+  - node: InterfaceList
+    parenthesized: true
+    optional: true
   - token: SemiColon
 
 PortMapAspect: !Sequence
   - keyword: Port
   - keyword: Map
-  - token: LeftPar
   - node: AssociationList
+    parenthesized: true
     optional: true
-  - token: RightPar
 
 RecordElementResolution: !Sequence
   - token: Identifier

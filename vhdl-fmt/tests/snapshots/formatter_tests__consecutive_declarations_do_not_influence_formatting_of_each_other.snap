@@ -1,0 +1,9 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: formatted
+---
+architecture foo of bar is
+    signal a : bit; -- Comment
+    signal b : std_logic;
+begin
+end foo;

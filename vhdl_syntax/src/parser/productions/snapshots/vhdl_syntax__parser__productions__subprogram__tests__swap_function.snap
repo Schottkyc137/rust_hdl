@@ -10,12 +10,13 @@ SubprogramBody
       SubprogramHeader
         SubprogramHeaderGenericClause
           Keyword(Generic)
-          LeftPar
-          InterfaceList
-            InterfaceIncompleteTypeDeclaration
-              Keyword(Type)
-              Identifier 'T'
-          RightPar
+          ParenthesizedInterfaceList
+            LeftPar
+            InterfaceList
+              InterfaceIncompleteTypeDeclaration
+                Keyword(Type)
+                Identifier 'T'
+            RightPar
       ParameterList
         Keyword(Parameter)
         ParenthesizedInterfaceList

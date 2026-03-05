@@ -9,20 +9,19 @@ ComponentDeclaration
     Keyword(Is)
   ComponentDeclarationItems
     PortClause
-      PortClausePreamble
-        Keyword(Port)
+      Keyword(Port)
+      ParenthesizedInterfaceList
         LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          IdentifierList
-            Identifier 'foo'
-          Colon
-          SubtypeIndication
-            Name
-              Identifier 'natural'
-      PortClauseEpilogue
+        InterfaceList
+          InterfaceConstantDeclaration
+            IdentifierList
+              Identifier 'foo'
+            Colon
+            SubtypeIndication
+              Name
+                Identifier 'natural'
         RightPar
-        SemiColon
+      SemiColon
   ComponentDeclarationEpilogue
     Keyword(End)
     Keyword(Component)

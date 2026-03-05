@@ -3,9 +3,8 @@ source: vhdl_syntax/src/parser/productions/interface.rs
 expression: "to_test_text(Parser::port_clause, \"port();\",)"
 ---
 PortClause
-  PortClausePreamble
-    Keyword(Port)
+  Keyword(Port)
+  ParenthesizedInterfaceList
     LeftPar
-  PortClauseEpilogue
     RightPar
-    SemiColon
+  SemiColon

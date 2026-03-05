@@ -9,12 +9,14 @@ FullTypeDeclaration
   ConstrainedArrayDefinition
     Keyword(Array)
     IndexConstraint
-      LeftPar
-      RawTokens
-        AbstractLiteral '0'
-        Keyword(To)
-        AbstractLiteral '1'
-      RightPar
+      ParenthesizedIndexConstraintItems
+        LeftPar
+        IndexConstraintItems
+          RawTokens
+            AbstractLiteral '0'
+            Keyword(To)
+            AbstractLiteral '1'
+        RightPar
     Keyword(Of)
     SubtypeIndication
       Name

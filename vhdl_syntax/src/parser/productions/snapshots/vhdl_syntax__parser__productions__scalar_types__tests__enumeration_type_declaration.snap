@@ -7,7 +7,9 @@ FullTypeDeclaration
   Identifier 'enum_t'
   Keyword(Is)
   EnumerationTypeDefinition
-    LeftPar
-    Identifier 'A'
-    RightPar
+    ParenthesizedEnumerationTypeDefinitionItems
+      LeftPar
+      EnumerationTypeDefinitionItems
+        Identifier 'A'
+      RightPar
   SemiColon

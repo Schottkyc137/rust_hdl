@@ -9,10 +9,12 @@ FullTypeDeclaration
   ConstrainedArrayDefinition
     Keyword(Array)
     IndexConstraint
-      LeftPar
-      RawTokens
-        Identifier 'natural'
-      RightPar
+      ParenthesizedIndexConstraintItems
+        LeftPar
+        IndexConstraintItems
+          RawTokens
+            Identifier 'natural'
+        RightPar
     Keyword(Of)
     SubtypeIndication
       Name

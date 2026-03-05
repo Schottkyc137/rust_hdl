@@ -1,0 +1,7 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: "fmt_str(\"\\\narchitecture rtl of my_entity is -- top comment\nbegin\nend ;\")"
+---
+architecture rtl of my_entity is -- top comment
+begin
+end;

@@ -9,50 +9,48 @@ EntityDeclaration
     Keyword(Is)
   EntityHeader
     GenericClause
-      GenericClausePreamble
-        Keyword(Generic)
+      Keyword(Generic)
+      ParenthesizedInterfaceList
         LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          Keyword(Constant)
-          IdentifierList
-            Identifier 'a'
-          Colon
-          Keyword(In)
-          SubtypeIndication
-            Name
-              Identifier 'bit'
-      GenericClauseEpilogue
+        InterfaceList
+          InterfaceConstantDeclaration
+            Keyword(Constant)
+            IdentifierList
+              Identifier 'a'
+            Colon
+            Keyword(In)
+            SubtypeIndication
+              Name
+                Identifier 'bit'
         RightPar
-        SemiColon
+      SemiColon
     PortClause
-      PortClausePreamble
-        Keyword(Port)
+      Keyword(Port)
+      ParenthesizedInterfaceList
         LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          IdentifierList
-            Identifier 'b'
-            Comma
-            Identifier 'c'
-          Colon
-          Keyword(Out)
-          SubtypeIndication
-            Name
-              Identifier 'std_logic'
-        SemiColon
-        InterfaceSignalDeclaration
-          Keyword(Signal)
-          IdentifierList
-            Identifier 'd'
-          Colon
-          Keyword(Linkage)
-          SubtypeIndication
-            Name
-              Identifier 'boolean'
-      PortClauseEpilogue
+        InterfaceList
+          InterfaceConstantDeclaration
+            IdentifierList
+              Identifier 'b'
+              Comma
+              Identifier 'c'
+            Colon
+            Keyword(Out)
+            SubtypeIndication
+              Name
+                Identifier 'std_logic'
+          SemiColon
+          InterfaceSignalDeclaration
+            Keyword(Signal)
+            IdentifierList
+              Identifier 'd'
+            Colon
+            Keyword(Linkage)
+            SubtypeIndication
+              Name
+                Identifier 'boolean'
         RightPar
-        SemiColon
+      SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
   EntityDeclarationEpilogue

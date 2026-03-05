@@ -47,10 +47,9 @@ SubprogramHeader: !Sequence
 
 SubprogramHeaderGenericClause: !Sequence
   - keyword: Generic
-  - token: LeftPar
   - node: InterfaceList
+    parenthesized: true
     optional: true
-  - token: RightPar
 
 SubprogramBody: !Sequence
   - node: SubprogramBodyPreamble

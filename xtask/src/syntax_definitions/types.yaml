@@ -46,13 +46,15 @@ ElementDeclaration: !Sequence
   - node: SubtypeIndication
   - token: SemiColon
 
-EnumerationTypeDefinition: !Sequence
-  - token: LeftPar
+EnumerationTypeDefinitionItems: !Sequence
   - node: DiscreteRange
     repeated: true
   - token: Comma
     repeated: true
-  - token: RightPar
+
+EnumerationTypeDefinition: !Sequence
+  - node: EnumerationTypeDefinitionItems
+    parenthesized: true
 
 FileTypeDefinition: !Sequence
   - keyword: File
@@ -152,13 +154,15 @@ RangeConstraint: !Sequence
   - keyword: Range
   - node: Range
 
-RecordConstraint: !Sequence
-  - token: LeftPar
+RecordConstraintItems: !Sequence
   - node: RecordElementConstraint
     repeated: true
   - token: Comma
     repeated: true
-  - token: RightPar
+
+RecordConstraint: !Sequence
+  - node: RecordConstraintItems
+    parenthesized: true
 
 RecordElementConstraint: !Sequence
   - node: Name
@@ -196,13 +200,15 @@ SecondaryUnitDeclaration: !Sequence
   - node: PhysicalLiteral
   - token: SemiColon
 
-IndexConstraint: !Sequence
-  - token: LeftPar
+IndexConstraintItems: !Sequence
   - node: DiscreteRange
     repeated: true
   - token: Comma
     repeated: true
-  - token: RightPar
+
+IndexConstraint: !Sequence
+  - node: IndexConstraintItems
+    parenthesized: true
 
 IndexSubtypeDefinitionList: !Sequence
   - node: IndexSubtypeDefinition
@@ -212,9 +218,8 @@ IndexSubtypeDefinitionList: !Sequence
 
 UnboundedArrayDefinition: !Sequence
   - keyword: Array
-  - token: LeftPar
   - node: IndexSubtypeDefinitionList
+    parenthesized: true
     optional: true
-  - token: RightPar
   - keyword: Of
   - node: SubtypeIndication

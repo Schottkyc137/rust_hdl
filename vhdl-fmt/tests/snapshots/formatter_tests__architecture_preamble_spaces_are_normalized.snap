@@ -1,0 +1,7 @@
+---
+source: vhdl-fmt/tests/formatter_tests.rs
+expression: "fmt_str(\"architecture  my_arch  of  work  is\\nbegin\\nend ;\")"
+---
+architecture my_arch of work is
+begin
+end;

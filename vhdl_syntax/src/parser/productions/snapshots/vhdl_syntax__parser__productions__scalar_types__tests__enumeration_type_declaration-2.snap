@@ -7,11 +7,13 @@ FullTypeDeclaration
   Identifier 'enum_2_t'
   Keyword(Is)
   EnumerationTypeDefinition
-    LeftPar
-    Identifier 'S1'
-    Comma
-    Identifier 'S2'
-    Comma
-    Identifier 'S3'
-    RightPar
+    ParenthesizedEnumerationTypeDefinitionItems
+      LeftPar
+      EnumerationTypeDefinitionItems
+        Identifier 'S1'
+        Comma
+        Identifier 'S2'
+        Comma
+        Identifier 'S3'
+      RightPar
   SemiColon

@@ -9,20 +9,19 @@ Package
     Keyword(Is)
   PackageHeader
     GenericClause
-      GenericClausePreamble
-        Keyword(Generic)
+      Keyword(Generic)
+      ParenthesizedInterfaceList
         LeftPar
-      InterfaceList
-        InterfaceIncompleteTypeDeclaration
-          Keyword(Type)
-          Identifier 'foo'
-        SemiColon
-        InterfaceIncompleteTypeDeclaration
-          Keyword(Type)
-          Identifier 'bar'
-      GenericClauseEpilogue
+        InterfaceList
+          InterfaceIncompleteTypeDeclaration
+            Keyword(Type)
+            Identifier 'foo'
+          SemiColon
+          InterfaceIncompleteTypeDeclaration
+            Keyword(Type)
+            Identifier 'bar'
         RightPar
-        SemiColon
+      SemiColon
   PackageEpilogue
     Keyword(End)
     Keyword(Package)

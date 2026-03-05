@@ -6049,18 +6049,12 @@ impl From<EntityHeaderBuilder> for EntityHeaderSyntax {
 pub struct EntityInstantiatedUnitBuilder {
     entity_token: Token,
     name: NameSyntax,
-    left_par_token: Option<Token>,
-    identifier_token: Option<Token>,
-    right_par_token: Option<Token>,
 }
 impl EntityInstantiatedUnitBuilder {
     pub fn new(name: impl Into<NameSyntax>) -> Self {
         Self {
             entity_token: Kw::Entity.canonical_token(),
             name: name.into(),
-            left_par_token: None,
-            identifier_token: None,
-            right_par_token: None,
         }
     }
     pub fn with_entity_token(mut self, t: impl Into<Token>) -> Self {
@@ -6075,52 +6069,11 @@ impl EntityInstantiatedUnitBuilder {
         self.name = n.into();
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = Some(t.into());
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        let tok = self
-            .left_par_token
-            .get_or_insert_with(|| TokenKind::LeftPar.canonical_token().unwrap());
-        tok.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_identifier_token(mut self, t: impl Into<crate::builder::Identifier>) -> Self {
-        self.identifier_token = Some(t.into().into());
-        self
-    }
-    pub fn with_identifier_token_trivia(mut self, trivia: Trivia) -> Self {
-        if let Some(ref mut t) = self.identifier_token {
-            t.set_leading_trivia(trivia);
-        }
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = Some(t.into());
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        let tok = self
-            .right_par_token
-            .get_or_insert_with(|| TokenKind::RightPar.canonical_token().unwrap());
-        tok.set_leading_trivia(trivia);
-        self
-    }
     pub fn build(self) -> EntityInstantiatedUnitSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::EntityInstantiatedUnit);
         builder.push(self.entity_token);
         builder.push_node(self.name.raw().green().clone());
-        if let Some(t) = self.left_par_token {
-            builder.push(t);
-        }
-        if let Some(t) = self.identifier_token {
-            builder.push(t);
-        }
-        if let Some(t) = self.right_par_token {
-            builder.push(t);
-        }
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -6293,10 +6246,8 @@ impl From<EntitySpecificationBuilder> for EntitySpecificationSyntax {
     }
 }
 pub struct EnumerationTypeDefinitionBuilder {
-    left_par_token: Token,
-    discrete_ranges: Vec<DiscreteRangeSyntax>,
-    comma_token: Vec<Token>,
-    right_par_token: Token,
+    parenthesized_enumeration_type_definition_items:
+        ParenthesizedEnumerationTypeDefinitionItemsSyntax,
 }
 impl Default for EnumerationTypeDefinitionBuilder {
     fn default() -> Self {
@@ -6306,19 +6257,52 @@ impl Default for EnumerationTypeDefinitionBuilder {
 impl EnumerationTypeDefinitionBuilder {
     pub fn new() -> Self {
         Self {
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            discrete_ranges: Vec::new(),
-            comma_token: Vec::new(),
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_enumeration_type_definition_items:
+                ParenthesizedEnumerationTypeDefinitionItemsBuilder::default().build(),
         }
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
+    pub fn with_parenthesized_enumeration_type_definition_items(
+        mut self,
+        n: impl Into<ParenthesizedEnumerationTypeDefinitionItemsSyntax>,
+    ) -> Self {
+        self.parenthesized_enumeration_type_definition_items = n.into();
         self
     }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
+    pub fn build(self) -> EnumerationTypeDefinitionSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::EnumerationTypeDefinition);
+        builder.push_node(
+            self.parenthesized_enumeration_type_definition_items
+                .raw()
+                .green()
+                .clone(),
+        );
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        EnumerationTypeDefinitionSyntax::cast(node).unwrap()
+    }
+}
+impl From<EnumerationTypeDefinitionBuilder> for EnumerationTypeDefinitionSyntax {
+    fn from(value: EnumerationTypeDefinitionBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct EnumerationTypeDefinitionItemsBuilder {
+    discrete_ranges: Vec<DiscreteRangeSyntax>,
+    comma_token: Vec<Token>,
+}
+impl Default for EnumerationTypeDefinitionItemsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl EnumerationTypeDefinitionItemsBuilder {
+    pub fn new() -> Self {
+        Self {
+            discrete_ranges: Vec::new(),
+            comma_token: Vec::new(),
+        }
     }
     pub fn add_discrete_ranges(mut self, n: impl Into<DiscreteRangeSyntax>) -> Self {
         self.discrete_ranges.push(n.into());
@@ -6328,33 +6312,23 @@ impl EnumerationTypeDefinitionBuilder {
         self.comma_token.push(t.into());
         self
     }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> EnumerationTypeDefinitionSyntax {
+    pub fn build(self) -> EnumerationTypeDefinitionItemsSyntax {
         let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EnumerationTypeDefinition);
-        builder.push(self.left_par_token);
+        builder.start_node(NodeKind::EnumerationTypeDefinitionItems);
         for n in self.discrete_ranges {
             builder.push_node(n.raw().green().clone());
         }
         for t in self.comma_token {
             builder.push(t);
         }
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
-        EnumerationTypeDefinitionSyntax::cast(node).unwrap()
+        EnumerationTypeDefinitionItemsSyntax::cast(node).unwrap()
     }
 }
-impl From<EnumerationTypeDefinitionBuilder> for EnumerationTypeDefinitionSyntax {
-    fn from(value: EnumerationTypeDefinitionBuilder) -> Self {
+impl From<EnumerationTypeDefinitionItemsBuilder> for EnumerationTypeDefinitionItemsSyntax {
+    fn from(value: EnumerationTypeDefinitionItemsBuilder) -> Self {
         value.build()
     }
 }
@@ -7541,9 +7515,9 @@ impl From<GenerateStatementBodyEpilogueBuilder> for GenerateStatementBodyEpilogu
     }
 }
 pub struct GenericClauseBuilder {
-    generic_clause_preamble: GenericClausePreambleSyntax,
-    interface_list: Option<InterfaceListSyntax>,
-    generic_clause_epilogue: GenericClauseEpilogueSyntax,
+    generic_token: Token,
+    parenthesized_interface_list: Option<ParenthesizedInterfaceListSyntax>,
+    semi_colon_token: Token,
 }
 impl Default for GenericClauseBuilder {
     fn default() -> Self {
@@ -7553,37 +7527,42 @@ impl Default for GenericClauseBuilder {
 impl GenericClauseBuilder {
     pub fn new() -> Self {
         Self {
-            generic_clause_preamble: GenericClausePreambleBuilder::default().build(),
-            interface_list: None,
-            generic_clause_epilogue: GenericClauseEpilogueBuilder::default().build(),
+            generic_token: Kw::Generic.canonical_token(),
+            parenthesized_interface_list: None,
+            semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
         }
     }
-    pub fn with_generic_clause_preamble(
-        mut self,
-        n: impl Into<GenericClausePreambleSyntax>,
-    ) -> Self {
-        self.generic_clause_preamble = n.into();
+    pub fn with_generic_token(mut self, t: impl Into<Token>) -> Self {
+        self.generic_token = t.into();
         self
     }
-    pub fn with_interface_list(mut self, n: impl Into<InterfaceListSyntax>) -> Self {
-        self.interface_list = Some(n.into());
+    pub fn with_generic_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.generic_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_generic_clause_epilogue(
+    pub fn with_parenthesized_interface_list(
         mut self,
-        n: impl Into<GenericClauseEpilogueSyntax>,
+        n: impl Into<ParenthesizedInterfaceListSyntax>,
     ) -> Self {
-        self.generic_clause_epilogue = n.into();
+        self.parenthesized_interface_list = Some(n.into());
+        self
+    }
+    pub fn with_semi_colon_token(mut self, t: impl Into<Token>) -> Self {
+        self.semi_colon_token = t.into();
+        self
+    }
+    pub fn with_semi_colon_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.semi_colon_token.set_leading_trivia(trivia);
         self
     }
     pub fn build(self) -> GenericClauseSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::GenericClause);
-        builder.push_node(self.generic_clause_preamble.raw().green().clone());
-        if let Some(n) = self.interface_list {
+        builder.push(self.generic_token);
+        if let Some(n) = self.parenthesized_interface_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push_node(self.generic_clause_epilogue.raw().green().clone());
+        builder.push(self.semi_colon_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -7595,108 +7574,10 @@ impl From<GenericClauseBuilder> for GenericClauseSyntax {
         value.build()
     }
 }
-pub struct GenericClauseEpilogueBuilder {
-    right_par_token: Token,
-    semi_colon_token: Token,
-}
-impl Default for GenericClauseEpilogueBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl GenericClauseEpilogueBuilder {
-    pub fn new() -> Self {
-        Self {
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
-            semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
-        }
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_semi_colon_token(mut self, t: impl Into<Token>) -> Self {
-        self.semi_colon_token = t.into();
-        self
-    }
-    pub fn with_semi_colon_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.semi_colon_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> GenericClauseEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenericClauseEpilogue);
-        builder.push(self.right_par_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenericClauseEpilogueSyntax::cast(node).unwrap()
-    }
-}
-impl From<GenericClauseEpilogueBuilder> for GenericClauseEpilogueSyntax {
-    fn from(value: GenericClauseEpilogueBuilder) -> Self {
-        value.build()
-    }
-}
-pub struct GenericClausePreambleBuilder {
-    generic_token: Token,
-    left_par_token: Token,
-}
-impl Default for GenericClausePreambleBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl GenericClausePreambleBuilder {
-    pub fn new() -> Self {
-        Self {
-            generic_token: Kw::Generic.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-        }
-    }
-    pub fn with_generic_token(mut self, t: impl Into<Token>) -> Self {
-        self.generic_token = t.into();
-        self
-    }
-    pub fn with_generic_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.generic_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> GenericClausePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenericClausePreamble);
-        builder.push(self.generic_token);
-        builder.push(self.left_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenericClausePreambleSyntax::cast(node).unwrap()
-    }
-}
-impl From<GenericClausePreambleBuilder> for GenericClausePreambleSyntax {
-    fn from(value: GenericClausePreambleBuilder) -> Self {
-        value.build()
-    }
-}
 pub struct GenericMapAspectBuilder {
     generic_token: Token,
     map_token: Token,
-    left_par_token: Token,
-    association_list: Option<AssociationListSyntax>,
-    right_par_token: Token,
+    parenthesized_association_list: Option<ParenthesizedAssociationListSyntax>,
 }
 impl Default for GenericMapAspectBuilder {
     fn default() -> Self {
@@ -7708,9 +7589,7 @@ impl GenericMapAspectBuilder {
         Self {
             generic_token: Kw::Generic.canonical_token(),
             map_token: Kw::Map.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            association_list: None,
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_association_list: None,
         }
     }
     pub fn with_generic_token(mut self, t: impl Into<Token>) -> Self {
@@ -7729,24 +7608,11 @@ impl GenericMapAspectBuilder {
         self.map_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_association_list(mut self, n: impl Into<AssociationListSyntax>) -> Self {
-        self.association_list = Some(n.into());
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+    pub fn with_parenthesized_association_list(
+        mut self,
+        n: impl Into<ParenthesizedAssociationListSyntax>,
+    ) -> Self {
+        self.parenthesized_association_list = Some(n.into());
         self
     }
     pub fn build(self) -> GenericMapAspectSyntax {
@@ -7754,11 +7620,9 @@ impl GenericMapAspectBuilder {
         builder.start_node(NodeKind::GenericMapAspect);
         builder.push(self.generic_token);
         builder.push(self.map_token);
-        builder.push(self.left_par_token);
-        if let Some(n) = self.association_list {
+        if let Some(n) = self.parenthesized_association_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -7819,9 +7683,7 @@ pub struct GroupDeclarationBuilder {
     identifier_token: Token,
     colon_token: Token,
     name: NameSyntax,
-    left_par_token: Token,
-    group_constituent_list: Option<GroupConstituentListSyntax>,
-    right_par_token: Token,
+    parenthesized_group_constituent_list: Option<ParenthesizedGroupConstituentListSyntax>,
     semi_colon_token: Token,
 }
 impl GroupDeclarationBuilder {
@@ -7834,9 +7696,7 @@ impl GroupDeclarationBuilder {
             identifier_token: identifier_token.into().into(),
             colon_token: TokenKind::Colon.canonical_token().unwrap(),
             name: name.into(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            group_constituent_list: None,
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_group_constituent_list: None,
             semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
         }
     }
@@ -7868,24 +7728,11 @@ impl GroupDeclarationBuilder {
         self.name = n.into();
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_group_constituent_list(mut self, n: impl Into<GroupConstituentListSyntax>) -> Self {
-        self.group_constituent_list = Some(n.into());
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+    pub fn with_parenthesized_group_constituent_list(
+        mut self,
+        n: impl Into<ParenthesizedGroupConstituentListSyntax>,
+    ) -> Self {
+        self.parenthesized_group_constituent_list = Some(n.into());
         self
     }
     pub fn with_semi_colon_token(mut self, t: impl Into<Token>) -> Self {
@@ -7903,11 +7750,9 @@ impl GroupDeclarationBuilder {
         builder.push(self.identifier_token);
         builder.push(self.colon_token);
         builder.push_node(self.name.raw().green().clone());
-        builder.push(self.left_par_token);
-        if let Some(n) = self.group_constituent_list {
+        if let Some(n) = self.parenthesized_group_constituent_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push(self.right_par_token);
         builder.push(self.semi_colon_token);
         builder.end_node();
         let green = builder.end();
@@ -7924,9 +7769,7 @@ pub struct GroupTemplateDeclarationBuilder {
     group_token: Token,
     identifier_token: Token,
     is_token: Token,
-    left_par_token: Token,
-    entity_class_entry_list: Option<EntityClassEntryListSyntax>,
-    right_par_token: Token,
+    parenthesized_entity_class_entry_list: Option<ParenthesizedEntityClassEntryListSyntax>,
     semi_colon_token: Token,
 }
 impl GroupTemplateDeclarationBuilder {
@@ -7935,9 +7778,7 @@ impl GroupTemplateDeclarationBuilder {
             group_token: Kw::Group.canonical_token(),
             identifier_token: identifier_token.into().into(),
             is_token: Kw::Is.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            entity_class_entry_list: None,
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_entity_class_entry_list: None,
             semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
         }
     }
@@ -7965,27 +7806,11 @@ impl GroupTemplateDeclarationBuilder {
         self.is_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_entity_class_entry_list(
+    pub fn with_parenthesized_entity_class_entry_list(
         mut self,
-        n: impl Into<EntityClassEntryListSyntax>,
+        n: impl Into<ParenthesizedEntityClassEntryListSyntax>,
     ) -> Self {
-        self.entity_class_entry_list = Some(n.into());
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+        self.parenthesized_entity_class_entry_list = Some(n.into());
         self
     }
     pub fn with_semi_colon_token(mut self, t: impl Into<Token>) -> Self {
@@ -8002,11 +7827,9 @@ impl GroupTemplateDeclarationBuilder {
         builder.push(self.group_token);
         builder.push(self.identifier_token);
         builder.push(self.is_token);
-        builder.push(self.left_par_token);
-        if let Some(n) = self.entity_class_entry_list {
+        if let Some(n) = self.parenthesized_entity_class_entry_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push(self.right_par_token);
         builder.push(self.semi_colon_token);
         builder.end_node();
         let green = builder.end();
@@ -8840,10 +8663,7 @@ impl From<IncompleteTypeDeclarationBuilder> for IncompleteTypeDeclarationSyntax 
     }
 }
 pub struct IndexConstraintBuilder {
-    left_par_token: Token,
-    discrete_ranges: Vec<DiscreteRangeSyntax>,
-    comma_token: Vec<Token>,
-    right_par_token: Token,
+    parenthesized_index_constraint_items: ParenthesizedIndexConstraintItemsSyntax,
 }
 impl Default for IndexConstraintBuilder {
     fn default() -> Self {
@@ -8853,19 +8673,52 @@ impl Default for IndexConstraintBuilder {
 impl IndexConstraintBuilder {
     pub fn new() -> Self {
         Self {
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            discrete_ranges: Vec::new(),
-            comma_token: Vec::new(),
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_index_constraint_items:
+                ParenthesizedIndexConstraintItemsBuilder::default().build(),
         }
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
+    pub fn with_parenthesized_index_constraint_items(
+        mut self,
+        n: impl Into<ParenthesizedIndexConstraintItemsSyntax>,
+    ) -> Self {
+        self.parenthesized_index_constraint_items = n.into();
         self
     }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
+    pub fn build(self) -> IndexConstraintSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::IndexConstraint);
+        builder.push_node(
+            self.parenthesized_index_constraint_items
+                .raw()
+                .green()
+                .clone(),
+        );
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        IndexConstraintSyntax::cast(node).unwrap()
+    }
+}
+impl From<IndexConstraintBuilder> for IndexConstraintSyntax {
+    fn from(value: IndexConstraintBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct IndexConstraintItemsBuilder {
+    discrete_ranges: Vec<DiscreteRangeSyntax>,
+    comma_token: Vec<Token>,
+}
+impl Default for IndexConstraintItemsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl IndexConstraintItemsBuilder {
+    pub fn new() -> Self {
+        Self {
+            discrete_ranges: Vec::new(),
+            comma_token: Vec::new(),
+        }
     }
     pub fn add_discrete_ranges(mut self, n: impl Into<DiscreteRangeSyntax>) -> Self {
         self.discrete_ranges.push(n.into());
@@ -8875,33 +8728,23 @@ impl IndexConstraintBuilder {
         self.comma_token.push(t.into());
         self
     }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> IndexConstraintSyntax {
+    pub fn build(self) -> IndexConstraintItemsSyntax {
         let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IndexConstraint);
-        builder.push(self.left_par_token);
+        builder.start_node(NodeKind::IndexConstraintItems);
         for n in self.discrete_ranges {
             builder.push_node(n.raw().green().clone());
         }
         for t in self.comma_token {
             builder.push(t);
         }
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
-        IndexConstraintSyntax::cast(node).unwrap()
+        IndexConstraintItemsSyntax::cast(node).unwrap()
     }
 }
-impl From<IndexConstraintBuilder> for IndexConstraintSyntax {
-    fn from(value: IndexConstraintBuilder) -> Self {
+impl From<IndexConstraintItemsBuilder> for IndexConstraintItemsSyntax {
+    fn from(value: IndexConstraintItemsBuilder) -> Self {
         value.build()
     }
 }
@@ -9648,23 +9491,20 @@ impl From<InterfacePackageDeclarationPreambleBuilder>
 pub struct InterfacePackageGenericMapAspectBuilder {
     generic_token: Token,
     map_token: Token,
-    left_par_token: Token,
-    interface_package_generic_map_aspect_inner: InterfacePackageGenericMapAspectInnerSyntax,
-    right_par_token: Token,
+    parenthesized_interface_package_generic_map_aspect_inner:
+        ParenthesizedInterfacePackageGenericMapAspectInnerSyntax,
 }
 impl InterfacePackageGenericMapAspectBuilder {
     pub fn new(
-        interface_package_generic_map_aspect_inner: impl Into<
-            InterfacePackageGenericMapAspectInnerSyntax,
+        parenthesized_interface_package_generic_map_aspect_inner: impl Into<
+            ParenthesizedInterfacePackageGenericMapAspectInnerSyntax,
         >,
     ) -> Self {
         Self {
             generic_token: Kw::Generic.canonical_token(),
             map_token: Kw::Map.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            interface_package_generic_map_aspect_inner: interface_package_generic_map_aspect_inner
-                .into(),
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_interface_package_generic_map_aspect_inner:
+                parenthesized_interface_package_generic_map_aspect_inner.into(),
         }
     }
     pub fn with_generic_token(mut self, t: impl Into<Token>) -> Self {
@@ -9683,27 +9523,11 @@ impl InterfacePackageGenericMapAspectBuilder {
         self.map_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_interface_package_generic_map_aspect_inner(
+    pub fn with_parenthesized_interface_package_generic_map_aspect_inner(
         mut self,
-        n: impl Into<InterfacePackageGenericMapAspectInnerSyntax>,
+        n: impl Into<ParenthesizedInterfacePackageGenericMapAspectInnerSyntax>,
     ) -> Self {
-        self.interface_package_generic_map_aspect_inner = n.into();
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+        self.parenthesized_interface_package_generic_map_aspect_inner = n.into();
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectSyntax {
@@ -9711,14 +9535,12 @@ impl InterfacePackageGenericMapAspectBuilder {
         builder.start_node(NodeKind::InterfacePackageGenericMapAspect);
         builder.push(self.generic_token);
         builder.push(self.map_token);
-        builder.push(self.left_par_token);
         builder.push_node(
-            self.interface_package_generic_map_aspect_inner
+            self.parenthesized_interface_package_generic_map_aspect_inner
                 .raw()
                 .green()
                 .clone(),
         );
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -9848,7 +9670,7 @@ impl From<InterfacePackageGenericMapAspectDefaultBuilder>
 pub struct InterfaceProcedureSpecificationBuilder {
     procedure_token: Token,
     designator: DesignatorToken,
-    parameter_token: Token,
+    parameter_token: Option<Token>,
     left_par_token: Token,
     interface_list: Option<InterfaceListSyntax>,
     right_par_token: Token,
@@ -9858,7 +9680,7 @@ impl InterfaceProcedureSpecificationBuilder {
         Self {
             procedure_token: Kw::Procedure.canonical_token(),
             designator: designator.into(),
-            parameter_token: Kw::Parameter.canonical_token(),
+            parameter_token: None,
             left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
             interface_list: None,
             right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
@@ -9877,11 +9699,14 @@ impl InterfaceProcedureSpecificationBuilder {
         self
     }
     pub fn with_parameter_token(mut self, t: impl Into<Token>) -> Self {
-        self.parameter_token = t.into();
+        self.parameter_token = Some(t.into());
         self
     }
     pub fn with_parameter_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.parameter_token.set_leading_trivia(trivia);
+        let tok = self
+            .parameter_token
+            .get_or_insert_with(|| Kw::Parameter.canonical_token());
+        tok.set_leading_trivia(trivia);
         self
     }
     pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
@@ -9909,7 +9734,9 @@ impl InterfaceProcedureSpecificationBuilder {
         builder.start_node(NodeKind::InterfaceProcedureSpecification);
         builder.push(self.procedure_token);
         builder.push(self.designator.0);
-        builder.push(self.parameter_token);
+        if let Some(t) = self.parameter_token {
+            builder.push(t);
+        }
         builder.push(self.left_par_token);
         if let Some(n) = self.interface_list {
             builder.push_node(n.raw().green().clone());
@@ -11878,6 +11705,63 @@ impl From<ParameterSpecificationBuilder> for ParameterSpecificationSyntax {
         value.build()
     }
 }
+pub struct ParenthesizedAssociationListBuilder {
+    left_par_token: Token,
+    association_list: Option<AssociationListSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedAssociationListBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedAssociationListBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            association_list: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_association_list(mut self, n: impl Into<AssociationListSyntax>) -> Self {
+        self.association_list = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedAssociationListSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedAssociationList);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.association_list {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedAssociationListSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedAssociationListBuilder> for ParenthesizedAssociationListSyntax {
+    fn from(value: ParenthesizedAssociationListBuilder) -> Self {
+        value.build()
+    }
+}
 pub struct ParenthesizedElementResolutionResolutionIndicationBuilder {
     left_par_token: Token,
     element_resolution_resolution_indication: ElementResolutionResolutionIndicationSyntax,
@@ -11938,6 +11822,128 @@ impl From<ParenthesizedElementResolutionResolutionIndicationBuilder>
     for ParenthesizedElementResolutionResolutionIndicationSyntax
 {
     fn from(value: ParenthesizedElementResolutionResolutionIndicationBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ParenthesizedEntityClassEntryListBuilder {
+    left_par_token: Token,
+    entity_class_entry_list: Option<EntityClassEntryListSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedEntityClassEntryListBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedEntityClassEntryListBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            entity_class_entry_list: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_entity_class_entry_list(
+        mut self,
+        n: impl Into<EntityClassEntryListSyntax>,
+    ) -> Self {
+        self.entity_class_entry_list = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedEntityClassEntryListSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedEntityClassEntryList);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.entity_class_entry_list {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedEntityClassEntryListSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedEntityClassEntryListBuilder> for ParenthesizedEntityClassEntryListSyntax {
+    fn from(value: ParenthesizedEntityClassEntryListBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ParenthesizedEnumerationTypeDefinitionItemsBuilder {
+    left_par_token: Token,
+    enumeration_type_definition_items: Option<EnumerationTypeDefinitionItemsSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedEnumerationTypeDefinitionItemsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedEnumerationTypeDefinitionItemsBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            enumeration_type_definition_items: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_enumeration_type_definition_items(
+        mut self,
+        n: impl Into<EnumerationTypeDefinitionItemsSyntax>,
+    ) -> Self {
+        self.enumeration_type_definition_items = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedEnumerationTypeDefinitionItemsSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedEnumerationTypeDefinitionItems);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.enumeration_type_definition_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedEnumerationTypeDefinitionItemsSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedEnumerationTypeDefinitionItemsBuilder>
+    for ParenthesizedEnumerationTypeDefinitionItemsSyntax
+{
+    fn from(value: ParenthesizedEnumerationTypeDefinitionItemsBuilder) -> Self {
         value.build()
     }
 }
@@ -12057,6 +12063,182 @@ impl From<ParenthesizedExpressionOrAggregateBuilder> for ParenthesizedExpression
         value.build()
     }
 }
+pub struct ParenthesizedGroupConstituentListBuilder {
+    left_par_token: Token,
+    group_constituent_list: Option<GroupConstituentListSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedGroupConstituentListBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedGroupConstituentListBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            group_constituent_list: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_group_constituent_list(mut self, n: impl Into<GroupConstituentListSyntax>) -> Self {
+        self.group_constituent_list = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedGroupConstituentListSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedGroupConstituentList);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.group_constituent_list {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedGroupConstituentListSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedGroupConstituentListBuilder> for ParenthesizedGroupConstituentListSyntax {
+    fn from(value: ParenthesizedGroupConstituentListBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ParenthesizedIndexConstraintItemsBuilder {
+    left_par_token: Token,
+    index_constraint_items: Option<IndexConstraintItemsSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedIndexConstraintItemsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedIndexConstraintItemsBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            index_constraint_items: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_index_constraint_items(mut self, n: impl Into<IndexConstraintItemsSyntax>) -> Self {
+        self.index_constraint_items = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedIndexConstraintItemsSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedIndexConstraintItems);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.index_constraint_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedIndexConstraintItemsSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedIndexConstraintItemsBuilder> for ParenthesizedIndexConstraintItemsSyntax {
+    fn from(value: ParenthesizedIndexConstraintItemsBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ParenthesizedIndexSubtypeDefinitionListBuilder {
+    left_par_token: Token,
+    index_subtype_definition_list: Option<IndexSubtypeDefinitionListSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedIndexSubtypeDefinitionListBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedIndexSubtypeDefinitionListBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            index_subtype_definition_list: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_index_subtype_definition_list(
+        mut self,
+        n: impl Into<IndexSubtypeDefinitionListSyntax>,
+    ) -> Self {
+        self.index_subtype_definition_list = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedIndexSubtypeDefinitionListSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedIndexSubtypeDefinitionList);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.index_subtype_definition_list {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedIndexSubtypeDefinitionListSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedIndexSubtypeDefinitionListBuilder>
+    for ParenthesizedIndexSubtypeDefinitionListSyntax
+{
+    fn from(value: ParenthesizedIndexSubtypeDefinitionListBuilder) -> Self {
+        value.build()
+    }
+}
 pub struct ParenthesizedInterfaceListBuilder {
     left_par_token: Token,
     interface_list: Option<InterfaceListSyntax>,
@@ -12111,6 +12293,71 @@ impl ParenthesizedInterfaceListBuilder {
 }
 impl From<ParenthesizedInterfaceListBuilder> for ParenthesizedInterfaceListSyntax {
     fn from(value: ParenthesizedInterfaceListBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ParenthesizedInterfacePackageGenericMapAspectInnerBuilder {
+    left_par_token: Token,
+    interface_package_generic_map_aspect_inner: InterfacePackageGenericMapAspectInnerSyntax,
+    right_par_token: Token,
+}
+impl ParenthesizedInterfacePackageGenericMapAspectInnerBuilder {
+    pub fn new(
+        interface_package_generic_map_aspect_inner: impl Into<
+            InterfacePackageGenericMapAspectInnerSyntax,
+        >,
+    ) -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            interface_package_generic_map_aspect_inner: interface_package_generic_map_aspect_inner
+                .into(),
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_interface_package_generic_map_aspect_inner(
+        mut self,
+        n: impl Into<InterfacePackageGenericMapAspectInnerSyntax>,
+    ) -> Self {
+        self.interface_package_generic_map_aspect_inner = n.into();
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedInterfacePackageGenericMapAspectInnerSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedInterfacePackageGenericMapAspectInner);
+        builder.push(self.left_par_token);
+        builder.push_node(
+            self.interface_package_generic_map_aspect_inner
+                .raw()
+                .green()
+                .clone(),
+        );
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedInterfacePackageGenericMapAspectInnerSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedInterfacePackageGenericMapAspectInnerBuilder>
+    for ParenthesizedInterfacePackageGenericMapAspectInnerSyntax
+{
+    fn from(value: ParenthesizedInterfacePackageGenericMapAspectInnerBuilder) -> Self {
         value.build()
     }
 }
@@ -12216,6 +12463,66 @@ impl From<ParenthesizedProcessSensitivityListBuilder>
     for ParenthesizedProcessSensitivityListSyntax
 {
     fn from(value: ParenthesizedProcessSensitivityListBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ParenthesizedRecordConstraintItemsBuilder {
+    left_par_token: Token,
+    record_constraint_items: Option<RecordConstraintItemsSyntax>,
+    right_par_token: Token,
+}
+impl Default for ParenthesizedRecordConstraintItemsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ParenthesizedRecordConstraintItemsBuilder {
+    pub fn new() -> Self {
+        Self {
+            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
+            record_constraint_items: None,
+            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+        }
+    }
+    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.left_par_token = t.into();
+        self
+    }
+    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.left_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn with_record_constraint_items(
+        mut self,
+        n: impl Into<RecordConstraintItemsSyntax>,
+    ) -> Self {
+        self.record_constraint_items = Some(n.into());
+        self
+    }
+    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
+        self.right_par_token = t.into();
+        self
+    }
+    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.right_par_token.set_leading_trivia(trivia);
+        self
+    }
+    pub fn build(self) -> ParenthesizedRecordConstraintItemsSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ParenthesizedRecordConstraintItems);
+        builder.push(self.left_par_token);
+        if let Some(n) = self.record_constraint_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.push(self.right_par_token);
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ParenthesizedRecordConstraintItemsSyntax::cast(node).unwrap()
+    }
+}
+impl From<ParenthesizedRecordConstraintItemsBuilder> for ParenthesizedRecordConstraintItemsSyntax {
+    fn from(value: ParenthesizedRecordConstraintItemsBuilder) -> Self {
         value.build()
     }
 }
@@ -12440,9 +12747,9 @@ impl From<PhysicalTypeDefinitionEpilogueBuilder> for PhysicalTypeDefinitionEpilo
     }
 }
 pub struct PortClauseBuilder {
-    port_clause_preamble: PortClausePreambleSyntax,
-    interface_list: Option<InterfaceListSyntax>,
-    port_clause_epilogue: PortClauseEpilogueSyntax,
+    port_token: Token,
+    parenthesized_interface_list: Option<ParenthesizedInterfaceListSyntax>,
+    semi_colon_token: Token,
 }
 impl Default for PortClauseBuilder {
     fn default() -> Self {
@@ -12452,31 +12759,42 @@ impl Default for PortClauseBuilder {
 impl PortClauseBuilder {
     pub fn new() -> Self {
         Self {
-            port_clause_preamble: PortClausePreambleBuilder::default().build(),
-            interface_list: None,
-            port_clause_epilogue: PortClauseEpilogueBuilder::default().build(),
+            port_token: Kw::Port.canonical_token(),
+            parenthesized_interface_list: None,
+            semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
         }
     }
-    pub fn with_port_clause_preamble(mut self, n: impl Into<PortClausePreambleSyntax>) -> Self {
-        self.port_clause_preamble = n.into();
+    pub fn with_port_token(mut self, t: impl Into<Token>) -> Self {
+        self.port_token = t.into();
         self
     }
-    pub fn with_interface_list(mut self, n: impl Into<InterfaceListSyntax>) -> Self {
-        self.interface_list = Some(n.into());
+    pub fn with_port_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.port_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_port_clause_epilogue(mut self, n: impl Into<PortClauseEpilogueSyntax>) -> Self {
-        self.port_clause_epilogue = n.into();
+    pub fn with_parenthesized_interface_list(
+        mut self,
+        n: impl Into<ParenthesizedInterfaceListSyntax>,
+    ) -> Self {
+        self.parenthesized_interface_list = Some(n.into());
+        self
+    }
+    pub fn with_semi_colon_token(mut self, t: impl Into<Token>) -> Self {
+        self.semi_colon_token = t.into();
+        self
+    }
+    pub fn with_semi_colon_token_trivia(mut self, trivia: Trivia) -> Self {
+        self.semi_colon_token.set_leading_trivia(trivia);
         self
     }
     pub fn build(self) -> PortClauseSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::PortClause);
-        builder.push_node(self.port_clause_preamble.raw().green().clone());
-        if let Some(n) = self.interface_list {
+        builder.push(self.port_token);
+        if let Some(n) = self.parenthesized_interface_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push_node(self.port_clause_epilogue.raw().green().clone());
+        builder.push(self.semi_colon_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -12488,108 +12806,10 @@ impl From<PortClauseBuilder> for PortClauseSyntax {
         value.build()
     }
 }
-pub struct PortClauseEpilogueBuilder {
-    right_par_token: Token,
-    semi_colon_token: Token,
-}
-impl Default for PortClauseEpilogueBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl PortClauseEpilogueBuilder {
-    pub fn new() -> Self {
-        Self {
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
-            semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
-        }
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_semi_colon_token(mut self, t: impl Into<Token>) -> Self {
-        self.semi_colon_token = t.into();
-        self
-    }
-    pub fn with_semi_colon_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.semi_colon_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> PortClauseEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PortClauseEpilogue);
-        builder.push(self.right_par_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PortClauseEpilogueSyntax::cast(node).unwrap()
-    }
-}
-impl From<PortClauseEpilogueBuilder> for PortClauseEpilogueSyntax {
-    fn from(value: PortClauseEpilogueBuilder) -> Self {
-        value.build()
-    }
-}
-pub struct PortClausePreambleBuilder {
-    port_token: Token,
-    left_par_token: Token,
-}
-impl Default for PortClausePreambleBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl PortClausePreambleBuilder {
-    pub fn new() -> Self {
-        Self {
-            port_token: Kw::Port.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-        }
-    }
-    pub fn with_port_token(mut self, t: impl Into<Token>) -> Self {
-        self.port_token = t.into();
-        self
-    }
-    pub fn with_port_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.port_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> PortClausePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PortClausePreamble);
-        builder.push(self.port_token);
-        builder.push(self.left_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PortClausePreambleSyntax::cast(node).unwrap()
-    }
-}
-impl From<PortClausePreambleBuilder> for PortClausePreambleSyntax {
-    fn from(value: PortClausePreambleBuilder) -> Self {
-        value.build()
-    }
-}
 pub struct PortMapAspectBuilder {
     port_token: Token,
     map_token: Token,
-    left_par_token: Token,
-    association_list: Option<AssociationListSyntax>,
-    right_par_token: Token,
+    parenthesized_association_list: Option<ParenthesizedAssociationListSyntax>,
 }
 impl Default for PortMapAspectBuilder {
     fn default() -> Self {
@@ -12601,9 +12821,7 @@ impl PortMapAspectBuilder {
         Self {
             port_token: Kw::Port.canonical_token(),
             map_token: Kw::Map.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            association_list: None,
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_association_list: None,
         }
     }
     pub fn with_port_token(mut self, t: impl Into<Token>) -> Self {
@@ -12622,24 +12840,11 @@ impl PortMapAspectBuilder {
         self.map_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_association_list(mut self, n: impl Into<AssociationListSyntax>) -> Self {
-        self.association_list = Some(n.into());
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+    pub fn with_parenthesized_association_list(
+        mut self,
+        n: impl Into<ParenthesizedAssociationListSyntax>,
+    ) -> Self {
+        self.parenthesized_association_list = Some(n.into());
         self
     }
     pub fn build(self) -> PortMapAspectSyntax {
@@ -12647,11 +12852,9 @@ impl PortMapAspectBuilder {
         builder.start_node(NodeKind::PortMapAspect);
         builder.push(self.port_token);
         builder.push(self.map_token);
-        builder.push(self.left_par_token);
-        if let Some(n) = self.association_list {
+        if let Some(n) = self.parenthesized_association_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -13677,10 +13880,7 @@ impl From<RangeExpressionBuilder> for RangeExpressionSyntax {
     }
 }
 pub struct RecordConstraintBuilder {
-    left_par_token: Token,
-    record_element_constraints: Vec<RecordElementConstraintSyntax>,
-    comma_token: Vec<Token>,
-    right_par_token: Token,
+    parenthesized_record_constraint_items: ParenthesizedRecordConstraintItemsSyntax,
 }
 impl Default for RecordConstraintBuilder {
     fn default() -> Self {
@@ -13690,19 +13890,52 @@ impl Default for RecordConstraintBuilder {
 impl RecordConstraintBuilder {
     pub fn new() -> Self {
         Self {
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            record_element_constraints: Vec::new(),
-            comma_token: Vec::new(),
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_record_constraint_items:
+                ParenthesizedRecordConstraintItemsBuilder::default().build(),
         }
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
+    pub fn with_parenthesized_record_constraint_items(
+        mut self,
+        n: impl Into<ParenthesizedRecordConstraintItemsSyntax>,
+    ) -> Self {
+        self.parenthesized_record_constraint_items = n.into();
         self
     }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
+    pub fn build(self) -> RecordConstraintSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::RecordConstraint);
+        builder.push_node(
+            self.parenthesized_record_constraint_items
+                .raw()
+                .green()
+                .clone(),
+        );
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        RecordConstraintSyntax::cast(node).unwrap()
+    }
+}
+impl From<RecordConstraintBuilder> for RecordConstraintSyntax {
+    fn from(value: RecordConstraintBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct RecordConstraintItemsBuilder {
+    record_element_constraints: Vec<RecordElementConstraintSyntax>,
+    comma_token: Vec<Token>,
+}
+impl Default for RecordConstraintItemsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl RecordConstraintItemsBuilder {
+    pub fn new() -> Self {
+        Self {
+            record_element_constraints: Vec::new(),
+            comma_token: Vec::new(),
+        }
     }
     pub fn add_record_element_constraints(
         mut self,
@@ -13715,33 +13948,23 @@ impl RecordConstraintBuilder {
         self.comma_token.push(t.into());
         self
     }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn build(self) -> RecordConstraintSyntax {
+    pub fn build(self) -> RecordConstraintItemsSyntax {
         let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordConstraint);
-        builder.push(self.left_par_token);
+        builder.start_node(NodeKind::RecordConstraintItems);
         for n in self.record_element_constraints {
             builder.push_node(n.raw().green().clone());
         }
         for t in self.comma_token {
             builder.push(t);
         }
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
-        RecordConstraintSyntax::cast(node).unwrap()
+        RecordConstraintItemsSyntax::cast(node).unwrap()
     }
 }
-impl From<RecordConstraintBuilder> for RecordConstraintSyntax {
-    fn from(value: RecordConstraintBuilder) -> Self {
+impl From<RecordConstraintItemsBuilder> for RecordConstraintItemsSyntax {
+    fn from(value: RecordConstraintItemsBuilder) -> Self {
         value.build()
     }
 }
@@ -16272,9 +16495,7 @@ impl From<SubprogramHeaderBuilder> for SubprogramHeaderSyntax {
 }
 pub struct SubprogramHeaderGenericClauseBuilder {
     generic_token: Token,
-    left_par_token: Token,
-    interface_list: Option<InterfaceListSyntax>,
-    right_par_token: Token,
+    parenthesized_interface_list: Option<ParenthesizedInterfaceListSyntax>,
 }
 impl Default for SubprogramHeaderGenericClauseBuilder {
     fn default() -> Self {
@@ -16285,9 +16506,7 @@ impl SubprogramHeaderGenericClauseBuilder {
     pub fn new() -> Self {
         Self {
             generic_token: Kw::Generic.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            interface_list: None,
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_interface_list: None,
         }
     }
     pub fn with_generic_token(mut self, t: impl Into<Token>) -> Self {
@@ -16298,35 +16517,20 @@ impl SubprogramHeaderGenericClauseBuilder {
         self.generic_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_interface_list(mut self, n: impl Into<InterfaceListSyntax>) -> Self {
-        self.interface_list = Some(n.into());
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+    pub fn with_parenthesized_interface_list(
+        mut self,
+        n: impl Into<ParenthesizedInterfaceListSyntax>,
+    ) -> Self {
+        self.parenthesized_interface_list = Some(n.into());
         self
     }
     pub fn build(self) -> SubprogramHeaderGenericClauseSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::SubprogramHeaderGenericClause);
         builder.push(self.generic_token);
-        builder.push(self.left_par_token);
-        if let Some(n) = self.interface_list {
+        if let Some(n) = self.parenthesized_interface_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push(self.right_par_token);
         builder.end_node();
         let green = builder.end();
         let node = SyntaxNode::new_root(green);
@@ -16899,9 +17103,8 @@ impl From<UnaryExpressionBuilder> for UnaryExpressionSyntax {
 }
 pub struct UnboundedArrayDefinitionBuilder {
     array_token: Token,
-    left_par_token: Token,
-    index_subtype_definition_list: Option<IndexSubtypeDefinitionListSyntax>,
-    right_par_token: Token,
+    parenthesized_index_subtype_definition_list:
+        Option<ParenthesizedIndexSubtypeDefinitionListSyntax>,
     of_token: Token,
     subtype_indication: SubtypeIndicationSyntax,
 }
@@ -16909,9 +17112,7 @@ impl UnboundedArrayDefinitionBuilder {
     pub fn new(subtype_indication: impl Into<SubtypeIndicationSyntax>) -> Self {
         Self {
             array_token: Kw::Array.canonical_token(),
-            left_par_token: TokenKind::LeftPar.canonical_token().unwrap(),
-            index_subtype_definition_list: None,
-            right_par_token: TokenKind::RightPar.canonical_token().unwrap(),
+            parenthesized_index_subtype_definition_list: None,
             of_token: Kw::Of.canonical_token(),
             subtype_indication: subtype_indication.into(),
         }
@@ -16924,27 +17125,11 @@ impl UnboundedArrayDefinitionBuilder {
         self.array_token.set_leading_trivia(trivia);
         self
     }
-    pub fn with_left_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.left_par_token = t.into();
-        self
-    }
-    pub fn with_left_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.left_par_token.set_leading_trivia(trivia);
-        self
-    }
-    pub fn with_index_subtype_definition_list(
+    pub fn with_parenthesized_index_subtype_definition_list(
         mut self,
-        n: impl Into<IndexSubtypeDefinitionListSyntax>,
+        n: impl Into<ParenthesizedIndexSubtypeDefinitionListSyntax>,
     ) -> Self {
-        self.index_subtype_definition_list = Some(n.into());
-        self
-    }
-    pub fn with_right_par_token(mut self, t: impl Into<Token>) -> Self {
-        self.right_par_token = t.into();
-        self
-    }
-    pub fn with_right_par_token_trivia(mut self, trivia: Trivia) -> Self {
-        self.right_par_token.set_leading_trivia(trivia);
+        self.parenthesized_index_subtype_definition_list = Some(n.into());
         self
     }
     pub fn with_of_token(mut self, t: impl Into<Token>) -> Self {
@@ -16963,11 +17148,9 @@ impl UnboundedArrayDefinitionBuilder {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::UnboundedArrayDefinition);
         builder.push(self.array_token);
-        builder.push(self.left_par_token);
-        if let Some(n) = self.index_subtype_definition_list {
+        if let Some(n) = self.parenthesized_index_subtype_definition_list {
             builder.push_node(n.raw().green().clone());
         }
-        builder.push(self.right_par_token);
         builder.push(self.of_token);
         builder.push_node(self.subtype_indication.raw().green().clone());
         builder.end_node();

@@ -1112,6 +1112,42 @@ impl FullTypeDeclarationSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct ParenthesizedInterfaceListSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedInterfaceListSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedInterfaceList => Some(ParenthesizedInterfaceListSyntax(node)),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ParenthesizedInterfaceList)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedInterfaceListSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
+        self.0
+            .children()
+            .filter_map(InterfaceListSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct GenericClauseSyntax(pub(crate) SyntaxNode);
 impl AstNode for GenericClauseSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -1128,82 +1164,60 @@ impl AstNode for GenericClauseSyntax {
     }
 }
 impl GenericClauseSyntax {
-    pub fn generic_clause_preamble(&self) -> Option<GenericClausePreambleSyntax> {
-        self.0
-            .children()
-            .filter_map(GenericClausePreambleSyntax::cast)
-            .nth(0)
-    }
-    pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
-        self.0
-            .children()
-            .filter_map(InterfaceListSyntax::cast)
-            .nth(0)
-    }
-    pub fn generic_clause_epilogue(&self) -> Option<GenericClauseEpilogueSyntax> {
-        self.0
-            .children()
-            .filter_map(GenericClauseEpilogueSyntax::cast)
-            .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
-pub struct GenericClausePreambleSyntax(pub(crate) SyntaxNode);
-impl AstNode for GenericClausePreambleSyntax {
-    fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::GenericClausePreamble => Some(GenericClausePreambleSyntax(node)),
-            _ => None,
-        }
-    }
-    fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::GenericClausePreamble)
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl GenericClausePreambleSyntax {
     pub fn generic_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Generic))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+    pub fn parenthesized_interface_list(&self) -> Option<ParenthesizedInterfaceListSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
-pub struct GenericClauseEpilogueSyntax(pub(crate) SyntaxNode);
-impl AstNode for GenericClauseEpilogueSyntax {
-    fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::GenericClauseEpilogue => Some(GenericClauseEpilogueSyntax(node)),
-            _ => None,
-        }
-    }
-    fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::GenericClauseEpilogue)
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl GenericClauseEpilogueSyntax {
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .children()
+            .filter_map(ParenthesizedInterfaceListSyntax::cast)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
             .filter(|token| token.kind() == TokenKind::SemiColon)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ParenthesizedAssociationListSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedAssociationListSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedAssociationList => {
+                Some(ParenthesizedAssociationListSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ParenthesizedAssociationList)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedAssociationListSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn association_list(&self) -> Option<AssociationListSyntax> {
+        self.0
+            .children()
+            .filter_map(AssociationListSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -1236,22 +1250,10 @@ impl GenericMapAspectSyntax {
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Map))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn association_list(&self) -> Option<AssociationListSyntax> {
+    pub fn parenthesized_association_list(&self) -> Option<ParenthesizedAssociationListSyntax> {
         self.0
             .children()
-            .filter_map(AssociationListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedAssociationListSyntax::cast)
             .nth(0)
     }
 }
@@ -1279,6 +1281,44 @@ impl GroupConstituentListSyntax {
         self.0
             .tokens()
             .filter(|token| token.kind() == TokenKind::Comma)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ParenthesizedGroupConstituentListSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedGroupConstituentListSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedGroupConstituentList => {
+                Some(ParenthesizedGroupConstituentListSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ParenthesizedGroupConstituentList)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedGroupConstituentListSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn group_constituent_list(&self) -> Option<GroupConstituentListSyntax> {
+        self.0
+            .children()
+            .filter_map(GroupConstituentListSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
     }
 }
 #[derive(Debug, Clone)]
@@ -1319,28 +1359,56 @@ impl GroupDeclarationSyntax {
     pub fn name(&self) -> Option<NameSyntax> {
         self.0.children().filter_map(NameSyntax::cast).nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn group_constituent_list(&self) -> Option<GroupConstituentListSyntax> {
+    pub fn parenthesized_group_constituent_list(
+        &self,
+    ) -> Option<ParenthesizedGroupConstituentListSyntax> {
         self.0
             .children()
-            .filter_map(GroupConstituentListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedGroupConstituentListSyntax::cast)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
             .filter(|token| token.kind() == TokenKind::SemiColon)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ParenthesizedEntityClassEntryListSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedEntityClassEntryListSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedEntityClassEntryList => {
+                Some(ParenthesizedEntityClassEntryListSyntax(node))
+            }
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(node.kind(), NodeKind::ParenthesizedEntityClassEntryList)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedEntityClassEntryListSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn entity_class_entry_list(&self) -> Option<EntityClassEntryListSyntax> {
+        self.0
+            .children()
+            .filter_map(EntityClassEntryListSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
             .nth(0)
     }
 }
@@ -1379,22 +1447,12 @@ impl GroupTemplateDeclarationSyntax {
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn entity_class_entry_list(&self) -> Option<EntityClassEntryListSyntax> {
+    pub fn parenthesized_entity_class_entry_list(
+        &self,
+    ) -> Option<ParenthesizedEntityClassEntryListSyntax> {
         self.0
             .children()
-            .filter_map(EntityClassEntryListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedEntityClassEntryListSyntax::cast)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
@@ -1811,6 +1869,49 @@ impl InterfacePackageDeclarationPreambleSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct ParenthesizedInterfacePackageGenericMapAspectInnerSyntax(pub(crate) SyntaxNode);
+impl AstNode for ParenthesizedInterfacePackageGenericMapAspectInnerSyntax {
+    fn cast(node: SyntaxNode) -> Option<Self> {
+        match node.kind() {
+            NodeKind::ParenthesizedInterfacePackageGenericMapAspectInner => Some(
+                ParenthesizedInterfacePackageGenericMapAspectInnerSyntax(node),
+            ),
+            _ => None,
+        }
+    }
+    fn can_cast(node: &SyntaxNode) -> bool {
+        matches!(
+            node.kind(),
+            NodeKind::ParenthesizedInterfacePackageGenericMapAspectInner
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ParenthesizedInterfacePackageGenericMapAspectInnerSyntax {
+    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::LeftPar)
+            .nth(0)
+    }
+    pub fn interface_package_generic_map_aspect_inner(
+        &self,
+    ) -> Option<InterfacePackageGenericMapAspectInnerSyntax> {
+        self.0
+            .children()
+            .filter_map(InterfacePackageGenericMapAspectInnerSyntax::cast)
+            .nth(0)
+    }
+    pub fn right_par_token(&self) -> Option<SyntaxToken> {
+        self.0
+            .tokens()
+            .filter(|token| token.kind() == TokenKind::RightPar)
+            .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct InterfacePackageGenericMapAspectSyntax(pub(crate) SyntaxNode);
 impl AstNode for InterfacePackageGenericMapAspectSyntax {
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -1841,24 +1942,12 @@ impl InterfacePackageGenericMapAspectSyntax {
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Map))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn interface_package_generic_map_aspect_inner(
+    pub fn parenthesized_interface_package_generic_map_aspect_inner(
         &self,
-    ) -> Option<InterfacePackageGenericMapAspectInnerSyntax> {
+    ) -> Option<ParenthesizedInterfacePackageGenericMapAspectInnerSyntax> {
         self.0
             .children()
-            .filter_map(InterfacePackageGenericMapAspectInnerSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedInterfacePackageGenericMapAspectInnerSyntax::cast)
             .nth(0)
     }
 }
@@ -2374,76 +2463,16 @@ impl AstNode for PortClauseSyntax {
     }
 }
 impl PortClauseSyntax {
-    pub fn port_clause_preamble(&self) -> Option<PortClausePreambleSyntax> {
-        self.0
-            .children()
-            .filter_map(PortClausePreambleSyntax::cast)
-            .nth(0)
-    }
-    pub fn interface_list(&self) -> Option<InterfaceListSyntax> {
-        self.0
-            .children()
-            .filter_map(InterfaceListSyntax::cast)
-            .nth(0)
-    }
-    pub fn port_clause_epilogue(&self) -> Option<PortClauseEpilogueSyntax> {
-        self.0
-            .children()
-            .filter_map(PortClauseEpilogueSyntax::cast)
-            .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
-pub struct PortClausePreambleSyntax(pub(crate) SyntaxNode);
-impl AstNode for PortClausePreambleSyntax {
-    fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::PortClausePreamble => Some(PortClausePreambleSyntax(node)),
-            _ => None,
-        }
-    }
-    fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::PortClausePreamble)
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl PortClausePreambleSyntax {
     pub fn port_token(&self) -> Option<SyntaxToken> {
         self.0
             .tokens()
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Port))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
+    pub fn parenthesized_interface_list(&self) -> Option<ParenthesizedInterfaceListSyntax> {
         self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
-pub struct PortClauseEpilogueSyntax(pub(crate) SyntaxNode);
-impl AstNode for PortClauseEpilogueSyntax {
-    fn cast(node: SyntaxNode) -> Option<Self> {
-        match node.kind() {
-            NodeKind::PortClauseEpilogue => Some(PortClauseEpilogueSyntax(node)),
-            _ => None,
-        }
-    }
-    fn can_cast(node: &SyntaxNode) -> bool {
-        matches!(node.kind(), NodeKind::PortClauseEpilogue)
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl PortClauseEpilogueSyntax {
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .children()
+            .filter_map(ParenthesizedInterfaceListSyntax::cast)
             .nth(0)
     }
     pub fn semi_colon_token(&self) -> Option<SyntaxToken> {
@@ -2482,22 +2511,10 @@ impl PortMapAspectSyntax {
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Map))
             .nth(0)
     }
-    pub fn left_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::LeftPar)
-            .nth(0)
-    }
-    pub fn association_list(&self) -> Option<AssociationListSyntax> {
+    pub fn parenthesized_association_list(&self) -> Option<ParenthesizedAssociationListSyntax> {
         self.0
             .children()
-            .filter_map(AssociationListSyntax::cast)
-            .nth(0)
-    }
-    pub fn right_par_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .tokens()
-            .filter(|token| token.kind() == TokenKind::RightPar)
+            .filter_map(ParenthesizedAssociationListSyntax::cast)
             .nth(0)
     }
 }

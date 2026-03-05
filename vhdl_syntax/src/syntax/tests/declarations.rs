@@ -189,18 +189,14 @@ fn generic_and_port_clauses() {
     let syntax_node = node::<GenericClauseSyntax>(Parser::generic_clause, "generic (G: integer);");
     check!(syntax_node,
         generic_token => "generic",
-        left_par_token => "(",
-        interface_list => "G: integer",
-        right_par_token => ")",
+        parenthesized_interface_list => "(G: integer)",
         semi_colon_token => ";"
     );
 
     let syntax_node = node::<PortClauseSyntax>(Parser::port_clause, "port (P: in integer);");
     check!(syntax_node,
         port_token => "port",
-        left_par_token => "(",
-        interface_list => "P: in integer",
-        right_par_token => ")",
+        parenthesized_interface_list => "(P: in integer)",
         semi_colon_token => ";"
     );
 }
@@ -214,9 +210,7 @@ fn generic_and_port_map_aspects() {
     check!(syntax_node,
         generic_token => "generic",
         map_token => "map",
-        left_par_token => "(",
-        association_list => "g => 1",
-        right_par_token => ")"
+        parenthesized_association_list => "(g => 1)"
     );
 
     let syntax_node = node::<PortMapAspectSyntax>(
@@ -226,9 +220,7 @@ fn generic_and_port_map_aspects() {
     check!(syntax_node,
         port_token => "port",
         map_token => "map",
-        left_par_token => "(",
-        association_list => "p => 1",
-        right_par_token => ")"
+        parenthesized_association_list => "(p => 1)"
     );
 }
 
