@@ -100,6 +100,15 @@ impl NodeProp {
         }
     }
 
+    pub fn parenthesized() -> Self {
+        Self {
+            indents: false,
+            groups: true,
+            self_layout: SelfLayout::Joined,
+            child_layout: ChildLayout::Parenthesized,
+        }
+    }
+
     // Modifiers
 
     pub fn indents(mut self) -> Self {
@@ -109,11 +118,6 @@ impl NodeProp {
 
     pub fn groups(mut self) -> Self {
         self.groups = true;
-        self
-    }
-
-    pub fn parenthesized(mut self) -> Self {
-        self.child_layout = ChildLayout::Parenthesized;
         self
     }
 
