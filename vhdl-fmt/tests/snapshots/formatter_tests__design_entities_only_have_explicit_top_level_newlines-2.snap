@@ -2,6 +2,5 @@
 source: vhdl-fmt/tests/formatter_tests.rs
 expression: formatted
 ---
-
 entity foo is
 end;

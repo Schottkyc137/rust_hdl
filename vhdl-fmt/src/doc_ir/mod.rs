@@ -3,13 +3,12 @@ mod builder;
 pub(crate) mod resolve;
 
 use crate::doc_ir::builder::DocBuilder;
-use crate::props::node_prop::BreakKind;
+use crate::props::node_prop::{BreakKind, ChildLayout, SelfLayout};
 use crate::{align::AlignmentMap, config::Config, props::node_kind_prop};
 use std::mem::take;
 use std::{fmt::Debug, vec};
 use vhdl_syntax::{
     syntax::{
-        NodeKind,
         node::{SyntaxElement, SyntaxNode, SyntaxToken},
         visitor::{PreorderWithTokens, WalkEvent},
     },
@@ -163,43 +162,63 @@ fn count_user_blank_lines(trivia: &Trivia) -> usize {
     trivia.count_newlines().saturating_sub(1)
 }
 
-/// Returns the separator `Doc` to emit before a direct child node of its parent.
-/// `None` means no separator should be injected (first child, or unrecognized parent).
+fn render_self_layout(layout: &SelfLayout) -> BreakKind {
+    match layout {
+        SelfLayout::Default => BreakKind::Unset,
+        SelfLayout::OwnLine => BreakKind::Hard,
+        SelfLayout::Joined => BreakKind::Void,
+        SelfLayout::SpaceJoined => BreakKind::Spaces(1),
+    }
+}
+
+fn render_child_node_sep(layout: &ChildLayout, is_first: bool) -> BreakKind {
+    match layout {
+        ChildLayout::Default => BreakKind::Unset,
+        ChildLayout::SpaceSeparated => {
+            if is_first {
+                BreakKind::Void
+            } else {
+                BreakKind::Spaces(1)
+            }
+        }
+        ChildLayout::ItemList => {
+            if is_first {
+                BreakKind::Void
+            } else {
+                BreakKind::Soft { flat_spaces: 1 }
+            }
+        }
+        ChildLayout::Parenthesized => BreakKind::Soft { flat_spaces: 0 },
+    }
+}
+
+fn render_child_token_sep(layout: &ChildLayout, is_first: bool) -> BreakKind {
+    match layout {
+        ChildLayout::Default => BreakKind::Unset,
+        ChildLayout::SpaceSeparated => {
+            if is_first {
+                BreakKind::Void
+            } else {
+                BreakKind::Spaces(1)
+            }
+        }
+        ChildLayout::ItemList => BreakKind::Unset,
+        ChildLayout::Parenthesized => BreakKind::Unset,
+    }
+}
+
+/// Returns the separator to emit before a direct child node of its parent.
 fn separation_before_child_node(child: &SyntaxNode) -> BreakKind {
     let Some(parent) = child.parent() else {
         return BreakKind::Unset;
     };
-    let parent_kind = parent.kind();
-    let parent_props = node_kind_prop(parent_kind);
-
-    // Parenthesized wrapper: SoftBreak(0) before the content node (after `(`)
-    if parent_props.parenthesized {
-        return BreakKind::Soft { flat_spaces: 0 };
-    }
-
+    let props = node_kind_prop(parent.kind());
     let is_first = child.prev_sibling().is_none();
-    match parent_kind {
-        // Inline list: SoftBreak (flat=space, broken=newline)
-        NodeKind::InterfaceList
-        | NodeKind::AssociationList
-        | NodeKind::EnumerationTypeDefinitionItems
-        | NodeKind::IndexConstraintItems
-        | NodeKind::RecordConstraintItems => BreakKind::Soft {
-            flat_spaces: if is_first { 0 } else { 1 },
-        },
-        // Space-separated keyword/identifier sequences
-        _ => space_sep_before(parent_kind, is_first),
-    }
+    render_child_node_sep(&props.child_layout, is_first)
 }
 
-/// Returns the separator `Doc` to emit before a direct child token of its parent.
-/// `None` means no separator should be injected (first child, or unrecognized parent).
-///
-/// Note: `InterfaceList` is intentionally excluded here because its direct token children
-/// are semicolons which must not receive a separator.
+/// Returns the separator to emit before a direct child token of its parent.
 fn separation_before_child_token(token: &SyntaxToken, config: &Config) -> BreakKind {
-    let parent = token.parent();
-    // No space before SemiColons
     if matches!(token.kind(), TokenKind::SemiColon | TokenKind::Eof) {
         return BreakKind::Void;
     }
@@ -210,25 +229,14 @@ fn separation_before_child_token(token: &SyntaxToken, config: &Config) -> BreakK
             BreakKind::Void
         };
     }
-    // Parenthesized wrapper: SoftBreak(0) before closing `)`
-    let parent_props = node_kind_prop(parent.kind());
-    if parent_props.parenthesized && token.kind() == TokenKind::RightPar {
+    let parent = token.parent();
+    let props = node_kind_prop(parent.kind());
+    let is_last = token.next_sibling_or_token().is_none();
+    if is_last && props.child_layout == ChildLayout::Parenthesized {
         return BreakKind::Soft { flat_spaces: 0 };
     }
     let is_first = token.prev_sibling_or_token().is_none();
-    space_sep_before(parent.kind(), is_first)
-}
-
-/// Space-separation logic for preamble/epilogue nodes.
-///
-/// Returns `Some(Spaces(1))` for non-first children of recognized parents,
-/// `None` otherwise (first child, or unrecognized parent).
-fn space_sep_before(parent_kind: NodeKind, is_first: bool) -> BreakKind {
-    if is_first {
-        BreakKind::Unset
-    } else {
-        node_kind_prop(parent_kind).child_break_kind
-    }
+    render_child_token_sep(&props.child_layout, is_first)
 }
 
 impl Doc {
@@ -255,8 +263,9 @@ impl Doc {
                     {
                         pending_break = BreakKind::Void;
                     } else {
-                        if props.break_kind.priority() > pending_break.priority() {
-                            pending_break = props.break_kind;
+                        let self_break = render_self_layout(&props.self_layout);
+                        if self_break.priority() > pending_break.priority() {
+                            pending_break = self_break;
                         }
                     }
 
@@ -355,10 +364,7 @@ impl Doc {
                         BreakKind::Spaces(n) => builder.spaces(n),
                     }
 
-                    // Step 3: alignment space — emitted *before* trivia so that the resolver
-                    // sets break_kind first; the subsequent trivia emission is then a no-op
-                    // (resolver ignores trivia when break_kind != Unset). For structural break
-                    // positions the Newline guard prevents AlignedSpace from overriding Newline.
+                    // Step 3: alignment space
                     if let Some(alignment) = alignment.get(&token) {
                         builder.aligned_spaces(alignment);
                     }
@@ -378,15 +384,6 @@ impl Doc {
                     let props = node_kind_prop(node.kind());
                     if props.indents {
                         builder.end_indent();
-                    }
-
-                    match props.break_kind_after {
-                        BreakKind::Hard => builder.push(Doc::HardBreak),
-                        BreakKind::Soft { flat_spaces } => {
-                            builder.push(Doc::SoftBreak { flat_spaces })
-                        }
-                        BreakKind::Void | BreakKind::Unset => {}
-                        BreakKind::Spaces(n) => builder.push(Doc::Spaces(n)),
                     }
 
                     if props.groups {
