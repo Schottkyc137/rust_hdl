@@ -26,9 +26,11 @@ use crate::ast::search::{
 use crate::ast::token_range::WithTokenSpan;
 use crate::ast::{
     ActualPart, Allocator, AssignmentRightHand, AttributeDesignator, AttributeName,
-    ConcurrentStatement, Conditionals, Designator, DiscreteRange, ElementAssociation, Expression,
-    HasUnitId, IterationScheme, LabeledConcurrentStatement, Name, ProcessStatement, Range,
-    SensitivityList, SequentialStatement, SignalAttribute, UnitId, UnitKey, Waveform, WithRef,
+    ConcurrentStatement, ConditionalOrUnaffectedExpression, Conditionals, Designator,
+    DiscreteRange, ElementAssociation, Expression, ExpressionOrUnaffected, HasUnitId,
+    IterationScheme, LabeledConcurrentStatement, Name, PlainReturnStatement, ProcessStatement,
+    Range, ReturnStatement, SensitivityList, SequentialStatement, SignalAttribute, UnitId, UnitKey,
+    ValueReturnStatement, Waveform, WithRef,
 };
 use crate::data::{DiagnosticHandler, ErrorCode, Symbol};
 use crate::{
@@ -409,6 +411,41 @@ impl SensitivityListChecker<'_> {
         }
     }
 
+    fn analyze_conditional_or_unaffected_expression(
+        &mut self,
+        expression: &ConditionalOrUnaffectedExpression,
+        ctx: &dyn TokenAccess,
+    ) {
+        match expression {
+            ConditionalOrUnaffectedExpression::Simple(item) => {
+                self.analyze_expression_or_unaffected(item, ctx)
+            }
+            ConditionalOrUnaffectedExpression::Conditional(conditionals) => {
+                for conditional in &conditionals.conditionals {
+                    self.analyze_expression_or_unaffected(&conditional.item, ctx);
+                    self.analyze_expression(
+                        &conditional.condition.item,
+                        conditional.condition.span,
+                        ctx,
+                    );
+                }
+                if let Some((else_item, _)) = &conditionals.else_item {
+                    self.analyze_expression_or_unaffected(else_item, ctx);
+                }
+            }
+        }
+    }
+
+    fn analyze_expression_or_unaffected(
+        &mut self,
+        item: &ExpressionOrUnaffected,
+        ctx: &dyn TokenAccess,
+    ) {
+        if let ExpressionOrUnaffected::Expression(expr) = item {
+            self.analyze_expression(&expr.item, expr.span, ctx)
+        }
+    }
+
     fn analyze_discrete_range(&mut self, range: &DiscreteRange, ctx: &dyn TokenAccess) {
         match range {
             DiscreteRange::Discrete(name, range) => {
@@ -480,11 +517,16 @@ impl Searcher for SensitivityListChecker<'_> {
                         self.analyze_expression(&expr.item, expr.span, ctx)
                     }
                 }
-                Return(stmt) => {
-                    if let Some(expr) = &stmt.expression {
-                        self.analyze_expression(&expr.item, expr.span, ctx)
+                Return(stmt) => match stmt {
+                    ReturnStatement::Plain(PlainReturnStatement { condition }) => {
+                        if let Some(expr) = condition {
+                            self.analyze_expression(&expr.item, expr.span, ctx)
+                        }
                     }
-                }
+                    ReturnStatement::Value(ValueReturnStatement { expression }) => {
+                        self.analyze_conditional_or_unaffected_expression(expression, ctx)
+                    }
+                },
                 VariableAssignment(stmt) => self.analyze_variable_rhs(&stmt.rhs, ctx),
                 SignalAssignment(stmt) => self.analyze_signal_rhs(&stmt.rhs, ctx),
                 SignalForceAssignment(stmt) => self.analyze_variable_rhs(&stmt.rhs, ctx),

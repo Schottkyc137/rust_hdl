@@ -1123,10 +1123,50 @@ pub struct ExitStatement {
     pub condition: Option<WithTokenSpan<Expression>>,
 }
 
+/// LRM 9. `expression_or_unaffected` (VHDL-2019)
+#[derive(PartialEq, Debug, Clone)]
+pub enum ExpressionOrUnaffected {
+    Expression(WithTokenSpan<Expression>),
+    Unaffected(TokenId),
+}
+
+/// LRM 9. `conditional_or_unaffected_expression` (VHDL-2019)
+///
+/// `expression_or_unaffected { when condition else expression_or_unaffected } [ when condition ]`
+#[derive(PartialEq, Debug, Clone)]
+pub enum ConditionalOrUnaffectedExpression {
+    /// A single `expression_or_unaffected` without any `when` clause.
+    Simple(ExpressionOrUnaffected),
+    /// A conditional expression with one or more `when` clauses.
+    Conditional(Conditionals<ExpressionOrUnaffected>),
+}
+
+/// LRM 10.13 Plain return statement
+///
+/// `return [ when condition ] ;`
+///
+/// The optional `when condition` clause is a VHDL-2019 addition.
+#[derive(PartialEq, Debug, Clone)]
+pub struct PlainReturnStatement {
+    /// The condition of a conditional return statement (VHDL-2019).
+    pub condition: Option<WithTokenSpan<Expression>>,
+}
+
+/// LRM 10.13 Value return statement
+///
+/// `return conditional_or_unaffected_expression ;`
+///
+/// Conditional and `unaffected` values are VHDL-2019 additions.
+#[derive(PartialEq, Debug, Clone)]
+pub struct ValueReturnStatement {
+    pub expression: ConditionalOrUnaffectedExpression,
+}
+
 /// LRM 10.13 Return statement
 #[derive(PartialEq, Debug, Clone)]
-pub struct ReturnStatement {
-    pub expression: Option<WithTokenSpan<Expression>>,
+pub enum ReturnStatement {
+    Plain(PlainReturnStatement),
+    Value(ValueReturnStatement),
 }
 
 /// LRM 10. Sequential statements

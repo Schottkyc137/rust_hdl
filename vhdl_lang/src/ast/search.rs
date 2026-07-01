@@ -310,10 +310,19 @@ impl Search for LabeledSequentialStatement {
             )
             .or_not_found());
         match self.statement.item {
-            SequentialStatement::Return(ref ret) => {
-                let ReturnStatement { ref expression } = ret;
-                return_if_found!(expression.search(ctx, searcher));
-            }
+            SequentialStatement::Return(ref ret) => match ret {
+                ReturnStatement::Plain(PlainReturnStatement { condition }) => {
+                    return_if_found!(condition.search(ctx, searcher));
+                }
+                ReturnStatement::Value(ValueReturnStatement { expression }) => match expression {
+                    ConditionalOrUnaffectedExpression::Simple(item) => {
+                        return_if_found!(item.search(ctx, searcher));
+                    }
+                    ConditionalOrUnaffectedExpression::Conditional(conditionals) => {
+                        return_if_found!(search_conditionals(conditionals, true, searcher, ctx));
+                    }
+                },
+            },
             SequentialStatement::ProcedureCall(ref pcall) => {
                 return_if_finished!(searcher.search_with_pos(ctx, &pcall.pos(ctx)));
                 return_if_found!(pcall.item.search(ctx, searcher));
@@ -1028,6 +1037,15 @@ impl Search for Waveform {
 impl Search for WithTokenSpan<Expression> {
     fn search(&self, ctx: &dyn TokenAccess, searcher: &mut impl Searcher) -> SearchResult {
         search_pos_expr(ctx, &self.span.pos(ctx), &self.item, searcher)
+    }
+}
+
+impl Search for ExpressionOrUnaffected {
+    fn search(&self, ctx: &dyn TokenAccess, searcher: &mut impl Searcher) -> SearchResult {
+        match self {
+            ExpressionOrUnaffected::Expression(expr) => expr.search(ctx, searcher),
+            ExpressionOrUnaffected::Unaffected(_) => NotFound,
+        }
     }
 }
 

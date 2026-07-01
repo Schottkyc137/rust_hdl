@@ -7,9 +7,10 @@
 
 use crate::ast::token_range::WithTokenSpan;
 use crate::ast::{
-    AssignmentRightHand, CaseStatement, Choice, DelayMechanism, Expression, Ident, IterationScheme,
-    LabeledSequentialStatement, LoopStatement, ReportStatement, SequentialStatement,
-    SignalAssignment, WaitStatement, WithRef,
+    AssignmentRightHand, CaseStatement, Choice, ConditionalOrUnaffectedExpression, DelayMechanism,
+    Expression, ExpressionOrUnaffected, Ident, IterationScheme, LabeledSequentialStatement,
+    LoopStatement, PlainReturnStatement, ReportStatement, ReturnStatement, SequentialStatement,
+    SignalAssignment, ValueReturnStatement, WaitStatement, WithRef,
 };
 use crate::formatting::buffer::Buffer;
 use crate::{HasTokenSpan, TokenSpan};
@@ -94,11 +95,18 @@ impl VHDLFormatter<'_> {
             Exit(exit_statement) => self.format_exit_statement(exit_statement, span, buffer),
 
             Return(stmt) => {
+                // return
                 self.format_token_id(span.start_token, buffer);
-                if let Some(expr) = &stmt.expression {
-                    buffer.push_whitespace();
-                    self.format_expression(expr.as_ref(), buffer);
+                match stmt {
+                    ReturnStatement::Plain(PlainReturnStatement { condition }) => {
+                        self.format_opt_condition(condition.as_ref(), buffer);
+                    }
+                    ReturnStatement::Value(ValueReturnStatement { expression }) => {
+                        buffer.push_whitespace();
+                        self.format_conditional_or_unaffected_expression(expression, buffer);
+                    }
                 }
+                // ;
                 self.format_token_id(span.end_token, buffer);
             }
             Null => self.join_token_span(span, buffer),
@@ -453,6 +461,36 @@ impl VHDLFormatter<'_> {
             self.format_token_id(condition.span.start_token - 1, buffer);
             buffer.push_whitespace();
             self.format_expression(condition.as_ref(), buffer);
+        }
+    }
+
+    fn format_conditional_or_unaffected_expression(
+        &self,
+        expression: &ConditionalOrUnaffectedExpression,
+        buffer: &mut Buffer,
+    ) {
+        match expression {
+            ConditionalOrUnaffectedExpression::Simple(item) => {
+                self.format_expression_or_unaffected(item, buffer);
+            }
+            ConditionalOrUnaffectedExpression::Conditional(conditionals) => {
+                self.format_assignment_right_hand_conditionals(
+                    conditionals,
+                    |formatter, item, buffer| {
+                        formatter.format_expression_or_unaffected(item, buffer)
+                    },
+                    buffer,
+                );
+            }
+        }
+    }
+
+    fn format_expression_or_unaffected(&self, item: &ExpressionOrUnaffected, buffer: &mut Buffer) {
+        match item {
+            ExpressionOrUnaffected::Expression(expr) => {
+                self.format_expression(expr.as_ref(), buffer)
+            }
+            ExpressionOrUnaffected::Unaffected(token) => self.format_token_id(*token, buffer),
         }
     }
 }

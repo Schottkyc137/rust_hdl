@@ -7,6 +7,7 @@
 use super::*;
 use std::vec;
 use vhdl_lang::data::error_codes::ErrorCode;
+use vhdl_lang::VHDLStandard;
 
 #[test]
 fn test_integer_literal_expression_typecheck() {
@@ -1471,6 +1472,63 @@ end;
             ),
             Diagnostic::new(
                 code.s1("return 1;"),
+                "Procedures cannot return a value",
+                ErrorCode::NonVoidReturn,
+            ),
+        ],
+    );
+}
+
+#[test]
+fn typecheck_conditional_return_statement() {
+    let mut builder = LibraryBuilder::with_standard(VHDLStandard::VHDL2019);
+    let code = builder.in_declarative_region(
+        "
+function good return integer is
+begin
+  return 0 when true else 1;
+  return 0 when true;
+end;
+
+function bad1 return integer is
+begin
+  return 'c' when true else 0;
+end;
+
+function bad2 return integer is
+begin
+  return 0 when true else 'c';
+end;
+
+procedure ok_plain is
+begin
+  return when true;
+end;
+
+procedure bad3 is
+begin
+  return 42 when true;
+end;
+
+",
+    );
+
+    let diagnostics = builder.analyze();
+    check_diagnostics(
+        diagnostics,
+        vec![
+            Diagnostic::new(
+                code.s1("'c' when true else 0").s1("'c'"),
+                "character literal does not match integer type 'INTEGER'",
+                ErrorCode::TypeMismatch,
+            ),
+            Diagnostic::new(
+                code.s1("0 when true else 'c'").s1("'c'"),
+                "character literal does not match integer type 'INTEGER'",
+                ErrorCode::TypeMismatch,
+            ),
+            Diagnostic::new(
+                code.s1("return 42 when true;"),
                 "Procedures cannot return a value",
                 ErrorCode::NonVoidReturn,
             ),

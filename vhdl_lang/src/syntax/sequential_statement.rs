@@ -22,6 +22,7 @@ use crate::syntax::separated_list::parse_name_list;
 use crate::HasTokenSpan;
 use vhdl_lang::syntax::parser::ParsingContext;
 use vhdl_lang::TokenSpan;
+use vhdl_lang::VHDLStandard;
 
 /// LRM 10.2 Wait statement
 fn parse_wait_statement(ctx: &mut ParsingContext<'_>) -> ParseResult<WaitStatement> {
@@ -274,15 +275,52 @@ fn parse_exit_statement(ctx: &mut ParsingContext<'_>) -> ParseResult<ExitStateme
 /// LRM 10.13 Return statement
 fn parse_return_statement(ctx: &mut ParsingContext<'_>) -> ParseResult<ReturnStatement> {
     ctx.stream.expect_kind(Return)?;
-    let expression = {
-        if ctx.stream.peek_kind() == Some(SemiColon) {
-            None
+
+    // A plain return statement has no value: `return [ when condition ] ;`.
+    // The `when condition` clause is a VHDL-2019 addition.
+    if matches!(ctx.stream.peek_kind(), Some(SemiColon | When)) {
+        let condition = if ctx.standard >= VHDLStandard::VHDL2019 {
+            parse_optional(ctx, When, parse_expression)?
         } else {
-            Some(parse_expression(ctx)?)
-        }
-    };
-    expect_semicolon(ctx);
-    Ok(ReturnStatement { expression })
+            None
+        };
+        expect_semicolon(ctx);
+        return Ok(ReturnStatement::Plain(PlainReturnStatement { condition }));
+    }
+
+    // Otherwise it is a value return statement:
+    // `return conditional_or_unaffected_expression ;`
+    let expression = parse_conditional_or_unaffected_expression(ctx)?;
+    Ok(ReturnStatement::Value(ValueReturnStatement { expression }))
+}
+
+/// LRM 9. `expression_or_unaffected`
+fn parse_expression_or_unaffected(
+    ctx: &mut ParsingContext<'_>,
+) -> ParseResult<ExpressionOrUnaffected> {
+    if let Some(token) = ctx.stream.pop_if_kind(Unaffected) {
+        Ok(ExpressionOrUnaffected::Unaffected(token))
+    } else {
+        Ok(ExpressionOrUnaffected::Expression(parse_expression(ctx)?))
+    }
+}
+
+/// LRM 9. `conditional_or_unaffected_expression`
+///
+/// Consumes the terminating semicolon.
+fn parse_conditional_or_unaffected_expression(
+    ctx: &mut ParsingContext<'_>,
+) -> ParseResult<ConditionalOrUnaffectedExpression> {
+    let item = parse_expression_or_unaffected(ctx)?;
+    // The conditional (`when`) form is a VHDL-2019 addition.
+    if ctx.standard >= VHDLStandard::VHDL2019 && ctx.stream.skip_if_kind(When) {
+        Ok(ConditionalOrUnaffectedExpression::Conditional(
+            parse_conditonals(ctx, item, parse_expression_or_unaffected)?,
+        ))
+    } else {
+        expect_semicolon(ctx);
+        Ok(ConditionalOrUnaffectedExpression::Simple(item))
+    }
 }
 
 /// LRM 10.5 Signal assignment statement
@@ -1949,7 +1987,9 @@ end loop;",
             with_label(
                 None,
                 WithTokenSpan::new(
-                    SequentialStatement::Return(ReturnStatement { expression: None }),
+                    SequentialStatement::Return(ReturnStatement::Plain(PlainReturnStatement {
+                        condition: None
+                    })),
                     code.token_span()
                 )
             )
@@ -1965,9 +2005,110 @@ end loop;",
             with_label(
                 None,
                 WithTokenSpan::new(
-                    SequentialStatement::Return(ReturnStatement {
-                        expression: Some(code.s1("1 + 2").expr()),
-                    }),
+                    SequentialStatement::Return(ReturnStatement::Value(ValueReturnStatement {
+                        expression: ConditionalOrUnaffectedExpression::Simple(
+                            ExpressionOrUnaffected::Expression(code.s1("1 + 2").expr())
+                        ),
+                    })),
+                    code.token_span()
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn parse_conditional_plain_return_statement() {
+        let code = Code::with_standard("return when cond;", VHDLStandard::VHDL2019);
+        let statement = code.with_stream_no_diagnostics(parse_sequential_statement);
+        assert_eq!(
+            statement,
+            with_label(
+                None,
+                WithTokenSpan::new(
+                    SequentialStatement::Return(ReturnStatement::Plain(PlainReturnStatement {
+                        condition: Some(code.s1("cond").expr()),
+                    })),
+                    code.token_span()
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn parse_conditional_value_return_statement_when() {
+        let code = Code::with_standard("return foo when cond;", VHDLStandard::VHDL2019);
+        let statement = code.with_stream_no_diagnostics(parse_sequential_statement);
+        assert_eq!(
+            statement,
+            with_label(
+                None,
+                WithTokenSpan::new(
+                    SequentialStatement::Return(ReturnStatement::Value(ValueReturnStatement {
+                        expression: ConditionalOrUnaffectedExpression::Conditional(Conditionals {
+                            conditionals: vec![Conditional {
+                                condition: code.s1("cond").expr(),
+                                item: ExpressionOrUnaffected::Expression(code.s1("foo").expr()),
+                            }],
+                            else_item: None,
+                        }),
+                    })),
+                    code.token_span()
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn parse_conditional_value_return_statement_else() {
+        let code = Code::with_standard("return foo when cond else bar;", VHDLStandard::VHDL2019);
+        let statement = code.with_stream_no_diagnostics(parse_sequential_statement);
+        assert_eq!(
+            statement,
+            with_label(
+                None,
+                WithTokenSpan::new(
+                    SequentialStatement::Return(ReturnStatement::Value(ValueReturnStatement {
+                        expression: ConditionalOrUnaffectedExpression::Conditional(Conditionals {
+                            conditionals: vec![Conditional {
+                                condition: code.s1("cond").expr(),
+                                item: ExpressionOrUnaffected::Expression(code.s1("foo").expr()),
+                            }],
+                            else_item: Some((
+                                ExpressionOrUnaffected::Expression(code.s1("bar").expr()),
+                                code.s1("else").token()
+                            )),
+                        }),
+                    })),
+                    code.token_span()
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn parse_conditional_value_return_statement_unaffected() {
+        let code = Code::with_standard(
+            "return foo when cond else unaffected;",
+            VHDLStandard::VHDL2019,
+        );
+        let statement = code.with_stream_no_diagnostics(parse_sequential_statement);
+        assert_eq!(
+            statement,
+            with_label(
+                None,
+                WithTokenSpan::new(
+                    SequentialStatement::Return(ReturnStatement::Value(ValueReturnStatement {
+                        expression: ConditionalOrUnaffectedExpression::Conditional(Conditionals {
+                            conditionals: vec![Conditional {
+                                condition: code.s1("cond").expr(),
+                                item: ExpressionOrUnaffected::Expression(code.s1("foo").expr()),
+                            }],
+                            else_item: Some((
+                                ExpressionOrUnaffected::Unaffected(code.s1("unaffected").token()),
+                                code.s1("else").token()
+                            )),
+                        }),
+                    })),
                     code.token_span()
                 )
             )

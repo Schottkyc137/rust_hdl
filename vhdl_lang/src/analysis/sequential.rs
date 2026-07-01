@@ -114,24 +114,25 @@ impl<'a> AnalyzeContext<'a, '_> {
         let statement_span = statement.statement.span;
         match statement.statement.item {
             SequentialStatement::Return(ref mut ret) => {
-                let ReturnStatement { ref mut expression } = ret;
+                let root = SequentialRoot::from(parent);
+                let has_value = matches!(ret, ReturnStatement::Value(_));
 
-                match SequentialRoot::from(parent) {
+                match root {
                     SequentialRoot::Function(ttyp) => {
-                        if let Some(ref mut expression) = expression {
-                            self.expr_with_ttyp(scope, ttyp, expression, diagnostics)?;
+                        if let ReturnStatement::Value(value) = ret {
+                            self.analyze_return_value(scope, ttyp, value, diagnostics)?;
                         } else {
                             diagnostics.add(
-                                statement.statement.pos(self.ctx),
+                                statement_span.pos(self.ctx),
                                 "Functions cannot return without a value",
                                 ErrorCode::VoidReturn,
                             );
                         }
                     }
                     SequentialRoot::Procedure => {
-                        if expression.is_some() {
+                        if has_value {
                             diagnostics.add(
-                                statement.statement.pos(self.ctx),
+                                statement_span.pos(self.ctx),
                                 "Procedures cannot return a value",
                                 ErrorCode::NonVoidReturn,
                             );
@@ -139,11 +140,20 @@ impl<'a> AnalyzeContext<'a, '_> {
                     }
                     SequentialRoot::Process => {
                         diagnostics.add(
-                            statement.statement.pos(self.ctx),
+                            statement_span.pos(self.ctx),
                             "Cannot return from a process",
                             ErrorCode::IllegalReturn,
                         );
                     }
+                }
+
+                // A conditional plain return (`return when condition;`) carries a
+                // boolean condition that must be analyzed regardless of the context.
+                if let ReturnStatement::Plain(PlainReturnStatement {
+                    condition: Some(condition),
+                }) = ret
+                {
+                    self.boolean_expr(scope, condition, diagnostics)?;
                 }
             }
             SequentialStatement::Wait(ref mut wait_stmt) => {
@@ -327,6 +337,52 @@ impl<'a> AnalyzeContext<'a, '_> {
             SequentialStatement::Null => {}
         }
         Ok(())
+    }
+
+    /// Analyze the `conditional_or_unaffected_expression` of a value return
+    /// statement against the enclosing function's return type.
+    fn analyze_return_value(
+        &self,
+        scope: &Scope<'a>,
+        ttyp: TypeEnt<'a>,
+        value: &mut ValueReturnStatement,
+        diagnostics: &mut dyn DiagnosticHandler,
+    ) -> FatalResult {
+        match &mut value.expression {
+            ConditionalOrUnaffectedExpression::Simple(item) => {
+                self.analyze_return_item(scope, ttyp, item, diagnostics)?;
+            }
+            ConditionalOrUnaffectedExpression::Conditional(conditionals) => {
+                let Conditionals {
+                    conditionals,
+                    else_item,
+                } = conditionals;
+                for Conditional { condition, item } in conditionals.iter_mut() {
+                    self.analyze_return_item(scope, ttyp, item, diagnostics)?;
+                    self.boolean_expr(scope, condition, diagnostics)?;
+                }
+                if let Some((item, _)) = else_item {
+                    self.analyze_return_item(scope, ttyp, item, diagnostics)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn analyze_return_item(
+        &self,
+        scope: &Scope<'a>,
+        ttyp: TypeEnt<'a>,
+        item: &mut ExpressionOrUnaffected,
+        diagnostics: &mut dyn DiagnosticHandler,
+    ) -> FatalResult {
+        match item {
+            ExpressionOrUnaffected::Expression(expr) => {
+                self.expr_with_ttyp(scope, ttyp, expr, diagnostics)
+            }
+            // `unaffected` carries no value and imposes no type constraint.
+            ExpressionOrUnaffected::Unaffected(_) => Ok(()),
+        }
     }
 
     fn check_loop_label(
