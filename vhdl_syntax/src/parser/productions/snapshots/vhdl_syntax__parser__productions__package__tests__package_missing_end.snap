@@ -29,5 +29,5 @@ PackageDeclaration
       SemiColon
 
 == diagnostics ==
-2:30 Expected([Token(Keyword(End))])
-2:30 Expected([Token(SemiColon)])
+2:30 Expected([Keyword(End)])
+2:30 Expected([SemiColon])

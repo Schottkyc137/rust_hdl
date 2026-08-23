@@ -14,4 +14,4 @@ SignalDeclaration
   SemiColon
 
 == diagnostics ==
-1:13 Expected([Token(Identifier), Token(StringLiteral), Token(CharacterLiteral)])
+1:13 Expected([Identifier, StringLiteral, CharacterLiteral])

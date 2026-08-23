@@ -20,4 +20,4 @@ ConstantDeclaration
   SemiColon
 
 == diagnostics ==
-1:28 Expected([Token(Identifier), Token(LtLt), Token(BitStringLiteral), Token(CharacterLiteral), Token(StringLiteral), Token(Keyword(Null)), Token(AbstractLiteral), Token(LeftPar), Token(Keyword(New))])
+1:28 Expected([Identifier, LtLt, BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Null), AbstractLiteral, LeftPar, Keyword(New)])

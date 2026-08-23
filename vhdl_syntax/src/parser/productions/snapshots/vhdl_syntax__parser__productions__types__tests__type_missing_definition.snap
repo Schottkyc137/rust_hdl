@@ -13,4 +13,4 @@ FullTypeDeclaration
   SemiColon
 
 == diagnostics ==
-1:16 Expected([Token(Keyword(Range)), Token(Keyword(Access)), Token(Keyword(Protected)), Token(Keyword(File)), Token(Keyword(Array)), Token(Keyword(Record)), Token(LeftPar)])
+1:16 Expected([Keyword(Range), Keyword(Access), Keyword(Protected), Keyword(File), Keyword(Array), Keyword(Record), LeftPar])

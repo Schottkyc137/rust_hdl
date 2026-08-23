@@ -22,6 +22,6 @@ LoopStatement
       SemiColon
 
 == diagnostics ==
-2:10 Expected([Token(Keyword(End))])
-2:10 Expected([Token(Keyword(Loop))])
-2:10 Expected([Token(SemiColon)])
+2:10 Expected([Keyword(End)])
+2:10 Expected([Keyword(Loop)])
+2:10 Expected([SemiColon])

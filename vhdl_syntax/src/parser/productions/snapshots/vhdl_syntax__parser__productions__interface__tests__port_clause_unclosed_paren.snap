@@ -22,6 +22,6 @@ PortClause
     SemiColon
 
 == diagnostics ==
-1:26 Expected([Token(Keyword(Signal)), Token(Keyword(Constant)), Token(Keyword(Variable)), Token(Identifier), Token(Keyword(File)), Token(Keyword(Type)), Token(Keyword(Function)), Token(Keyword(Procedure)), Token(Keyword(Impure)), Token(Keyword(Pure)), Token(Keyword(Package))])
-1:26 Expected([Token(RightPar)])
-1:26 Expected([Token(SemiColon)])
+1:26 Expected([Keyword(Signal), Keyword(Constant), Keyword(Variable), Identifier, Keyword(File), Keyword(Type), Keyword(Function), Keyword(Procedure), Keyword(Impure), Keyword(Pure), Keyword(Package)])
+1:26 Expected([RightPar])
+1:26 Expected([SemiColon])

@@ -36,6 +36,6 @@ ProcessStatement
       SemiColon
 
 == diagnostics ==
-3:10 Expected([Token(Keyword(End))])
-3:10 Expected([Token(Keyword(Process))])
-3:10 Expected([Token(SemiColon)])
+3:10 Expected([Keyword(End)])
+3:10 Expected([Keyword(Process)])
+3:10 Expected([SemiColon])

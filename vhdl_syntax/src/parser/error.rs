@@ -6,7 +6,6 @@
 
 use std::ops::Range;
 
-use crate::syntax::child::ChildKind;
 use crate::tokens::tokenizer::{LexErr, LexErrKind, LexErrPos, UnterminatedKind};
 use crate::tokens::{Token, TokenKind};
 
@@ -16,7 +15,7 @@ pub type Span = Range<usize>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyntaxErrKind {
     /// One of the items was expected, but it is missing from the tree.
-    Expected(Box<[ChildKind]>),
+    Expected(Box<[TokenKind]>),
     /// A token was seen that was not expected in some context
     Unexpected(TokenKind),
     /// A token or error that was unterminated

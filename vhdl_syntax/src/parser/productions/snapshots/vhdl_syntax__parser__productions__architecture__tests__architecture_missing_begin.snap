@@ -21,4 +21,4 @@ ArchitectureBody
     SemiColon
 
 == diagnostics ==
-1:29 Expected([Token(Keyword(Begin))])
+1:29 Expected([Keyword(Begin)])
