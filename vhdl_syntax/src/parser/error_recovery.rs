@@ -6,6 +6,7 @@
 
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
+use crate::syntax::child::ChildKind;
 use crate::syntax::layout_of;
 use crate::syntax::meta::{Layout, LayoutItem, LayoutItemKind};
 use crate::syntax::NodeKind;
@@ -65,7 +66,7 @@ impl Parser {
         if self.peek_token().is_eof() {
             self.errors.push(SyntaxErr::new(
                 start..start,
-                SyntaxErrKind::Expected(expected.into()),
+                SyntaxErrKind::Expected(expected.into_iter().map(ChildKind::Token).collect()),
             ));
             return;
         }
@@ -102,7 +103,9 @@ impl Parser {
                 if !skipped_any {
                     self.errors.push(SyntaxErr::new(
                         start..start,
-                        SyntaxErrKind::Expected(expected.into()),
+                        SyntaxErrKind::Expected(
+                            expected.into_iter().map(ChildKind::Token).collect(),
+                        ),
                     ));
                 // skipped tokens: Garbage input before recovery token.
                 } else {
@@ -1291,7 +1294,7 @@ mod tests {
     fn assert_expected_token(diag: &SyntaxErr, expected_kinds: &[TokenKind]) {
         match diag.err() {
             SyntaxErrKind::Expected(kinds) => {
-                assert_eq!(kinds.as_ref(), expected_kinds, "expected kinds mismatch");
+                assert_eq!(kinds.as_ref(), expected_kinds.iter().map(|kind| ChildKind::Token(*kind)).collect::<Vec<_>>().as_slice(), "expected kinds mismatch");
             }
             other => panic!("expected ExpectedToken, got {:?}", other),
         }

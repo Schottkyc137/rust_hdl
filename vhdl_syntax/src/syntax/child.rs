@@ -4,6 +4,8 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::{syntax::NodeKind, tokens::TokenKind};
+
 /// A child that is either a Token or a Node.
 ///
 /// This enum is generic to accommodate for the different kinds of childs
@@ -50,3 +52,5 @@ where
         }
     }
 }
+
+pub type ChildKind = Child<NodeKind, TokenKind>;

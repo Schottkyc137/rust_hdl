@@ -16,4 +16,4 @@ VariableDeclaration
   SemiColon
 
 == diagnostics ==
-1:9 Expected([Identifier])
+1:9 Expected([Token(Identifier)])

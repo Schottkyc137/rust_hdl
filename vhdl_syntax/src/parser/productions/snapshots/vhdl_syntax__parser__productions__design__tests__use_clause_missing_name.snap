@@ -16,5 +16,5 @@ DesignFile
   Eof
 
 == diagnostics ==
-1:4 Expected([Identifier, StringLiteral, CharacterLiteral])
-1:6 Expected([Keyword(Architecture), Keyword(Package), Keyword(Entity), Keyword(Configuration), Keyword(Context)])
+1:4 Expected([Token(Identifier), Token(StringLiteral), Token(CharacterLiteral)])
+1:6 Expected([Token(Keyword(Architecture)), Token(Keyword(Package)), Token(Keyword(Entity)), Token(Keyword(Configuration)), Token(Keyword(Context))])

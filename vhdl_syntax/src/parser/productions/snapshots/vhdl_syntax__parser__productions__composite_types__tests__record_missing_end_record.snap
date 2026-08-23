@@ -46,6 +46,6 @@ FullTypeDeclaration
         SemiColon
 
 == diagnostics ==
-4:15 Expected([Keyword(End)])
-4:15 Expected([Keyword(Record)])
-4:15 Expected([SemiColon])
+4:15 Expected([Token(Keyword(End))])
+4:15 Expected([Token(Keyword(Record))])
+4:15 Expected([Token(SemiColon)])

@@ -27,6 +27,6 @@ IfStatement
       SemiColon
 
 == diagnostics ==
-2:10 Expected([Keyword(End)])
-2:10 Expected([Keyword(If)])
-2:10 Expected([SemiColon])
+2:10 Expected([Token(Keyword(End))])
+2:10 Expected([Token(Keyword(If))])
+2:10 Expected([Token(SemiColon)])

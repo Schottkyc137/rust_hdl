@@ -6,6 +6,7 @@
 
 use std::ops::Range;
 
+use crate::syntax::child::ChildKind;
 use crate::tokens::tokenizer::{LexErr, LexErrKind, LexErrPos, UnterminatedKind};
 use crate::tokens::{Token, TokenKind};
 
@@ -14,8 +15,8 @@ pub type Span = Range<usize>;
 /// Syntax error kinds that may occur when parsing a VHDL source file
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyntaxErrKind {
-    /// One of the tokens was expected, but it is missing from the tree.
-    Expected(Box<[TokenKind]>),
+    /// One of the items was expected, but it is missing from the tree.
+    Expected(Box<[ChildKind]>),
     /// A token was seen that was not expected in some context
     Unexpected(TokenKind),
     /// A token or error that was unterminated
