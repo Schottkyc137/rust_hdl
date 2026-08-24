@@ -93,20 +93,12 @@ pub enum RepeatedCardinality {
 /// occurrence of its kind — hence it lives in the variants rather than beside them.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Cardinality {
-    Required {
-        nth: usize,
-    },
-    Optional {
-        nth: usize,
-    },
+    Required { nth: usize },
+    Optional { nth: usize },
     Repeated(RepeatedCardinality),
 }
 
 impl Cardinality {
-    pub fn is_optional(self) -> bool {
-        matches!(self, Cardinality::Optional { .. })
-    }
-
     pub fn is_repeated(self) -> bool {
         matches!(self, Cardinality::Repeated(_))
     }
@@ -197,10 +189,6 @@ impl Field {
             cardinality: Cardinality::Repeated(RepeatedCardinality::ZeroOrMore),
             ..self
         }
-    }
-
-    pub fn is_optional(&self) -> bool {
-        self.cardinality.is_optional()
     }
 
     pub fn is_repeated(&self) -> bool {
