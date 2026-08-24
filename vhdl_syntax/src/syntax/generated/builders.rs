@@ -3717,7 +3717,7 @@ impl From<ConditionalWaveformsBuilder> for ConditionalWaveformsSyntax {
 }
 pub struct ConfigurationDeclarationBuilder {
     configuration_declaration_preamble: ConfigurationDeclarationPreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    configuration_declarative_part: Option<ConfigurationDeclarativePartSyntax>,
     verification_unit_bindings: Vec<VerificationUnitBindingSyntax>,
     block_configuration: BlockConfigurationSyntax,
     configuration_declaration_epilogue: ConfigurationDeclarationEpilogueSyntax,
@@ -3729,7 +3729,7 @@ impl ConfigurationDeclarationBuilder {
     ) -> Self {
         Self {
             configuration_declaration_preamble: configuration_declaration_preamble.into(),
-            declarations: None,
+            configuration_declarative_part: None,
             verification_unit_bindings: Vec::new(),
             block_configuration: block_configuration.into(),
             configuration_declaration_epilogue: ConfigurationDeclarationEpilogueBuilder::default()
@@ -3743,8 +3743,11 @@ impl ConfigurationDeclarationBuilder {
         self.configuration_declaration_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_configuration_declarative_part(
+        mut self,
+        n: impl Into<ConfigurationDeclarativePartSyntax>,
+    ) -> Self {
+        self.configuration_declarative_part = Some(n.into());
         self
     }
     pub fn add_verification_unit_bindings(
@@ -3774,7 +3777,7 @@ impl ConfigurationDeclarationBuilder {
                 .green()
                 .clone(),
         );
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.configuration_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         for n in self.verification_unit_bindings {
@@ -3949,6 +3952,44 @@ impl ConfigurationDeclarationPreambleBuilder {
 }
 impl From<ConfigurationDeclarationPreambleBuilder> for ConfigurationDeclarationPreambleSyntax {
     fn from(value: ConfigurationDeclarationPreambleBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ConfigurationDeclarativePartBuilder {
+    configuration_declarative_items: Vec<ConfigurationDeclarativeItemSyntax>,
+}
+impl Default for ConfigurationDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ConfigurationDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            configuration_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_configuration_declarative_items(
+        mut self,
+        n: impl Into<ConfigurationDeclarativeItemSyntax>,
+    ) -> Self {
+        self.configuration_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> ConfigurationDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ConfigurationDeclarativePart);
+        for n in self.configuration_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ConfigurationDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ConfigurationDeclarativePartBuilder> for ConfigurationDeclarativePartSyntax {
+    fn from(value: ConfigurationDeclarativePartBuilder) -> Self {
         value.build()
     }
 }

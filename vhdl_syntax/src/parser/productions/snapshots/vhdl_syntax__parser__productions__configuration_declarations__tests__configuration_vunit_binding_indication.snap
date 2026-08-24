@@ -11,7 +11,7 @@ ConfigurationDeclaration
       NameDesignatorPrefix
         Identifier 'entity_name'
     Keyword(Is)
-  Declarations
+  ConfigurationDeclarativePart
     UseClauseDeclaration
       UseClause
         Keyword(Use)

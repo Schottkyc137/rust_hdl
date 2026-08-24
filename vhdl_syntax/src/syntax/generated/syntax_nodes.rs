@@ -4602,8 +4602,8 @@ impl AstNode for ConfigurationDeclarationSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "configuration_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::ConfigurationDeclarativePart),
             },
             LayoutItem {
                 optional: true,
@@ -4641,10 +4641,10 @@ impl ConfigurationDeclarationSyntax {
             .filter_map(ConfigurationDeclarationPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn configuration_declarative_part(&self) -> Option<ConfigurationDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(ConfigurationDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn verification_unit_bindings(
@@ -4806,6 +4806,81 @@ impl ConfigurationDeclarationPreambleSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum ConfigurationDeclarativeItemSyntax {
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for ConfigurationDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::UseClauseDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return ConfigurationDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return ConfigurationDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return ConfigurationDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            ConfigurationDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            ConfigurationDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            ConfigurationDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ConfigurationDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ConfigurationDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::ConfigurationDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "configuration_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::UseClauseDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        ConfigurationDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ConfigurationDeclarativePartSyntax {
+    pub fn configuration_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = ConfigurationDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ConfigurationDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]

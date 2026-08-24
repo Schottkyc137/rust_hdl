@@ -488,10 +488,16 @@ ComponentConfiguration =
 
 ConfigurationDeclaration =
   configuration_declaration_preamble:('configuration' '#identifier' 'of' Name 'is')
-  Declarations
+  ConfigurationDeclarativePart
   verification_unit_binding:(VerificationUnitBindingIndication ';')*
   BlockConfiguration
   configuration_declaration_epilogue:('end' 'configuration'? SimpleName? ';')
+
+ConfigurationDeclarativePart =
+  ConfigurationDeclarativeItem*
+
+ConfigurationDeclarativeItem =
+  use_clause_declaration:UseClause | AttributeSpecification | GroupDeclaration
 
 EntityDeclaration =
   entity_declaration_preamble:('entity' '#identifier' 'is')

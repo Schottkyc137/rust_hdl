@@ -87,6 +87,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::ConfigurationDeclaration => ConfigurationDeclarationSyntax::META,
         NodeKind::ConfigurationDeclarationEpilogue => ConfigurationDeclarationEpilogueSyntax::META,
         NodeKind::ConfigurationDeclarationPreamble => ConfigurationDeclarationPreambleSyntax::META,
+        NodeKind::ConfigurationDeclarativePart => ConfigurationDeclarativePartSyntax::META,
         NodeKind::ConstantDeclaration => ConstantDeclarationSyntax::META,
         NodeKind::ConstrainedArrayDefinition => ConstrainedArrayDefinitionSyntax::META,
         NodeKind::ContextClause => ContextClauseSyntax::META,

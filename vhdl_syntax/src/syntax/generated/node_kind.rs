@@ -75,6 +75,7 @@ pub enum NodeKind {
     ConfigurationDeclaration,
     ConfigurationDeclarationEpilogue,
     ConfigurationDeclarationPreamble,
+    ConfigurationDeclarativePart,
     ConstantDeclaration,
     ConstrainedArrayDefinition,
     ContextClause,
