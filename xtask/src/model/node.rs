@@ -218,6 +218,44 @@ impl Field {
     }
 }
 
+/// The set of children the accessor generated for a [`Field`] can pick up.
+///
+/// A token field is addressed by its kind and matches exactly that. A node field is addressed by
+/// a *cast*, and a cast to a choice accepts every node kind the choice reaches — so a node field
+/// stands for a set of kinds rather than for the single one it is spelled with, and two fields
+/// spelled with different kinds can still collide.
+#[derive(PartialEq, Eq, Debug)]
+pub enum FieldCast {
+    Token(TokenKind),
+    /// A choice of tokens materializes as a token rather than as a node of its own, so it is
+    /// addressed by kind like a token and never collides with a node field.
+    TokenChoice(NodeKind),
+    Nodes(Vec<NodeKind>),
+}
+
+impl FieldCast {
+    /// Whether both accessors can pick up the same child.
+    fn overlaps(&self, other: &FieldCast) -> bool {
+        match (self, other) {
+            (FieldCast::Nodes(this), FieldCast::Nodes(other)) => {
+                this.iter().any(|kind| other.contains(kind))
+            }
+            (this, other) => this == other,
+        }
+    }
+
+    /// Whether both accessors pick up exactly the same children, which is what lets the `nth`
+    /// ordinal keep counting past one field and land on the next.
+    fn is_same(&self, other: &FieldCast) -> bool {
+        match (self, other) {
+            (FieldCast::Nodes(this), FieldCast::Nodes(other)) => {
+                this.len() == other.len() && this.iter().all(|kind| other.contains(kind))
+            }
+            (this, other) => this == other,
+        }
+    }
+}
+
 impl From<TokenKind> for Field {
     fn from(value: TokenKind) -> Self {
         Field::token(value)
@@ -467,13 +505,64 @@ impl Model {
         self.token_choice_kinds.contains(kind)
     }
 
+    /// The concrete node kinds that a cast to `kind` accepts.
+    ///
+    /// A sequence or a list is materialized by the parser as a node of exactly its own kind, so
+    /// it reaches only itself. A choice is abstract — the parser emits one of its alternatives,
+    /// never the choice itself — so it reaches the union of theirs, transitively. An alias
+    /// reaches whatever it renames, and an alias of a token reaches nothing at all, since a
+    /// token is not castable to a node type.
+    ///
+    /// The result is in grammar order and free of repeats, so it can be compared as a set as
+    /// well as emitted as a list.
+    pub fn reachable_node_kinds(&self, kind: &NodeKind) -> Vec<NodeKind> {
+        let mut reachable = Vec::new();
+        self.collect_reachable_node_kinds(kind, &mut HashSet::new(), &mut reachable);
+        reachable
+    }
+
+    fn collect_reachable_node_kinds(
+        &self,
+        kind: &NodeKind,
+        visited: &mut HashSet<NodeKind>,
+        reachable: &mut Vec<NodeKind>,
+    ) {
+        // An alias materializes nothing of its own, so it stands for whatever it renames.
+        let NodeOrTokenKind::Node(kind) = self.resolve_alias(kind) else {
+            return; // an alias of a token has no node for a cast to accept
+        };
+        if !visited.insert(kind.clone()) {
+            return;
+        }
+        // A kind the model doesn't know reaches itself, the same way `resolve_alias` resolves
+        // one to itself: nothing here can say what it expands to, and it is a distinct kind as
+        // far as any two sets being compared are concerned.
+        let Some(node) = self.node(&kind) else {
+            reachable.push(kind);
+            return;
+        };
+        match node {
+            Node::Items(_) | Node::List(_) => reachable.push(kind),
+            Node::Choices(choice) => match &choice.items {
+                NodesOrTokens::Nodes(alternatives) => {
+                    for alternative in alternatives {
+                        self.collect_reachable_node_kinds(alternative, visited, reachable);
+                    }
+                }
+                // A token choice materializes as a token, which no node cast reaches.
+                NodesOrTokens::Tokens(_) => {}
+            },
+            Node::Alias(_) => unreachable!("resolve_alias never yields an alias"),
+        }
+    }
+
     // MARK: Checks
     pub fn do_checks(&self) {
         self.check_no_duplicates();
         self.check_all_nodes_exist();
         self.check_aliased_nodes_are_defined();
         self.check_choice_alternatives_are_nodes();
-        self.check_choices_are_unique();
+        self.check_choice_alternatives_are_disjoint();
         self.check_empty_capable_nodes_marked_optional();
         self.check_nth_accessors_are_unambiguous();
     }
@@ -536,26 +625,81 @@ impl Model {
         }
     }
 
+    /// Checks that no two alternatives of a choice can be cast from the same node.
+    ///
+    /// `cast_unchecked` tries the alternatives in the order they are written and returns the
+    /// first that can cast the node, so an alternative that shares a node kind with an earlier
+    /// one is partly or wholly dead: which variant a caller ends up with is decided by the order
+    /// the alternatives happen to be spelled in rather than by what the tree holds. Alternatives
+    /// are compared by the kinds they *reach* — a choice alternative stands for every kind of
+    /// its own — so `Declaration | ConstantDeclaration` is a violation even though the two are
+    /// spelled differently.
+    pub fn check_choice_alternatives_are_disjoint(&self) {
+        let mut violations: Vec<String> = vec![];
+        for node in self.all_nodes() {
+            let Node::Choices(choice) = node else {
+                continue;
+            };
+            let NodesOrTokens::Nodes(alternatives) = &choice.items else {
+                continue;
+            };
+            let reachable: Vec<Vec<NodeKind>> = alternatives
+                .iter()
+                .map(|alternative| self.reachable_node_kinds(alternative))
+                .collect();
+            for (index, alternative) in alternatives.iter().enumerate() {
+                for (earlier_index, earlier) in alternatives[..index].iter().enumerate() {
+                    let shared: Vec<&str> = reachable[index]
+                        .iter()
+                        .filter(|kind| reachable[earlier_index].contains(kind))
+                        .map(NodeKind::as_str)
+                        .collect();
+                    if shared.is_empty() {
+                        continue;
+                    }
+                    violations.push(format!(
+                        "  {alternative} in {}: reaches {}, which `{earlier}` already reaches",
+                        choice.name,
+                        shared.join(", ")
+                    ));
+                }
+            }
+        }
+        if !violations.is_empty() {
+            println!("The following choice alternatives are cast from the same nodes:");
+            for violation in &violations {
+                println!("{violation}");
+            }
+            panic!(
+                "a choice picks the first alternative that can cast the node, so overlapping \
+                 alternatives make the variant depend on the order they are written in; drop the \
+                 redundant alternative or split the kinds they share"
+            );
+        }
+    }
+
     /// Checks that every `nth`-based accessor actually addresses the field it was generated for.
     ///
-    /// Fields are compared by the kind they *resolve* to, the same kind
-    /// [`Model::fixup_nth_by_resolved_kind`] numbered them by: two names for one node — an alias
-    /// and the node itself, or two aliases — are one kind to an accessor that casts and counts.
+    /// Fields are compared by the children their accessors can pick up — see [`FieldCast`] —
+    /// which for a node reference is the set of kinds it reaches rather than the one kind it is
+    /// spelled with. Two fields whose sets are *equal* can still be told apart by their ordinal,
+    /// as long as every earlier one is guaranteed present; two fields whose sets merely
+    /// intersect cannot, because which occurrence each accessor lands on then depends on which
+    /// alternative the tree actually holds.
     pub fn check_nth_accessors_are_unambiguous(&self) {
         let mut violations: Vec<String> = vec![];
         for node in self.all_nodes() {
             let Node::Items(seq) = node else {
                 continue;
             };
-            let kinds: Vec<NodeOrTokenKind> = seq
-                .items
-                .iter()
-                .map(|item| self.resolved_kind(item))
-                .collect();
+            let casts: Vec<FieldCast> =
+                seq.items.iter().map(|item| self.field_cast(item)).collect();
             for (index, item) in seq.items.iter().enumerate() {
                 if item.is_repeated() {
+                    // A repeated accessor yields every child it can cast, so it has no ordinal
+                    // to disambiguate it: any overlap at all, in either direction, is fatal.
                     if let Some(other) = (0..seq.items.len())
-                        .find(|&other| other != index && kinds[other] == kinds[index])
+                        .find(|&other| other != index && casts[other].overlaps(&casts[index]))
                     {
                         violations.push(format!(
                             "  {} in {}: repeated field shares its kind with `{}`",
@@ -565,7 +709,16 @@ impl Model {
                     continue;
                 }
                 for (earlier_index, earlier) in seq.items[..index].iter().enumerate() {
-                    if kinds[earlier_index] == kinds[index] && earlier.may_be_absent() {
+                    if !casts[earlier_index].overlaps(&casts[index]) {
+                        continue;
+                    }
+                    if !casts[earlier_index].is_same(&casts[index]) {
+                        violations.push(format!(
+                            "  {} in {}: preceded by `{}`, which addresses an overlapping but \
+                             different set of kinds",
+                            item.name, seq.name, earlier.name
+                        ));
+                    } else if earlier.may_be_absent() {
                         violations.push(format!(
                             "  {} in {}: preceded by `{}` of the same kind, which may be absent",
                             item.name, seq.name, earlier.name
@@ -583,6 +736,17 @@ impl Model {
                 "fix the violations above by giving the conflicting fields distinct node kinds, \
                  e.g. by wrapping them in a labelled group"
             );
+        }
+    }
+
+    /// The children an accessor generated for `field` can pick up.
+    fn field_cast(&self, field: &Field) -> FieldCast {
+        match self.resolved_kind(field) {
+            NodeOrTokenKind::Token(kind) => FieldCast::Token(kind),
+            NodeOrTokenKind::Node(kind) if self.is_token_choice(&kind) => {
+                FieldCast::TokenChoice(kind)
+            }
+            NodeOrTokenKind::Node(kind) => FieldCast::Nodes(self.reachable_node_kinds(&kind)),
         }
     }
 
@@ -671,28 +835,6 @@ impl Model {
             }
             panic!()
         }
-    }
-
-    /// Check that all `Choice` nodes contain elements that are only reachable by this choice
-    pub fn check_choices_are_unique(&self) {
-        let mut found_nodes = HashSet::new();
-        for node in self.all_nodes() {
-            if let Node::Choices(choice) = node {
-                if let NodesOrTokens::Nodes(nodes) = &choice.items {
-                    for node in nodes {
-                        if self.count_uses_of_node(node) > 1 && !found_nodes.contains(node) {
-                            found_nodes.insert(node.clone());
-                            println!("Node {node} is used multiple times, but must only be used in a single choice node");
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// The number of places (sequence items and choice alternatives) that reference `kind`.
-    pub fn count_uses_of_node(&self, kind: &NodeKind) -> usize {
-        self.all_nodes().map(|node| uses_of_node(node, kind)).sum()
     }
 
     // MARK: Postprocessing
@@ -868,32 +1010,6 @@ fn check_no_duplicate_accessors(node: &Node) {
         }
         // An alias has no fields of its own; the accessors belong to what it renames.
         Node::Alias(_) => {}
-    }
-}
-
-/// The number of places within `node` — sequence items, choice alternatives, a list's element and
-/// separator — that reference `kind`.
-fn uses_of_node(node: &Node, kind: &NodeKind) -> usize {
-    match node {
-        Node::Items(items) => items
-            .items
-            .iter()
-            .filter(|item| item.as_node_kind() == Some(kind))
-            .count(),
-        Node::Choices(choices) => match &choices.items {
-            NodesOrTokens::Nodes(nodes) => nodes.iter().filter(|node| *node == kind).count(),
-            // An alternative of a token choice may still be a reference: one that renames a token.
-            NodesOrTokens::Tokens(alternatives) => alternatives
-                .iter()
-                .filter(|alternative| alternative.as_node_kind() == Some(kind))
-                .count(),
-        },
-        Node::List(list) => {
-            usize::from(list.element.as_node_kind() == Some(kind))
-                + usize::from(list.separator.as_node_kind() == Some(kind))
-        }
-        // An alias is one use site of the node it renames.
-        Node::Alias(alias) => usize::from(alias.aliased.as_node_kind() == Some(kind)),
     }
 }
 
@@ -1100,6 +1216,126 @@ mod tests {
             Field::node("Expression").make_repeated().with_name("rest"),
         ]);
         model.check_nth_accessors_are_unambiguous();
+    }
+
+    /// `Declaration` (a choice over `Constant | Signal`) plus `Item` (a choice over
+    /// `Constant | Variable`), both referenced from `DesignFile`.
+    fn model_with_overlapping_choices() -> Model {
+        let mut model = Model::default();
+        for leaf in [
+            "ConstantDeclaration",
+            "SignalDeclaration",
+            "VariableDeclaration",
+        ] {
+            model.push_node(SequenceNode::new(
+                leaf,
+                vec![Field::token(TokenKind::Identifier)],
+            ));
+        }
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Declaration"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("ConstantDeclaration"),
+                NodeKind::from("SignalDeclaration"),
+            ]),
+        }));
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Item"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("ConstantDeclaration"),
+                NodeKind::from("VariableDeclaration"),
+            ]),
+        }));
+        model
+    }
+
+    /// A choice reaches its alternatives, transitively and with aliases peeled.
+    #[test]
+    fn reachable_node_kinds_flattens_nested_choices() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(AliasNode::node("Decl", "Declaration"));
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Outer"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("Decl"),
+                NodeKind::from("VariableDeclaration"),
+            ]),
+        }));
+        assert_eq!(
+            model.reachable_node_kinds(&NodeKind::from("Outer")),
+            vec![
+                NodeKind::from("ConstantDeclaration"),
+                NodeKind::from("SignalDeclaration"),
+                NodeKind::from("VariableDeclaration"),
+            ]
+        );
+        // A sequence is materialized as itself, so it reaches only itself.
+        assert_eq!(
+            model.reachable_node_kinds(&NodeKind::from("SignalDeclaration")),
+            vec![NodeKind::from("SignalDeclaration")]
+        );
+    }
+
+    /// Two sibling fields spelled with different choices still collide when the choices share an
+    /// alternative: `item()` would return whatever `declaration` holds whenever that happens to
+    /// be a `ConstantDeclaration`.
+    #[test]
+    #[should_panic(expected = "distinct node kinds")]
+    fn check_nth_accessors_rejects_overlapping_choices() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![
+                Field::node("Declaration").with_name("declaration"),
+                Field::node("Item").with_name("item"),
+            ],
+        ));
+        model.check_nth_accessors_are_unambiguous();
+    }
+
+    /// Disjoint choices are addressed by casts that cannot see each other's children, so both
+    /// accessors are exact no matter what the tree holds.
+    #[test]
+    fn check_nth_accessors_allows_disjoint_choices() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Other"),
+            items: NodesOrTokens::Nodes(vec![NodeKind::from("VariableDeclaration")]),
+        }));
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![
+                Field::node("Declaration")
+                    .make_optional()
+                    .with_name("first"),
+                Field::node("Other").make_optional().with_name("second"),
+            ],
+        ));
+        model.check_nth_accessors_are_unambiguous(); // must not panic
+    }
+
+    /// `cast_unchecked` returns the first alternative that matches, so an alternative subsumed
+    /// by an earlier one is never constructed.
+    #[test]
+    #[should_panic(expected = "overlapping alternatives")]
+    fn check_choice_alternatives_rejects_a_subsumed_alternative() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("DesignFile"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("Declaration"),
+                NodeKind::from("ConstantDeclaration"),
+            ]),
+        }));
+        model.check_choice_alternatives_are_disjoint();
+    }
+
+    /// The same alternatives spread over two *different* choices are fine — a cast names the
+    /// choice it wants, so nothing is ambiguous about `Declaration` and `Item` sharing one.
+    #[test]
+    fn check_choice_alternatives_allows_a_kind_in_several_choices() {
+        let model = model_with_overlapping_choices();
+        model.check_choice_alternatives_are_disjoint(); // must not panic
     }
 
     /// `Expression` plus `Condition`, an alias for it, referenced from `DesignFile`.

@@ -13,7 +13,6 @@ use crate::model::{
 use convert_case::{Case, Casing};
 use proc_macro2::{Literal, TokenStream};
 use quote::{format_ident, quote};
-use std::collections::HashSet;
 
 pub struct SyntaxNodeGenerator;
 
@@ -170,7 +169,11 @@ fn generate_choice_ast_impl(node: &ChoiceNode, model: &Model) -> TokenStream {
         NodesOrTokens::Nodes(nodes) => {
             let node_kinds: Vec<TokenStream> = nodes
                 .iter()
-                .flat_map(|kind| collect_concrete_node_kinds(kind, model, &mut HashSet::new()))
+                .flat_map(|kind| model.reachable_node_kinds(kind))
+                .map(|kind| {
+                    let node_kind = node_kind_ident(&kind);
+                    quote! { NodeKind::#node_kind }
+                })
                 .collect();
             let cast_unchecked_branches: Vec<TokenStream> = nodes
                 .iter()
@@ -267,43 +270,6 @@ fn generate_list_ast_impl(
     }
 }
 
-// MARK: META helpers
-
-/// Recursively collect all concrete (sequence / raw-token) `NodeKind::X` token-streams
-/// for a named node, expanding nested choice nodes as needed.
-/// `visited` guards against hypothetical cycles in the choice graph.
-fn collect_concrete_node_kinds(
-    name: &NodeKind,
-    model: &Model,
-    visited: &mut HashSet<NodeKind>,
-) -> Vec<TokenStream> {
-    // An alias materializes nothing of its own, so it stands for whatever it renames.
-    let NodeOrTokenKind::Node(name) = model.resolve_alias(name) else {
-        return vec![]; // an alias of a token contributes no NodeKind entry
-    };
-    if !visited.insert(name.clone()) {
-        return vec![];
-    }
-    let node = model
-        .node(&name)
-        .unwrap_or_else(|| panic!("node '{name}' not found in model"));
-    match node {
-        // Both are materialized by the parser as a node of exactly this kind.
-        Node::Items(_) | Node::List(_) => {
-            let nk = node_kind_ident(&name);
-            vec![quote! { NodeKind::#nk }]
-        }
-        Node::Choices(choice) => match &choice.items {
-            NodesOrTokens::Nodes(alts) => alts
-                .iter()
-                .flat_map(|alt| collect_concrete_node_kinds(alt, model, visited))
-                .collect(),
-            NodesOrTokens::Tokens(_) => vec![], // token-choices don't produce NodeKind entries
-        },
-        Node::Alias(_) => unreachable!("resolve_alias never yields an alias"),
-    }
-}
-
 // MARK: META item helpers
 
 /// Build a `LayoutItem { ... }` token-stream for one item in a sequence.
@@ -343,7 +309,14 @@ fn layout_item_kind_for_node_ref(node_kind: &NodeKind, model: &Model) -> TokenSt
         }
         Node::Choices(choice) => match &choice.items {
             NodesOrTokens::Nodes(_) => {
-                let nks = collect_concrete_node_kinds(node_kind, model, &mut HashSet::new());
+                let nks: Vec<TokenStream> = model
+                    .reachable_node_kinds(node_kind)
+                    .iter()
+                    .map(|kind| {
+                        let node_kind = node_kind_ident(kind);
+                        quote! { NodeKind::#node_kind }
+                    })
+                    .collect();
                 quote! { LayoutItemKind::NodeChoice(&[#(#nks),*]) }
             }
             NodesOrTokens::Tokens(alternatives) => {
