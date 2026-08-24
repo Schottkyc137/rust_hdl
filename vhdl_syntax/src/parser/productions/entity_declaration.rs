@@ -7,7 +7,7 @@
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::syntax::AstNode;
-use crate::syntax::EntityDeclarativeItemSyntax;
+use crate::syntax::{EntityDeclarativeItemSyntax, EntityStatementSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
@@ -18,9 +18,9 @@ impl Parser {
         self.entity_header();
         self.entity_declarative_part();
         if self.next_is(Keyword(Kw::Begin)) {
-            self.start_node(EntityStatementPart);
+            self.start_node(EntityStatements);
             self.skip_into_node(DeclarationStatementSeparator);
-            self.concurrent_statements();
+            self.entity_statement_part();
             self.end_node();
         }
         self.entity_declaration_epilogue();
@@ -54,12 +54,28 @@ impl Parser {
     pub fn entity_declarative_part(&mut self) {
         self.declarations(EntityDeclarativePart, EntityDeclarativeItemSyntax::META);
     }
+
+    pub fn entity_statement_part(&mut self) {
+        self.concurrent_statements(EntityStatementPart, EntityStatementSyntax::META);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::parser::test_utils::to_test_text;
     use crate::parser::Parser;
+
+    #[test]
+    fn entity_statement_part_rejects_non_passive_statement() {
+        assert_recovery_snapshot!(
+            "\
+entity myent is
+begin
+  sig <= '0';
+end entity;",
+            Parser::entity_declaration
+        );
+    }
 
     #[test]
     fn parse_entity_declaration() {

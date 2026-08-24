@@ -4,10 +4,8 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::error::{SyntaxErr, SyntaxErrKind};
-use crate::parser::util::StallGuard;
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
-use crate::syntax::child::ChildKind;
 use crate::syntax::meta::Layout;
 use crate::syntax::NodeKind::{self, *};
 use crate::tokens::TokenKind::*;
@@ -42,12 +40,6 @@ pub(crate) fn is_start_of_declarative_part(token_kind: TokenKind) -> bool {
 
 impl Parser {
     pub(crate) fn declarations(&mut self, node_kind: NodeKind, layout: &Layout) {
-        const fn choice_options(layout: &Layout) -> &[NodeKind] {
-            match layout {
-                Layout::Choice(choice) => choice.options,
-                _ => panic!("Not a layout choice"),
-            }
-        }
         let allowed_nodes = choice_options(layout);
         self.start_node(node_kind);
         let mut guard = StallGuard::new();
@@ -98,14 +90,7 @@ impl Parser {
                     continue;
                 }
             }
-            if let Some(parsed_node) = self.builder.last_node() {
-                if !allowed_nodes.contains(&parsed_node) {
-                    self.errors.push(SyntaxErr::new(
-                        start..self.builder.current_pos(),
-                        SyntaxErrKind::Unexpected(ChildKind::Node(parsed_node)),
-                    ));
-                }
-            }
+            self.check_last_node_is_allowed(start, allowed_nodes);
         }
         self.end_node();
     }

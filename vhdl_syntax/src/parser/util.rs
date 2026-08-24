@@ -5,9 +5,11 @@
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 /// (private) utility functions used when parsing
 use crate::parser::builder::Checkpoint;
-use crate::parser::error::SyntaxErr;
+use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
+use crate::syntax::child::ChildKind;
 use crate::syntax::green::GreenNode;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind;
 use crate::tokens::tokenizer::LexErr;
 use crate::tokens::{Keyword, Token, TokenKind};
@@ -96,7 +98,26 @@ impl StallGuard {
     }
 }
 
+pub(crate) const fn choice_options(layout: &Layout) -> &[NodeKind] {
+    match layout {
+        Layout::Choice(choice) => choice.options,
+        _ => panic!("Not a layout choice"),
+    }
+}
+
 impl Parser {
+    pub(crate) fn check_last_node_is_allowed(&mut self, start: usize, allowed: &[NodeKind]) {
+        let Some(parsed_node) = self.builder.last_node() else {
+            return;
+        };
+        if !allowed.contains(&parsed_node) {
+            self.errors.push(SyntaxErr::new(
+                start..self.builder.current_pos(),
+                SyntaxErrKind::Unexpected(ChildKind::Node(parsed_node)),
+            ));
+        }
+    }
+
     fn push_opt_lex_err(&mut self, err: Option<LexErr>, token: &Token, token_start: usize) {
         if let Some(err) = err {
             self.errors

@@ -27,7 +27,7 @@ EntityDeclaration
       LeftPar
       RightPar
       SemiColon
-  EntityStatementPart
+  EntityStatements
     DeclarationStatementSeparator
       Keyword(Begin)
   EntityDeclarationEpilogue

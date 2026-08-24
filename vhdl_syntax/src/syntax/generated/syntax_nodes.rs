@@ -654,21 +654,9 @@ impl AstNode for ArchitectureBodySyntax {
             },
             LayoutItem {
                 optional: true,
-                repeated: true,
-                name: "concurrent_statements",
-                kind: LayoutItemKind::NodeChoice(&[
-                    NodeKind::BlockStatement,
-                    NodeKind::ProcessStatement,
-                    NodeKind::ConcurrentAssertionStatement,
-                    NodeKind::ComponentInstantiationStatement,
-                    NodeKind::ConcurrentSelectedSignalAssignment,
-                    NodeKind::ConcurrentConditionalSignalAssignment,
-                    NodeKind::ConcurrentSimpleSignalAssignment,
-                    NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
-                    NodeKind::ForGenerateStatement,
-                    NodeKind::IfGenerateStatement,
-                    NodeKind::CaseGenerateStatement,
-                ]),
+                repeated: false,
+                name: "architecture_statement_part",
+                kind: LayoutItemKind::Node(NodeKind::ArchitectureStatementPart),
             },
             LayoutItem {
                 optional: false,
@@ -704,12 +692,11 @@ impl ArchitectureBodySyntax {
             .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
-    pub fn concurrent_statements(
-        &self,
-    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
+    pub fn architecture_statement_part(&self) -> Option<ArchitectureStatementPartSyntax> {
         self.0
             .children()
-            .filter_map(ConcurrentStatementSyntax::cast)
+            .filter_map(ArchitectureStatementPartSyntax::cast)
+            .nth(0)
     }
     pub fn architecture_epilogue(&self) -> Option<ArchitectureEpilogueSyntax> {
         self.0
@@ -907,6 +894,46 @@ impl ArchitecturePreambleSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ArchitectureStatementPartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ArchitectureStatementPartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::ArchitectureStatementPart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "concurrent_statements",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::BlockStatement,
+                NodeKind::ProcessStatement,
+                NodeKind::ConcurrentAssertionStatement,
+                NodeKind::ComponentInstantiationStatement,
+                NodeKind::ConcurrentSelectedSignalAssignment,
+                NodeKind::ConcurrentConditionalSignalAssignment,
+                NodeKind::ConcurrentSimpleSignalAssignment,
+                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+                NodeKind::ForGenerateStatement,
+                NodeKind::IfGenerateStatement,
+                NodeKind::CaseGenerateStatement,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        ArchitectureStatementPartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ArchitectureStatementPartSyntax {
+    pub fn concurrent_statements(
+        &self,
+    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ConcurrentStatementSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -2357,21 +2384,9 @@ impl AstNode for BlockStatementSyntax {
             },
             LayoutItem {
                 optional: true,
-                repeated: true,
-                name: "concurrent_statements",
-                kind: LayoutItemKind::NodeChoice(&[
-                    NodeKind::BlockStatement,
-                    NodeKind::ProcessStatement,
-                    NodeKind::ConcurrentAssertionStatement,
-                    NodeKind::ComponentInstantiationStatement,
-                    NodeKind::ConcurrentSelectedSignalAssignment,
-                    NodeKind::ConcurrentConditionalSignalAssignment,
-                    NodeKind::ConcurrentSimpleSignalAssignment,
-                    NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
-                    NodeKind::ForGenerateStatement,
-                    NodeKind::IfGenerateStatement,
-                    NodeKind::CaseGenerateStatement,
-                ]),
+                repeated: false,
+                name: "block_statement_part",
+                kind: LayoutItemKind::Node(NodeKind::BlockStatementPart),
             },
             LayoutItem {
                 optional: false,
@@ -2413,18 +2428,57 @@ impl BlockStatementSyntax {
             .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
-    pub fn concurrent_statements(
-        &self,
-    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
+    pub fn block_statement_part(&self) -> Option<BlockStatementPartSyntax> {
         self.0
             .children()
-            .filter_map(ConcurrentStatementSyntax::cast)
+            .filter_map(BlockStatementPartSyntax::cast)
+            .nth(0)
     }
     pub fn block_epilogue(&self) -> Option<BlockEpilogueSyntax> {
         self.0
             .children()
             .filter_map(BlockEpilogueSyntax::cast)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct BlockStatementPartSyntax(pub(crate) SyntaxNode);
+impl AstNode for BlockStatementPartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::BlockStatementPart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "concurrent_statements",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::BlockStatement,
+                NodeKind::ProcessStatement,
+                NodeKind::ConcurrentAssertionStatement,
+                NodeKind::ComponentInstantiationStatement,
+                NodeKind::ConcurrentSelectedSignalAssignment,
+                NodeKind::ConcurrentConditionalSignalAssignment,
+                NodeKind::ConcurrentSimpleSignalAssignment,
+                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+                NodeKind::ForGenerateStatement,
+                NodeKind::IfGenerateStatement,
+                NodeKind::CaseGenerateStatement,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        BlockStatementPartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl BlockStatementPartSyntax {
+    pub fn concurrent_statements(
+        &self,
+    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ConcurrentStatementSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -6451,8 +6505,8 @@ impl AstNode for EntityDeclarationSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "entity_statement_part",
-                kind: LayoutItemKind::Node(NodeKind::EntityStatementPart),
+                name: "entity_statements",
+                kind: LayoutItemKind::Node(NodeKind::EntityStatements),
             },
             LayoutItem {
                 optional: false,
@@ -6488,10 +6542,10 @@ impl EntityDeclarationSyntax {
             .filter_map(EntityDeclarativePartSyntax::cast)
             .nth(0)
     }
-    pub fn entity_statement_part(&self) -> Option<EntityStatementPartSyntax> {
+    pub fn entity_statements(&self) -> Option<EntityStatementsSyntax> {
         self.0
             .children()
-            .filter_map(EntityStatementPartSyntax::cast)
+            .filter_map(EntityStatementsSyntax::cast)
             .nth(0)
     }
     pub fn entity_declaration_epilogue(&self) -> Option<EntityDeclarationEpilogueSyntax> {
@@ -7189,36 +7243,69 @@ impl EntitySpecificationSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub enum EntityStatementSyntax {
+    ConcurrentAssertionStatement(ConcurrentAssertionStatementSyntax),
+    ConcurrentProcedureCallOrComponentInstantiationStatement(
+        ConcurrentProcedureCallOrComponentInstantiationStatementSyntax,
+    ),
+    ProcessStatement(ProcessStatementSyntax),
+}
+impl AstNode for EntityStatementSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::ConcurrentAssertionStatement,
+            NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+            NodeKind::ProcessStatement,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if ConcurrentAssertionStatementSyntax::can_cast(&node) {
+            return EntityStatementSyntax::ConcurrentAssertionStatement(
+                ConcurrentAssertionStatementSyntax::cast_unchecked(node),
+            );
+        }
+        if ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::can_cast(&node) {
+            return EntityStatementSyntax::ConcurrentProcedureCallOrComponentInstantiationStatement(
+                ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::cast_unchecked(
+                    node,
+                ),
+            );
+        }
+        if ProcessStatementSyntax::can_cast(&node) {
+            return EntityStatementSyntax::ProcessStatement(
+                ProcessStatementSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            EntityStatementSyntax::ConcurrentAssertionStatement(inner) => inner.raw(),
+            EntityStatementSyntax::ConcurrentProcedureCallOrComponentInstantiationStatement(
+                inner,
+            ) => inner.raw(),
+            EntityStatementSyntax::ProcessStatement(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
 pub struct EntityStatementPartSyntax(pub(crate) SyntaxNode);
 impl AstNode for EntityStatementPartSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
         kind: NodeKind::EntityStatementPart,
-        items: &[
-            LayoutItem {
-                optional: false,
-                repeated: false,
-                name: "declaration_statement_separator",
-                kind: LayoutItemKind::Node(NodeKind::DeclarationStatementSeparator),
-            },
-            LayoutItem {
-                optional: true,
-                repeated: true,
-                name: "concurrent_statements",
-                kind: LayoutItemKind::NodeChoice(&[
-                    NodeKind::BlockStatement,
-                    NodeKind::ProcessStatement,
-                    NodeKind::ConcurrentAssertionStatement,
-                    NodeKind::ComponentInstantiationStatement,
-                    NodeKind::ConcurrentSelectedSignalAssignment,
-                    NodeKind::ConcurrentConditionalSignalAssignment,
-                    NodeKind::ConcurrentSimpleSignalAssignment,
-                    NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
-                    NodeKind::ForGenerateStatement,
-                    NodeKind::IfGenerateStatement,
-                    NodeKind::CaseGenerateStatement,
-                ]),
-            },
-        ],
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "entity_statements",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::ConcurrentAssertionStatement,
+                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+                NodeKind::ProcessStatement,
+            ]),
+        }],
     });
     fn cast_unchecked(node: SyntaxNode) -> Self {
         EntityStatementPartSyntax(node)
@@ -7228,18 +7315,49 @@ impl AstNode for EntityStatementPartSyntax {
     }
 }
 impl EntityStatementPartSyntax {
+    pub fn entity_statements(&self) -> impl Iterator<Item = EntityStatementSyntax> + use<'_> {
+        self.0.children().filter_map(EntityStatementSyntax::cast)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct EntityStatementsSyntax(pub(crate) SyntaxNode);
+impl AstNode for EntityStatementsSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::EntityStatements,
+        items: &[
+            LayoutItem {
+                optional: false,
+                repeated: false,
+                name: "declaration_statement_separator",
+                kind: LayoutItemKind::Node(NodeKind::DeclarationStatementSeparator),
+            },
+            LayoutItem {
+                optional: true,
+                repeated: false,
+                name: "entity_statement_part",
+                kind: LayoutItemKind::Node(NodeKind::EntityStatementPart),
+            },
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        EntityStatementsSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl EntityStatementsSyntax {
     pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
         self.0
             .children()
             .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
-    pub fn concurrent_statements(
-        &self,
-    ) -> impl Iterator<Item = ConcurrentStatementSyntax> + use<'_> {
+    pub fn entity_statement_part(&self) -> Option<EntityStatementPartSyntax> {
         self.0
             .children()
-            .filter_map(ConcurrentStatementSyntax::cast)
+            .filter_map(EntityStatementPartSyntax::cast)
+            .nth(0)
     }
 }
 #[derive(Debug, Clone)]
@@ -15113,8 +15231,8 @@ impl AstNode for ProcessStatementSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "sequence_of_statements",
-                kind: LayoutItemKind::Node(NodeKind::SequenceOfStatements),
+                name: "process_statement_part",
+                kind: LayoutItemKind::Node(NodeKind::ProcessStatementPart),
             },
             LayoutItem {
                 optional: false,
@@ -15153,10 +15271,10 @@ impl ProcessStatementSyntax {
             .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
-    pub fn sequence_of_statements(&self) -> Option<SequenceOfStatementsSyntax> {
+    pub fn process_statement_part(&self) -> Option<ProcessStatementPartSyntax> {
         self.0
             .children()
-            .filter_map(SequenceOfStatementsSyntax::cast)
+            .filter_map(ProcessStatementPartSyntax::cast)
             .nth(0)
     }
     pub fn process_epilogue(&self) -> Option<ProcessEpilogueSyntax> {
@@ -15164,6 +15282,56 @@ impl ProcessStatementSyntax {
             .children()
             .filter_map(ProcessEpilogueSyntax::cast)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ProcessStatementPartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ProcessStatementPartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::ProcessStatementPart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "sequential_statements",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::WaitStatement,
+                NodeKind::AssertionStatement,
+                NodeKind::ReportStatement,
+                NodeKind::SimpleWaveformAssignment,
+                NodeKind::SimpleForceAssignment,
+                NodeKind::SimpleReleaseAssignment,
+                NodeKind::ConditionalWaveformAssignment,
+                NodeKind::ConditionalForceAssignment,
+                NodeKind::SelectedWaveformAssignment,
+                NodeKind::SelectedForceAssignment,
+                NodeKind::SimpleVariableAssignment,
+                NodeKind::ConditionalVariableAssignment,
+                NodeKind::SelectedVariableAssignment,
+                NodeKind::ProcedureCallStatement,
+                NodeKind::IfStatement,
+                NodeKind::CaseStatement,
+                NodeKind::LoopStatement,
+                NodeKind::NextStatement,
+                NodeKind::ExitStatement,
+                NodeKind::ReturnStatement,
+                NodeKind::NullStatement,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        ProcessStatementPartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ProcessStatementPartSyntax {
+    pub fn sequential_statements(
+        &self,
+    ) -> impl Iterator<Item = SequentialStatementSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(SequentialStatementSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -18521,8 +18689,8 @@ impl AstNode for SubprogramBodySyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "sequence_of_statements",
-                kind: LayoutItemKind::Node(NodeKind::SequenceOfStatements),
+                name: "subprogram_statement_part",
+                kind: LayoutItemKind::Node(NodeKind::SubprogramStatementPart),
             },
             LayoutItem {
                 optional: false,
@@ -18558,10 +18726,10 @@ impl SubprogramBodySyntax {
             .filter_map(DeclarationStatementSeparatorSyntax::cast)
             .nth(0)
     }
-    pub fn sequence_of_statements(&self) -> Option<SequenceOfStatementsSyntax> {
+    pub fn subprogram_statement_part(&self) -> Option<SubprogramStatementPartSyntax> {
         self.0
             .children()
-            .filter_map(SequenceOfStatementsSyntax::cast)
+            .filter_map(SubprogramStatementPartSyntax::cast)
             .nth(0)
     }
     pub fn subprogram_body_epilogue(&self) -> Option<SubprogramBodyEpilogueSyntax> {
@@ -19278,6 +19446,56 @@ impl AstNode for SubprogramSpecificationSyntax {
             SubprogramSpecificationSyntax::ProcedureSpecification(inner) => inner.raw(),
             SubprogramSpecificationSyntax::FunctionSpecification(inner) => inner.raw(),
         }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct SubprogramStatementPartSyntax(pub(crate) SyntaxNode);
+impl AstNode for SubprogramStatementPartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::SubprogramStatementPart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "sequential_statements",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::WaitStatement,
+                NodeKind::AssertionStatement,
+                NodeKind::ReportStatement,
+                NodeKind::SimpleWaveformAssignment,
+                NodeKind::SimpleForceAssignment,
+                NodeKind::SimpleReleaseAssignment,
+                NodeKind::ConditionalWaveformAssignment,
+                NodeKind::ConditionalForceAssignment,
+                NodeKind::SelectedWaveformAssignment,
+                NodeKind::SelectedForceAssignment,
+                NodeKind::SimpleVariableAssignment,
+                NodeKind::ConditionalVariableAssignment,
+                NodeKind::SelectedVariableAssignment,
+                NodeKind::ProcedureCallStatement,
+                NodeKind::IfStatement,
+                NodeKind::CaseStatement,
+                NodeKind::LoopStatement,
+                NodeKind::NextStatement,
+                NodeKind::ExitStatement,
+                NodeKind::ReturnStatement,
+                NodeKind::NullStatement,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        SubprogramStatementPartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl SubprogramStatementPartSyntax {
+    pub fn sequential_statements(
+        &self,
+    ) -> impl Iterator<Item = SequentialStatementSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(SequentialStatementSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]

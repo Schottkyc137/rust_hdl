@@ -42,7 +42,7 @@ SubprogramBody
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
-  SequenceOfStatements
+  SubprogramStatementPart
     ReturnStatement
       Keyword(Return)
       BinaryExpression

@@ -29,11 +29,14 @@ BlockStatement =
   BlockHeader
   BlockDeclarativePart
   declaration_statement_separator:'begin'
-  ConcurrentStatement*
+  BlockStatementPart
   block_epilogue:('end' 'block' Label? ';')
 
 BlockDeclarativePart =
   BlockDeclarativeItem*
+
+BlockStatementPart =
+  ConcurrentStatement*
 
 CaseGenerateAlternative =
   'when' stmt_label:(Label ':')? Choices '=>' GenerateStatementBody
@@ -148,11 +151,14 @@ ProcessStatement =
   )
   ProcessDeclarativePart
   declaration_statement_separator:'begin'
-  SequenceOfStatements
+  ProcessStatementPart
   process_epilogue:('end' 'postponed'? 'process' Label? ';')
 
 ProcessDeclarativePart =
   ProcessDeclarativeItem*
+
+ProcessStatementPart =
+  SequentialStatement*
 
 ProcessDeclarativeItem =
   SubprogramDeclaration
@@ -457,11 +463,14 @@ ArchitectureBody =
   architecture_preamble:('architecture' '#identifier' 'of' Name 'is')
   ArchitectureDeclarativePart
   declaration_statement_separator:'begin'
-  ConcurrentStatement*
+  ArchitectureStatementPart
   architecture_epilogue:('end' 'architecture'? SimpleName? ';')
 
 ArchitectureDeclarativePart =
   BlockDeclarativeItem*
+
+ArchitectureStatementPart =
+  ConcurrentStatement*
 
 ConfigurationItem =
   block_configuration_item:BlockConfiguration | ComponentConfiguration
@@ -498,7 +507,7 @@ EntityDeclaration =
   entity_declaration_preamble:('entity' '#identifier' 'is')
   EntityHeader
   EntityDeclarativePart
-  entity_statement_part:(declaration_statement_separator:'begin' ConcurrentStatement*)?
+  entity_statements:(declaration_statement_separator:'begin' EntityStatementPart)?
   entity_declaration_epilogue:('end' 'entity'? SimpleName? ';')
 
 EntityDeclarativeItem =
@@ -527,6 +536,14 @@ EntityDeclarativeItem =
 // | PSL_Clock_Declaration
 EntityDeclarativePart =
   EntityDeclarativeItem*
+
+EntityStatementPart =
+  EntityStatement*
+
+EntityStatement =
+  ConcurrentAssertionStatement
+| ConcurrentProcedureCallOrComponentInstantiationStatement
+| ProcessStatement
 
 EntityHeader =
   GenericClause? PortClause?
@@ -1119,11 +1136,14 @@ SubprogramBody =
   subprogram_body_preamble:(SubprogramSpecification 'is')
   SubprogramDeclarativePart
   declaration_statement_separator:'begin'
-  SequenceOfStatements
+  SubprogramStatementPart
   subprogram_body_epilogue:('end' SubprogramKind? Designator? ';')
 
 SubprogramDeclarativePart =
   SubprogramDeclarativeItem*
+
+SubprogramStatementPart =
+  SequentialStatement*
 
 SubprogramDeclarativeItem =
   SubprogramDeclaration

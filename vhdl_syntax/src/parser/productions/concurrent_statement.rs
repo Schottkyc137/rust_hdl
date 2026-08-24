@@ -5,10 +5,14 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::parser::productions::declarations::is_start_of_declarative_part;
-use crate::parser::util::StallGuard;
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind::*;
-use crate::syntax::{AstNode, BlockDeclarativeItemSyntax, ProcessDeclarativeItemSyntax};
+use crate::syntax::{
+    AstNode, BlockDeclarativeItemSyntax, ConcurrentStatementSyntax, NodeKind,
+    ProcessDeclarativeItemSyntax, SequentialStatementSyntax,
+};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
@@ -22,7 +26,7 @@ impl Parser {
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
-        self.concurrent_statements();
+        self.block_statement_part();
         self.block_epilogue();
         self.end_node();
     }
@@ -51,6 +55,10 @@ impl Parser {
 
     pub fn block_declarative_part(&mut self) {
         self.declarations(BlockDeclarativePart, BlockDeclarativeItemSyntax::META);
+    }
+
+    pub fn block_statement_part(&mut self) {
+        self.concurrent_statements(BlockStatementPart, ConcurrentStatementSyntax::META);
     }
 
     pub fn block_header(&mut self) {
@@ -83,15 +91,23 @@ impl Parser {
         self.end_node();
     }
 
-    pub fn concurrent_statements(&mut self) {
+    pub(crate) fn concurrent_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
+        self.start_node(node_kind);
+        self.concurrent_statement_list(choice_options(layout));
+        self.end_node();
+    }
+
+    fn concurrent_statement_list(&mut self, allowed_nodes: &[NodeKind]) {
         let mut guard = StallGuard::new();
         while guard.should_continue(self) {
+            let start = self.builder.current_pos();
             match self.peek_token() {
                 Keyword(Kw::End | Kw::Elsif | Kw::Else | Kw::When) | Eof => {
                     break;
                 }
                 _ => self.concurrent_statement(),
             }
+            self.check_last_node_is_allowed(start, allowed_nodes);
         }
     }
 
@@ -393,7 +409,7 @@ impl Parser {
             self.end_node();
             self.end_node();
         }
-        self.concurrent_statements();
+        self.concurrent_statement_list(choice_options(ConcurrentStatementSyntax::META));
         if self.next_is(Keyword(Kw::End)) && !self.next_nth_is(Keyword(Kw::Generate), 1) {
             self.generate_statement_body_epilogue();
         }
@@ -429,13 +445,17 @@ impl Parser {
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
-        self.sequential_statements();
+        self.process_statement_part();
         self.process_epilogue();
         self.end_node();
     }
 
     pub fn process_declarative_part(&mut self) {
         self.declarations(ProcessDeclarativePart, ProcessDeclarativeItemSyntax::META);
+    }
+
+    pub fn process_statement_part(&mut self) {
+        self.sequential_statements(ProcessStatementPart, SequentialStatementSyntax::META);
     }
 
     pub fn process_preamble(&mut self) {

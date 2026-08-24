@@ -1,7 +1,7 @@
 use crate::parser::Parser;
 use crate::syntax::AstNode;
-use crate::syntax::BlockDeclarativeItemSyntax;
 use crate::syntax::NodeKind::*;
+use crate::syntax::{BlockDeclarativeItemSyntax, ConcurrentStatementSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
@@ -13,7 +13,7 @@ impl Parser {
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
-        self.concurrent_statements();
+        self.architecture_statement_part();
         self.architecture_epilogue();
         self.end_node();
     }
@@ -42,6 +42,10 @@ impl Parser {
             ArchitectureDeclarativePart,
             BlockDeclarativeItemSyntax::META,
         );
+    }
+
+    pub fn architecture_statement_part(&mut self) {
+        self.concurrent_statements(ArchitectureStatementPart, ConcurrentStatementSyntax::META);
     }
 }
 

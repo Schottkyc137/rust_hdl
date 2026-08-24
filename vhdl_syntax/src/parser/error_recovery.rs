@@ -362,9 +362,11 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         NodeKind::VerificationUnitBinding
         | NodeKind::VerificationUnitBindingIndication
         | NodeKind::VerificationUnitList => &[Keyword(Kw::End), SemiColon],
-        NodeKind::AssertionStatement
+        NodeKind::ArchitectureStatementPart
+        | NodeKind::AssertionStatement
         | NodeKind::BlockEpilogue
         | NodeKind::BlockStatement
+        | NodeKind::BlockStatementPart
         | NodeKind::CaseGenerateStatement
         | NodeKind::CaseStatement
         | NodeKind::CaseStatementEpilogue
@@ -390,8 +392,11 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::NextStatement
         | NodeKind::NullStatement
         | NodeKind::ProcedureCallStatement
+        | NodeKind::EntityStatementPart
+        | NodeKind::EntityStatements
         | NodeKind::ProcessStatement
         | NodeKind::ProcessEpilogue
+        | NodeKind::ProcessStatementPart
         | NodeKind::ReportStatement
         | NodeKind::ReturnStatement
         | NodeKind::SelectedForceAssignment
@@ -402,6 +407,7 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::SimpleReleaseAssignment
         | NodeKind::SimpleVariableAssignment
         | NodeKind::SimpleWaveformAssignment
+        | NodeKind::SubprogramStatementPart
         | NodeKind::WaitStatement => &[Keyword(Kw::Else), Keyword(Kw::Elsif), Keyword(Kw::End)],
         NodeKind::BlockConfigurationPreamble => {
             &[Keyword(Kw::End), Keyword(Kw::For), Keyword(Kw::Use)]

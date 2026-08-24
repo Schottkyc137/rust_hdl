@@ -100,9 +100,16 @@ impl NodeBuilder {
 
     /// The node that was just parsed
     pub fn last_node(&self) -> Option<NodeKind> {
-        self.children.last().and_then(|child| match child {
+        let first_child = self
+            .parents
+            .last()
+            .map_or(0, |&(_, first_child)| first_child);
+        if self.children.len() <= first_child {
+            return None;
+        }
+        match self.children.last()? {
             GreenChild::Token(_) => None,
             GreenChild::Node(node) => Some(node.kind()),
-        })
+        }
     }
 }

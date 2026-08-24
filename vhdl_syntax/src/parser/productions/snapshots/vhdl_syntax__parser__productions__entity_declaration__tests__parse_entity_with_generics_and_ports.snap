@@ -52,7 +52,7 @@ EntityDeclaration
                 Identifier 'boolean'
       RightPar
       SemiColon
-  EntityStatementPart
+  EntityStatements
     DeclarationStatementSeparator
       Keyword(Begin)
   EntityDeclarationEpilogue

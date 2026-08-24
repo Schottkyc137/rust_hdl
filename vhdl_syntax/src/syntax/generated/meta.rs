@@ -27,6 +27,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::ArchitectureDeclarativePart => ArchitectureDeclarativePartSyntax::META,
         NodeKind::ArchitectureEpilogue => ArchitectureEpilogueSyntax::META,
         NodeKind::ArchitecturePreamble => ArchitecturePreambleSyntax::META,
+        NodeKind::ArchitectureStatementPart => ArchitectureStatementPartSyntax::META,
         NodeKind::Assertion => AssertionSyntax::META,
         NodeKind::AssertionStatement => AssertionStatementSyntax::META,
         NodeKind::AssociationElement => AssociationElementSyntax::META,
@@ -47,6 +48,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::BlockHeader => BlockHeaderSyntax::META,
         NodeKind::BlockPreamble => BlockPreambleSyntax::META,
         NodeKind::BlockStatement => BlockStatementSyntax::META,
+        NodeKind::BlockStatementPart => BlockStatementPartSyntax::META,
         NodeKind::CaseGenerateAlternative => CaseGenerateAlternativeSyntax::META,
         NodeKind::CaseGeneratePreamble => CaseGeneratePreambleSyntax::META,
         NodeKind::CaseGenerateStatement => CaseGenerateStatementSyntax::META,
@@ -127,6 +129,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::EntityOpenAspect => EntityOpenAspectSyntax::META,
         NodeKind::EntitySpecification => EntitySpecificationSyntax::META,
         NodeKind::EntityStatementPart => EntityStatementPartSyntax::META,
+        NodeKind::EntityStatements => EntityStatementsSyntax::META,
         NodeKind::EnumerationList => EnumerationListSyntax::META,
         NodeKind::EnumerationTypeDefinition => EnumerationTypeDefinitionSyntax::META,
         NodeKind::ExitStatement => ExitStatementSyntax::META,
@@ -271,6 +274,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::ProcessEpilogue => ProcessEpilogueSyntax::META,
         NodeKind::ProcessPreamble => ProcessPreambleSyntax::META,
         NodeKind::ProcessStatement => ProcessStatementSyntax::META,
+        NodeKind::ProcessStatementPart => ProcessStatementPartSyntax::META,
         NodeKind::ProtectedPreamble => ProtectedPreambleSyntax::META,
         NodeKind::ProtectedTypeBody => ProtectedTypeBodySyntax::META,
         NodeKind::ProtectedTypeBodyDeclarativePart => ProtectedTypeBodyDeclarativePartSyntax::META,
@@ -336,6 +340,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::SubprogramInstantiationDeclarationPreamble => {
             SubprogramInstantiationDeclarationPreambleSyntax::META
         }
+        NodeKind::SubprogramStatementPart => SubprogramStatementPartSyntax::META,
         NodeKind::SubtypeDeclaration => SubtypeDeclarationSyntax::META,
         NodeKind::SubtypeIndication => SubtypeIndicationSyntax::META,
         NodeKind::TimeoutClause => TimeoutClauseSyntax::META,

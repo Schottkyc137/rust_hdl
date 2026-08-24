@@ -553,7 +553,7 @@ pub struct ArchitectureBodyBuilder {
     architecture_preamble: ArchitecturePreambleSyntax,
     architecture_declarative_part: Option<ArchitectureDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
-    concurrent_statements: Vec<ConcurrentStatementSyntax>,
+    architecture_statement_part: Option<ArchitectureStatementPartSyntax>,
     architecture_epilogue: ArchitectureEpilogueSyntax,
 }
 impl ArchitectureBodyBuilder {
@@ -563,7 +563,7 @@ impl ArchitectureBodyBuilder {
             architecture_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
-            concurrent_statements: Vec::new(),
+            architecture_statement_part: None,
             architecture_epilogue: ArchitectureEpilogueBuilder::default().build(),
         }
     }
@@ -585,8 +585,11 @@ impl ArchitectureBodyBuilder {
         self.declaration_statement_separator = n.into();
         self
     }
-    pub fn add_concurrent_statements(mut self, n: impl Into<ConcurrentStatementSyntax>) -> Self {
-        self.concurrent_statements.push(n.into());
+    pub fn with_architecture_statement_part(
+        mut self,
+        n: impl Into<ArchitectureStatementPartSyntax>,
+    ) -> Self {
+        self.architecture_statement_part = Some(n.into());
         self
     }
     pub fn with_architecture_epilogue(mut self, n: impl Into<ArchitectureEpilogueSyntax>) -> Self {
@@ -601,7 +604,7 @@ impl ArchitectureBodyBuilder {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
-        for n in self.concurrent_statements {
+        if let Some(n) = self.architecture_statement_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.architecture_epilogue.raw().green().clone());
@@ -802,6 +805,41 @@ impl ArchitecturePreambleBuilder {
 }
 impl From<ArchitecturePreambleBuilder> for ArchitecturePreambleSyntax {
     fn from(value: ArchitecturePreambleBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ArchitectureStatementPartBuilder {
+    concurrent_statements: Vec<ConcurrentStatementSyntax>,
+}
+impl Default for ArchitectureStatementPartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ArchitectureStatementPartBuilder {
+    pub fn new() -> Self {
+        Self {
+            concurrent_statements: Vec::new(),
+        }
+    }
+    pub fn add_concurrent_statements(mut self, n: impl Into<ConcurrentStatementSyntax>) -> Self {
+        self.concurrent_statements.push(n.into());
+        self
+    }
+    pub fn build(self) -> ArchitectureStatementPartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ArchitectureStatementPart);
+        for n in self.concurrent_statements {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ArchitectureStatementPartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ArchitectureStatementPartBuilder> for ArchitectureStatementPartSyntax {
+    fn from(value: ArchitectureStatementPartBuilder) -> Self {
         value.build()
     }
 }
@@ -1757,7 +1795,7 @@ pub struct BlockStatementBuilder {
     block_header: Option<BlockHeaderSyntax>,
     block_declarative_part: Option<BlockDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
-    concurrent_statements: Vec<ConcurrentStatementSyntax>,
+    block_statement_part: Option<BlockStatementPartSyntax>,
     block_epilogue: BlockEpilogueSyntax,
 }
 impl BlockStatementBuilder {
@@ -1769,7 +1807,7 @@ impl BlockStatementBuilder {
             block_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
-            concurrent_statements: Vec::new(),
+            block_statement_part: None,
             block_epilogue: BlockEpilogueBuilder::default().build(),
         }
     }
@@ -1796,8 +1834,8 @@ impl BlockStatementBuilder {
         self.declaration_statement_separator = n.into();
         self
     }
-    pub fn add_concurrent_statements(mut self, n: impl Into<ConcurrentStatementSyntax>) -> Self {
-        self.concurrent_statements.push(n.into());
+    pub fn with_block_statement_part(mut self, n: impl Into<BlockStatementPartSyntax>) -> Self {
+        self.block_statement_part = Some(n.into());
         self
     }
     pub fn with_block_epilogue(mut self, n: impl Into<BlockEpilogueSyntax>) -> Self {
@@ -1816,7 +1854,7 @@ impl BlockStatementBuilder {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
-        for n in self.concurrent_statements {
+        if let Some(n) = self.block_statement_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.block_epilogue.raw().green().clone());
@@ -1828,6 +1866,41 @@ impl BlockStatementBuilder {
 }
 impl From<BlockStatementBuilder> for BlockStatementSyntax {
     fn from(value: BlockStatementBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct BlockStatementPartBuilder {
+    concurrent_statements: Vec<ConcurrentStatementSyntax>,
+}
+impl Default for BlockStatementPartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl BlockStatementPartBuilder {
+    pub fn new() -> Self {
+        Self {
+            concurrent_statements: Vec::new(),
+        }
+    }
+    pub fn add_concurrent_statements(mut self, n: impl Into<ConcurrentStatementSyntax>) -> Self {
+        self.concurrent_statements.push(n.into());
+        self
+    }
+    pub fn build(self) -> BlockStatementPartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::BlockStatementPart);
+        for n in self.concurrent_statements {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        BlockStatementPartSyntax::cast(node).unwrap()
+    }
+}
+impl From<BlockStatementPartBuilder> for BlockStatementPartSyntax {
+    fn from(value: BlockStatementPartBuilder) -> Self {
         value.build()
     }
 }
@@ -5092,7 +5165,7 @@ pub struct EntityDeclarationBuilder {
     entity_declaration_preamble: EntityDeclarationPreambleSyntax,
     entity_header: Option<EntityHeaderSyntax>,
     entity_declarative_part: Option<EntityDeclarativePartSyntax>,
-    entity_statement_part: Option<EntityStatementPartSyntax>,
+    entity_statements: Option<EntityStatementsSyntax>,
     entity_declaration_epilogue: EntityDeclarationEpilogueSyntax,
 }
 impl EntityDeclarationBuilder {
@@ -5101,7 +5174,7 @@ impl EntityDeclarationBuilder {
             entity_declaration_preamble: entity_declaration_preamble.into(),
             entity_header: None,
             entity_declarative_part: None,
-            entity_statement_part: None,
+            entity_statements: None,
             entity_declaration_epilogue: EntityDeclarationEpilogueBuilder::default().build(),
         }
     }
@@ -5123,8 +5196,8 @@ impl EntityDeclarationBuilder {
         self.entity_declarative_part = Some(n.into());
         self
     }
-    pub fn with_entity_statement_part(mut self, n: impl Into<EntityStatementPartSyntax>) -> Self {
-        self.entity_statement_part = Some(n.into());
+    pub fn with_entity_statements(mut self, n: impl Into<EntityStatementsSyntax>) -> Self {
+        self.entity_statements = Some(n.into());
         self
     }
     pub fn with_entity_declaration_epilogue(
@@ -5144,7 +5217,7 @@ impl EntityDeclarationBuilder {
         if let Some(n) = self.entity_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
-        if let Some(n) = self.entity_statement_part {
+        if let Some(n) = self.entity_statements {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.entity_declaration_epilogue.raw().green().clone());
@@ -5611,8 +5684,7 @@ impl From<EntitySpecificationBuilder> for EntitySpecificationSyntax {
     }
 }
 pub struct EntityStatementPartBuilder {
-    declaration_statement_separator: DeclarationStatementSeparatorSyntax,
-    concurrent_statements: Vec<ConcurrentStatementSyntax>,
+    entity_statements: Vec<EntityStatementSyntax>,
 }
 impl Default for EntityStatementPartBuilder {
     fn default() -> Self {
@@ -5622,27 +5694,17 @@ impl Default for EntityStatementPartBuilder {
 impl EntityStatementPartBuilder {
     pub fn new() -> Self {
         Self {
-            declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
-                .build(),
-            concurrent_statements: Vec::new(),
+            entity_statements: Vec::new(),
         }
     }
-    pub fn with_declaration_statement_separator(
-        mut self,
-        n: impl Into<DeclarationStatementSeparatorSyntax>,
-    ) -> Self {
-        self.declaration_statement_separator = n.into();
-        self
-    }
-    pub fn add_concurrent_statements(mut self, n: impl Into<ConcurrentStatementSyntax>) -> Self {
-        self.concurrent_statements.push(n.into());
+    pub fn add_entity_statements(mut self, n: impl Into<EntityStatementSyntax>) -> Self {
+        self.entity_statements.push(n.into());
         self
     }
     pub fn build(self) -> EntityStatementPartSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::EntityStatementPart);
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
-        for n in self.concurrent_statements {
+        for n in self.entity_statements {
             builder.push_node(n.raw().green().clone());
         }
         builder.end_node();
@@ -5653,6 +5715,52 @@ impl EntityStatementPartBuilder {
 }
 impl From<EntityStatementPartBuilder> for EntityStatementPartSyntax {
     fn from(value: EntityStatementPartBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct EntityStatementsBuilder {
+    declaration_statement_separator: DeclarationStatementSeparatorSyntax,
+    entity_statement_part: Option<EntityStatementPartSyntax>,
+}
+impl Default for EntityStatementsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl EntityStatementsBuilder {
+    pub fn new() -> Self {
+        Self {
+            declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
+                .build(),
+            entity_statement_part: None,
+        }
+    }
+    pub fn with_declaration_statement_separator(
+        mut self,
+        n: impl Into<DeclarationStatementSeparatorSyntax>,
+    ) -> Self {
+        self.declaration_statement_separator = n.into();
+        self
+    }
+    pub fn with_entity_statement_part(mut self, n: impl Into<EntityStatementPartSyntax>) -> Self {
+        self.entity_statement_part = Some(n.into());
+        self
+    }
+    pub fn build(self) -> EntityStatementsSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::EntityStatements);
+        builder.push_node(self.declaration_statement_separator.raw().green().clone());
+        if let Some(n) = self.entity_statement_part {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        EntityStatementsSyntax::cast(node).unwrap()
+    }
+}
+impl From<EntityStatementsBuilder> for EntityStatementsSyntax {
+    fn from(value: EntityStatementsBuilder) -> Self {
         value.build()
     }
 }
@@ -11772,7 +11880,7 @@ pub struct ProcessStatementBuilder {
     process_preamble: ProcessPreambleSyntax,
     process_declarative_part: Option<ProcessDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
-    sequence_of_statements: Option<SequenceOfStatementsSyntax>,
+    process_statement_part: Option<ProcessStatementPartSyntax>,
     process_epilogue: ProcessEpilogueSyntax,
 }
 impl Default for ProcessStatementBuilder {
@@ -11788,7 +11896,7 @@ impl ProcessStatementBuilder {
             process_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
-            sequence_of_statements: None,
+            process_statement_part: None,
             process_epilogue: ProcessEpilogueBuilder::default().build(),
         }
     }
@@ -11814,8 +11922,8 @@ impl ProcessStatementBuilder {
         self.declaration_statement_separator = n.into();
         self
     }
-    pub fn with_sequence_of_statements(mut self, n: impl Into<SequenceOfStatementsSyntax>) -> Self {
-        self.sequence_of_statements = Some(n.into());
+    pub fn with_process_statement_part(mut self, n: impl Into<ProcessStatementPartSyntax>) -> Self {
+        self.process_statement_part = Some(n.into());
         self
     }
     pub fn with_process_epilogue(mut self, n: impl Into<ProcessEpilogueSyntax>) -> Self {
@@ -11833,7 +11941,7 @@ impl ProcessStatementBuilder {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
-        if let Some(n) = self.sequence_of_statements {
+        if let Some(n) = self.process_statement_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.process_epilogue.raw().green().clone());
@@ -11845,6 +11953,41 @@ impl ProcessStatementBuilder {
 }
 impl From<ProcessStatementBuilder> for ProcessStatementSyntax {
     fn from(value: ProcessStatementBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ProcessStatementPartBuilder {
+    sequential_statements: Vec<SequentialStatementSyntax>,
+}
+impl Default for ProcessStatementPartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ProcessStatementPartBuilder {
+    pub fn new() -> Self {
+        Self {
+            sequential_statements: Vec::new(),
+        }
+    }
+    pub fn add_sequential_statements(mut self, n: impl Into<SequentialStatementSyntax>) -> Self {
+        self.sequential_statements.push(n.into());
+        self
+    }
+    pub fn build(self) -> ProcessStatementPartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ProcessStatementPart);
+        for n in self.sequential_statements {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ProcessStatementPartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ProcessStatementPartBuilder> for ProcessStatementPartSyntax {
+    fn from(value: ProcessStatementPartBuilder) -> Self {
         value.build()
     }
 }
@@ -14218,7 +14361,7 @@ pub struct SubprogramBodyBuilder {
     subprogram_body_preamble: SubprogramBodyPreambleSyntax,
     subprogram_declarative_part: Option<SubprogramDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
-    sequence_of_statements: Option<SequenceOfStatementsSyntax>,
+    subprogram_statement_part: Option<SubprogramStatementPartSyntax>,
     subprogram_body_epilogue: SubprogramBodyEpilogueSyntax,
 }
 impl SubprogramBodyBuilder {
@@ -14228,7 +14371,7 @@ impl SubprogramBodyBuilder {
             subprogram_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
-            sequence_of_statements: None,
+            subprogram_statement_part: None,
             subprogram_body_epilogue: SubprogramBodyEpilogueBuilder::default().build(),
         }
     }
@@ -14253,8 +14396,11 @@ impl SubprogramBodyBuilder {
         self.declaration_statement_separator = n.into();
         self
     }
-    pub fn with_sequence_of_statements(mut self, n: impl Into<SequenceOfStatementsSyntax>) -> Self {
-        self.sequence_of_statements = Some(n.into());
+    pub fn with_subprogram_statement_part(
+        mut self,
+        n: impl Into<SubprogramStatementPartSyntax>,
+    ) -> Self {
+        self.subprogram_statement_part = Some(n.into());
         self
     }
     pub fn with_subprogram_body_epilogue(
@@ -14272,7 +14418,7 @@ impl SubprogramBodyBuilder {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
-        if let Some(n) = self.sequence_of_statements {
+        if let Some(n) = self.subprogram_statement_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.subprogram_body_epilogue.raw().green().clone());
@@ -14761,6 +14907,41 @@ impl From<SubprogramInstantiationDeclarationPreambleBuilder>
     for SubprogramInstantiationDeclarationPreambleSyntax
 {
     fn from(value: SubprogramInstantiationDeclarationPreambleBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct SubprogramStatementPartBuilder {
+    sequential_statements: Vec<SequentialStatementSyntax>,
+}
+impl Default for SubprogramStatementPartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl SubprogramStatementPartBuilder {
+    pub fn new() -> Self {
+        Self {
+            sequential_statements: Vec::new(),
+        }
+    }
+    pub fn add_sequential_statements(mut self, n: impl Into<SequentialStatementSyntax>) -> Self {
+        self.sequential_statements.push(n.into());
+        self
+    }
+    pub fn build(self) -> SubprogramStatementPartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::SubprogramStatementPart);
+        for n in self.sequential_statements {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        SubprogramStatementPartSyntax::cast(node).unwrap()
+    }
+}
+impl From<SubprogramStatementPartBuilder> for SubprogramStatementPartSyntax {
+    fn from(value: SubprogramStatementPartBuilder) -> Self {
         value.build()
     }
 }

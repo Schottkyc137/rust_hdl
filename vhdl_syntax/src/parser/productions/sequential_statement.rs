@@ -4,10 +4,12 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::util::StallGuard;
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{AstNode, SequentialStatementSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
@@ -113,19 +115,19 @@ impl Parser {
     pub fn if_statement(&mut self) {
         self.start_node(IfStatement);
         self.if_statement_preamble();
-        self.sequential_statements();
+        self.sequence_of_statements();
         while self.next_is(Keyword(Kw::Elsif)) {
             self.start_node(IfStatementElsif);
             self.skip();
             self.condition();
             self.expect_kw(Kw::Then);
-            self.sequential_statements();
+            self.sequence_of_statements();
             self.end_node();
         }
         if self.next_is(Keyword(Kw::Else)) {
             self.start_node(IfStatementElse);
             self.skip();
-            self.sequential_statements();
+            self.sequence_of_statements();
             self.end_node();
         }
         self.if_statement_epilogue();
@@ -181,7 +183,7 @@ impl Parser {
     pub fn case_statement_alternative(&mut self) {
         self.start_node(CaseStatementAlternative);
         self.case_statement_alternative_preamble();
-        self.sequential_statements();
+        self.sequence_of_statements();
         self.end_node();
     }
 
@@ -224,7 +226,7 @@ impl Parser {
     pub fn loop_statement(&mut self) {
         self.start_node(LoopStatement);
         self.loop_statement_preamble();
-        self.sequential_statements();
+        self.sequence_of_statements();
         self.loop_statement_epilogue();
         self.end_node();
     }
@@ -269,16 +271,23 @@ impl Parser {
         self.opt_iteration_scheme();
     }
 
-    pub fn sequential_statements(&mut self) {
-        self.start_node(SequenceOfStatements);
+    pub(crate) fn sequential_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
+        let allowed_nodes = choice_options(layout);
+        self.start_node(node_kind);
         let mut guard = StallGuard::new();
         while guard.should_continue(self) {
+            let start = self.builder.current_pos();
             match self.peek_token() {
                 Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
                 _ => self.sequential_statement(),
             }
+            self.check_last_node_is_allowed(start, allowed_nodes);
         }
         self.end_node();
+    }
+
+    pub fn sequence_of_statements(&mut self) {
+        self.sequential_statements(SequenceOfStatements, SequentialStatementSyntax::META);
     }
 
     fn opt_force_mode(&mut self) {

@@ -24,7 +24,7 @@ ProcessStatement
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
-  SequenceOfStatements
+  ProcessStatementPart
     SimpleWaveformAssignment
       NameTarget
         Name
