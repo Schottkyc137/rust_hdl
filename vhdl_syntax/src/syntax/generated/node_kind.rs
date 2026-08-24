@@ -38,6 +38,7 @@ pub enum NodeKind {
     BlockConfigurationEpilogue,
     BlockConfigurationItem,
     BlockConfigurationPreamble,
+    BlockDeclarativePart,
     BlockEpilogue,
     BlockHeader,
     BlockPreamble,

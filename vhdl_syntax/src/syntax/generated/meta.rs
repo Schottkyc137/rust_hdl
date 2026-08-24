@@ -42,6 +42,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::BlockConfigurationEpilogue => BlockConfigurationEpilogueSyntax::META,
         NodeKind::BlockConfigurationItem => BlockConfigurationItemSyntax::META,
         NodeKind::BlockConfigurationPreamble => BlockConfigurationPreambleSyntax::META,
+        NodeKind::BlockDeclarativePart => BlockDeclarativePartSyntax::META,
         NodeKind::BlockEpilogue => BlockEpilogueSyntax::META,
         NodeKind::BlockHeader => BlockHeaderSyntax::META,
         NodeKind::BlockPreamble => BlockPreambleSyntax::META,

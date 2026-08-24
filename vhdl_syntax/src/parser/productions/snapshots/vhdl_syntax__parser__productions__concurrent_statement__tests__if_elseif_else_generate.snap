@@ -21,7 +21,7 @@ IfGenerateStatement
     Keyword(Generate)
     GenerateStatementBody
       GenerateBodyDeclarations
-        Declarations
+        BlockDeclarativePart
           VariableDeclaration
             Keyword(Variable)
             IdentifierList
@@ -65,7 +65,7 @@ IfGenerateStatement
     Keyword(Generate)
     GenerateStatementBody
       GenerateBodyDeclarations
-        Declarations
+        BlockDeclarativePart
           VariableDeclaration
             Keyword(Variable)
             IdentifierList
@@ -99,7 +99,7 @@ IfGenerateStatement
     Keyword(Generate)
     GenerateStatementBody
       GenerateBodyDeclarations
-        Declarations
+        BlockDeclarativePart
           VariableDeclaration
             Keyword(Variable)
             IdentifierList

@@ -1533,6 +1533,41 @@ impl From<BlockConfigurationPreambleBuilder> for BlockConfigurationPreambleSynta
         value.build()
     }
 }
+pub struct BlockDeclarativePartBuilder {
+    block_declarative_items: Vec<BlockDeclarativeItemSyntax>,
+}
+impl Default for BlockDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl BlockDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            block_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_block_declarative_items(mut self, n: impl Into<BlockDeclarativeItemSyntax>) -> Self {
+        self.block_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> BlockDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::BlockDeclarativePart);
+        for n in self.block_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        BlockDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<BlockDeclarativePartBuilder> for BlockDeclarativePartSyntax {
+    fn from(value: BlockDeclarativePartBuilder) -> Self {
+        value.build()
+    }
+}
 pub struct BlockEpilogueBuilder {
     end_token: Token,
     block_token: Token,
@@ -1720,7 +1755,7 @@ pub struct BlockStatementBuilder {
     stmt_label: StmtLabelSyntax,
     block_preamble: BlockPreambleSyntax,
     block_header: Option<BlockHeaderSyntax>,
-    declarations: Option<DeclarationsSyntax>,
+    block_declarative_part: Option<BlockDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
     concurrent_statements: Vec<ConcurrentStatementSyntax>,
     block_epilogue: BlockEpilogueSyntax,
@@ -1731,7 +1766,7 @@ impl BlockStatementBuilder {
             stmt_label: stmt_label.into(),
             block_preamble: BlockPreambleBuilder::default().build(),
             block_header: None,
-            declarations: None,
+            block_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
             concurrent_statements: Vec::new(),
@@ -1750,8 +1785,8 @@ impl BlockStatementBuilder {
         self.block_header = Some(n.into());
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_block_declarative_part(mut self, n: impl Into<BlockDeclarativePartSyntax>) -> Self {
+        self.block_declarative_part = Some(n.into());
         self
     }
     pub fn with_declaration_statement_separator(
@@ -1777,7 +1812,7 @@ impl BlockStatementBuilder {
         if let Some(n) = self.block_header {
             builder.push_node(n.raw().green().clone());
         }
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.block_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
@@ -6588,7 +6623,7 @@ impl From<FunctionSpecificationBuilder> for FunctionSpecificationSyntax {
     }
 }
 pub struct GenerateBodyDeclarationsBuilder {
-    declarations: Option<DeclarationsSyntax>,
+    block_declarative_part: Option<BlockDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
 }
 impl Default for GenerateBodyDeclarationsBuilder {
@@ -6599,13 +6634,13 @@ impl Default for GenerateBodyDeclarationsBuilder {
 impl GenerateBodyDeclarationsBuilder {
     pub fn new() -> Self {
         Self {
-            declarations: None,
+            block_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
         }
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_block_declarative_part(mut self, n: impl Into<BlockDeclarativePartSyntax>) -> Self {
+        self.block_declarative_part = Some(n.into());
         self
     }
     pub fn with_declaration_statement_separator(
@@ -6618,7 +6653,7 @@ impl GenerateBodyDeclarationsBuilder {
     pub fn build(self) -> GenerateBodyDeclarationsSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::GenerateBodyDeclarations);
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.block_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());

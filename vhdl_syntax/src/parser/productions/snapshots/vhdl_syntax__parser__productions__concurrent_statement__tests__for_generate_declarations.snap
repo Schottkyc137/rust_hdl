@@ -20,7 +20,7 @@ ForGenerateStatement
     Keyword(Generate)
   GenerateStatementBody
     GenerateBodyDeclarations
-      Declarations
+      BlockDeclarativePart
         SignalDeclaration
           Keyword(Signal)
           IdentifierList

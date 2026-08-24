@@ -2115,6 +2115,58 @@ impl AstNode for BlockDeclarativeItemSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub struct BlockDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for BlockDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::BlockDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "block_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramBody,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageBodyDeclaration,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::SignalDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::ComponentDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::SimpleConfigurationSpecification,
+                NodeKind::CompoundConfigurationSpecification,
+                NodeKind::DisconnectionSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        BlockDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl BlockDeclarativePartSyntax {
+    pub fn block_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = BlockDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(BlockDeclarativeItemSyntax::cast)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct BlockEpilogueSyntax(pub(crate) SyntaxNode);
 impl AstNode for BlockEpilogueSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
@@ -2294,8 +2346,8 @@ impl AstNode for BlockStatementSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "block_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::BlockDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -2349,10 +2401,10 @@ impl BlockStatementSyntax {
     pub fn block_header(&self) -> Option<BlockHeaderSyntax> {
         self.0.children().filter_map(BlockHeaderSyntax::cast).nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn block_declarative_part(&self) -> Option<BlockDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(BlockDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
@@ -8724,8 +8776,8 @@ impl AstNode for GenerateBodyDeclarationsSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "block_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::BlockDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -8743,10 +8795,10 @@ impl AstNode for GenerateBodyDeclarationsSyntax {
     }
 }
 impl GenerateBodyDeclarationsSyntax {
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn block_declarative_part(&self) -> Option<BlockDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(BlockDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {

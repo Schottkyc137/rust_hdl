@@ -7,6 +7,7 @@
 use crate::parser::productions::declarations::is_start_of_declarative_part;
 use crate::parser::util::StallGuard;
 use crate::parser::Parser;
+use crate::syntax::{AstNode, BlockDeclarativeItemSyntax};
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
@@ -17,7 +18,7 @@ impl Parser {
         self.label();
         self.block_preamble();
         self.block_header();
-        self.declarations();
+        self.block_declarative_part();
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
@@ -46,6 +47,10 @@ impl Parser {
         self.opt_identifier();
         self.expect_token(SemiColon);
         self.end_node();
+    }
+
+    pub fn block_declarative_part(&mut self) {
+        self.declarations2(BlockDeclarativePart, BlockDeclarativeItemSyntax::META);
     }
 
     pub fn block_header(&mut self) {
@@ -382,7 +387,7 @@ impl Parser {
         self.start_node(GenerateStatementBody);
         if is_start_of_declarative_part(self.peek_token()) || self.next_is(Keyword(Kw::Begin)) {
             self.start_node(GenerateBodyDeclarations);
-            self.declarations();
+            self.block_declarative_part();
             self.start_node(DeclarationStatementSeparator);
             self.expect_kw(Kw::Begin);
             self.end_node();

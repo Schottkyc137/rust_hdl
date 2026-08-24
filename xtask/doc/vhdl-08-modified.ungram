@@ -27,10 +27,13 @@ BlockStatement =
   stmt_label:(Label ':')
   block_preamble:('block' parenthesized_condition:('(' Condition ')')? 'is'?)
   BlockHeader
-  Declarations
+  BlockDeclarativePart
   declaration_statement_separator:'begin'
   ConcurrentStatement*
   block_epilogue:('end' 'block' Label? ';')
+
+BlockDeclarativePart =
+  BlockDeclarativeItem*
 
 CaseGenerateAlternative =
   'when' stmt_label:(Label ':')? Choices '=>' GenerateStatementBody
@@ -105,7 +108,7 @@ ForGenerateStatement =
   generate_epilogue:('end' 'generate' Label? ';')
 
 GenerateStatementBody =
-  generate_body_declarations:(Declarations? declaration_statement_separator:'begin')?
+  generate_body_declarations:(BlockDeclarativePart declaration_statement_separator:'begin')?
   ConcurrentStatement*
   generate_body_epilogue:('end' Label? ';')?
 

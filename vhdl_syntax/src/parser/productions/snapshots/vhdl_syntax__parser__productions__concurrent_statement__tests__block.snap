@@ -8,7 +8,7 @@ BlockStatement
     Colon
   BlockPreamble
     Keyword(Block)
-  Declarations
+  BlockDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
