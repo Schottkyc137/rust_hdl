@@ -97,7 +97,7 @@ impl Parser {
         const fn choice_options(layout: &Layout) -> &[NodeKind] {
             match layout {
                 Layout::Choice(choice) => choice.options,
-                _ => panic!(),
+                _ => panic!("Not a layout choice"),
             }
         }
         let allowed_nodes = choice_options(layout);

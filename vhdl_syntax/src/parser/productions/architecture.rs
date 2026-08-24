@@ -1,4 +1,6 @@
 use crate::parser::Parser;
+use crate::syntax::AstNode;
+use crate::syntax::BlockDeclarativeItemSyntax;
 use crate::syntax::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
@@ -7,7 +9,7 @@ impl Parser {
     pub fn architecture(&mut self) {
         self.start_node(ArchitectureBody);
         self.architecture_preamble();
-        self.declarations();
+        self.architecture_declarative_part();
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
@@ -33,6 +35,10 @@ impl Parser {
         self.opt_identifier();
         self.expect_token(SemiColon);
         self.end_node();
+    }
+
+    pub fn architecture_declarative_part(&mut self) {
+        self.declarations2(ArchitectureDeclarativePart, BlockDeclarativeItemSyntax::META);
     }
 }
 

@@ -24,6 +24,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::AllSensitivityList => AllSensitivityListSyntax::META,
         NodeKind::Allocator => AllocatorSyntax::META,
         NodeKind::ArchitectureBody => ArchitectureBodySyntax::META,
+        NodeKind::ArchitectureDeclarativePart => ArchitectureDeclarativePartSyntax::META,
         NodeKind::ArchitectureEpilogue => ArchitectureEpilogueSyntax::META,
         NodeKind::ArchitecturePreamble => ArchitecturePreambleSyntax::META,
         NodeKind::Assertion => AssertionSyntax::META,

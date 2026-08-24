@@ -20,6 +20,7 @@ pub enum NodeKind {
     AllSensitivityList,
     Allocator,
     ArchitectureBody,
+    ArchitectureDeclarativePart,
     ArchitectureEpilogue,
     ArchitecturePreamble,
     Assertion,

@@ -551,7 +551,7 @@ impl From<AllocatorBuilder> for AllocatorSyntax {
 }
 pub struct ArchitectureBodyBuilder {
     architecture_preamble: ArchitecturePreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    architecture_declarative_part: Option<ArchitectureDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
     concurrent_statements: Vec<ConcurrentStatementSyntax>,
     architecture_epilogue: ArchitectureEpilogueSyntax,
@@ -560,7 +560,7 @@ impl ArchitectureBodyBuilder {
     pub fn new(architecture_preamble: impl Into<ArchitecturePreambleSyntax>) -> Self {
         Self {
             architecture_preamble: architecture_preamble.into(),
-            declarations: None,
+            architecture_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
             concurrent_statements: Vec::new(),
@@ -571,8 +571,11 @@ impl ArchitectureBodyBuilder {
         self.architecture_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_architecture_declarative_part(
+        mut self,
+        n: impl Into<ArchitectureDeclarativePartSyntax>,
+    ) -> Self {
+        self.architecture_declarative_part = Some(n.into());
         self
     }
     pub fn with_declaration_statement_separator(
@@ -594,7 +597,7 @@ impl ArchitectureBodyBuilder {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::ArchitectureBody);
         builder.push_node(self.architecture_preamble.raw().green().clone());
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.architecture_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
@@ -610,6 +613,41 @@ impl ArchitectureBodyBuilder {
 }
 impl From<ArchitectureBodyBuilder> for ArchitectureBodySyntax {
     fn from(value: ArchitectureBodyBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ArchitectureDeclarativePartBuilder {
+    block_declarative_items: Vec<BlockDeclarativeItemSyntax>,
+}
+impl Default for ArchitectureDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ArchitectureDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            block_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_block_declarative_items(mut self, n: impl Into<BlockDeclarativeItemSyntax>) -> Self {
+        self.block_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> ArchitectureDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ArchitectureDeclarativePart);
+        for n in self.block_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ArchitectureDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ArchitectureDeclarativePartBuilder> for ArchitectureDeclarativePartSyntax {
+    fn from(value: ArchitectureDeclarativePartBuilder) -> Self {
         value.build()
     }
 }
