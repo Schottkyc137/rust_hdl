@@ -101,6 +101,7 @@ pub enum NodeKind {
     EntityDeclaration,
     EntityDeclarationEpilogue,
     EntityDeclarationPreamble,
+    EntityDeclarativePart,
     EntityDesignator,
     EntityDesignatorList,
     EntityEntityAspect,

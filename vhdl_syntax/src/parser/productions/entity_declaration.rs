@@ -6,6 +6,8 @@
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::AstNode;
+use crate::syntax::EntityDeclarativeItemSyntax;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
@@ -14,7 +16,7 @@ impl Parser {
         self.start_node(EntityDeclaration);
         self.entity_declaration_preamble();
         self.entity_header();
-        self.opt_declarative_part();
+        self.entity_declarative_part();
         if self.next_is(Keyword(Kw::Begin)) {
             self.start_node(EntityStatementPart);
             self.skip_into_node(DeclarationStatementSeparator);
@@ -47,6 +49,10 @@ impl Parser {
         self.opt_generic_clause();
         self.opt_port_clause();
         self.end_node();
+    }
+
+    pub fn entity_declarative_part(&mut self) {
+        self.declarations2(EntityDeclarativePart, EntityDeclarativeItemSyntax::META);
     }
 }
 

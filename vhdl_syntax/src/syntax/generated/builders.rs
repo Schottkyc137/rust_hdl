@@ -5012,7 +5012,7 @@ impl From<EntityConfigurationAspectBuilder> for EntityConfigurationAspectSyntax 
 pub struct EntityDeclarationBuilder {
     entity_declaration_preamble: EntityDeclarationPreambleSyntax,
     entity_header: Option<EntityHeaderSyntax>,
-    declarations: Option<DeclarationsSyntax>,
+    entity_declarative_part: Option<EntityDeclarativePartSyntax>,
     entity_statement_part: Option<EntityStatementPartSyntax>,
     entity_declaration_epilogue: EntityDeclarationEpilogueSyntax,
 }
@@ -5021,7 +5021,7 @@ impl EntityDeclarationBuilder {
         Self {
             entity_declaration_preamble: entity_declaration_preamble.into(),
             entity_header: None,
-            declarations: None,
+            entity_declarative_part: None,
             entity_statement_part: None,
             entity_declaration_epilogue: EntityDeclarationEpilogueBuilder::default().build(),
         }
@@ -5037,8 +5037,11 @@ impl EntityDeclarationBuilder {
         self.entity_header = Some(n.into());
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_entity_declarative_part(
+        mut self,
+        n: impl Into<EntityDeclarativePartSyntax>,
+    ) -> Self {
+        self.entity_declarative_part = Some(n.into());
         self
     }
     pub fn with_entity_statement_part(mut self, n: impl Into<EntityStatementPartSyntax>) -> Self {
@@ -5059,7 +5062,7 @@ impl EntityDeclarationBuilder {
         if let Some(n) = self.entity_header {
             builder.push_node(n.raw().green().clone());
         }
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.entity_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         if let Some(n) = self.entity_statement_part {
@@ -5207,6 +5210,44 @@ impl EntityDeclarationPreambleBuilder {
 }
 impl From<EntityDeclarationPreambleBuilder> for EntityDeclarationPreambleSyntax {
     fn from(value: EntityDeclarationPreambleBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct EntityDeclarativePartBuilder {
+    entity_declarative_items: Vec<EntityDeclarativeItemSyntax>,
+}
+impl Default for EntityDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl EntityDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            entity_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_entity_declarative_items(
+        mut self,
+        n: impl Into<EntityDeclarativeItemSyntax>,
+    ) -> Self {
+        self.entity_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> EntityDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::EntityDeclarativePart);
+        for n in self.entity_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        EntityDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<EntityDeclarativePartBuilder> for EntityDeclarativePartSyntax {
+    fn from(value: EntityDeclarativePartBuilder) -> Self {
         value.build()
     }
 }

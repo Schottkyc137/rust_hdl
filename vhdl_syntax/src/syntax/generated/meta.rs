@@ -115,6 +115,7 @@ pub fn layout_of(kind: NodeKind) -> &'static Layout {
         NodeKind::EntityDeclaration => EntityDeclarationSyntax::META,
         NodeKind::EntityDeclarationEpilogue => EntityDeclarationEpilogueSyntax::META,
         NodeKind::EntityDeclarationPreamble => EntityDeclarationPreambleSyntax::META,
+        NodeKind::EntityDeclarativePart => EntityDeclarativePartSyntax::META,
         NodeKind::EntityDesignator => EntityDesignatorSyntax::META,
         NodeKind::EntityDesignatorList => EntityDesignatorListSyntax::META,
         NodeKind::EntityEntityAspect => EntityEntityAspectSyntax::META,

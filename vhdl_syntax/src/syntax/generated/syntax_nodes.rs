@@ -6308,8 +6308,8 @@ impl AstNode for EntityDeclarationSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "entity_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::EntityDeclarativePart),
             },
             LayoutItem {
                 optional: true,
@@ -6345,10 +6345,10 @@ impl EntityDeclarationSyntax {
             .filter_map(EntityHeaderSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn entity_declarative_part(&self) -> Option<EntityDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(EntityDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn entity_statement_part(&self) -> Option<EntityStatementPartSyntax> {
@@ -6480,6 +6480,227 @@ impl EntityDeclarationPreambleSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Is))
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum EntityDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramBody(SubprogramBodySyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    PackageDeclarationItem(PackageDeclarationItemSyntax),
+    PackageBodyDeclaration(PackageBodyDeclarationSyntax),
+    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
+    TypeDeclaration(TypeDeclarationSyntax),
+    SubtypeDeclaration(SubtypeDeclarationSyntax),
+    ConstantDeclaration(ConstantDeclarationSyntax),
+    SignalDeclaration(SignalDeclarationSyntax),
+    VariableDeclaration(VariableDeclarationSyntax),
+    FileDeclaration(FileDeclarationSyntax),
+    AliasDeclaration(AliasDeclarationSyntax),
+    AttributeDeclaration(AttributeDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    DisconnectionSpecification(DisconnectionSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for EntityDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramBody,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::PackageDeclarationItem,
+            NodeKind::PackageBodyDeclaration,
+            NodeKind::PackageInstantiationDeclarationItem,
+            NodeKind::FullTypeDeclaration,
+            NodeKind::IncompleteTypeDeclaration,
+            NodeKind::SubtypeDeclaration,
+            NodeKind::ConstantDeclaration,
+            NodeKind::SignalDeclaration,
+            NodeKind::VariableDeclaration,
+            NodeKind::FileDeclaration,
+            NodeKind::AliasDeclaration,
+            NodeKind::AttributeDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::DisconnectionSpecification,
+            NodeKind::UseClauseDeclaration,
+            NodeKind::GroupTemplateDeclaration,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramBodySyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::SubprogramBody(
+                SubprogramBodySyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageDeclarationItemSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::PackageDeclarationItem(
+                PackageDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageBodyDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::PackageBodyDeclaration(
+                PackageBodyDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::PackageInstantiationDeclarationItem(
+                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if TypeDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::TypeDeclaration(
+                TypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubtypeDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::SubtypeDeclaration(
+                SubtypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ConstantDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::ConstantDeclaration(
+                ConstantDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SignalDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::SignalDeclaration(
+                SignalDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if VariableDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::VariableDeclaration(
+                VariableDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if FileDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::FileDeclaration(
+                FileDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AliasDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::AliasDeclaration(
+                AliasDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::AttributeDeclaration(
+                AttributeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if DisconnectionSpecificationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::DisconnectionSpecification(
+                DisconnectionSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupTemplateDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::GroupTemplateDeclaration(
+                GroupTemplateDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return EntityDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            EntityDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::SubprogramBody(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::PackageDeclarationItem(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::PackageBodyDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::PackageInstantiationDeclarationItem(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::TypeDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::SubtypeDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::ConstantDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::SignalDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::VariableDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::FileDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::AliasDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::AttributeDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::DisconnectionSpecification(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
+            EntityDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct EntityDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for EntityDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::EntityDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "entity_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramBody,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageBodyDeclaration,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::SignalDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::DisconnectionSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        EntityDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl EntityDeclarativePartSyntax {
+    pub fn entity_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = EntityDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(EntityDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]

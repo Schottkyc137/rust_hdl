@@ -6,6 +6,7 @@
 
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
+use crate::syntax::child::ChildKind;
 use crate::syntax::layout_of;
 use crate::syntax::meta::{Layout, LayoutItem, LayoutItemKind};
 use crate::syntax::NodeKind;
@@ -88,7 +89,7 @@ impl Parser {
                 let end = self.builder.current_pos();
                 self.errors.push(SyntaxErr::new(
                     start + initial_trivia_len..end,
-                    SyntaxErrKind::Unexpected(tok),
+                    SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
                 ));
                 return;
             }
@@ -106,15 +107,13 @@ impl Parser {
                 if !skipped_any {
                     self.errors.push(SyntaxErr::new(
                         start..start,
-                        SyntaxErrKind::Expected(
-                            expected.into(),
-                        ),
+                        SyntaxErrKind::Expected(expected.into()),
                     ));
                 // skipped tokens: Garbage input before recovery token.
                 } else {
                     self.errors.push(SyntaxErr::new(
                         start + initial_trivia_len..self.builder.current_pos(),
-                        SyntaxErrKind::Unexpected(tok),
+                        SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
                     ));
                 };
                 return;
@@ -537,6 +536,7 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::CompoundConfigurationSpecification
         | NodeKind::ConstantDeclaration
         | NodeKind::Declarations
+        | NodeKind::EntityDeclarativePart
         | NodeKind::DisconnectionSpecification
         | NodeKind::FileDeclaration
         | NodeKind::FullTypeDeclaration

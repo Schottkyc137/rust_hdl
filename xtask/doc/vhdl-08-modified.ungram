@@ -467,9 +467,36 @@ ConfigurationDeclaration =
 EntityDeclaration =
   entity_declaration_preamble:('entity' '#identifier' 'is')
   EntityHeader
-  Declarations
+  EntityDeclarativePart
   entity_statement_part:(declaration_statement_separator:'begin' ConcurrentStatement*)?
   entity_declaration_epilogue:('end' 'entity'? SimpleName? ';')
+
+EntityDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| SignalDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| DisconnectionSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+// | PSL_Property_Declaration
+// | PSL_Sequence_Declaration
+// | PSL_Clock_Declaration
+EntityDeclarativePart =
+  EntityDeclarativeItem*
 
 EntityHeader =
   GenericClause? PortClause?

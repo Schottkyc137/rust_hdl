@@ -7,7 +7,7 @@ EntityDeclaration
     Keyword(Entity)
     Identifier 'myent'
     Keyword(Is)
-  Declarations
+  EntityDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
