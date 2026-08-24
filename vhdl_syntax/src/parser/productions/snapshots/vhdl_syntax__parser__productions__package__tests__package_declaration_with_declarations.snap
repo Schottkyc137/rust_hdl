@@ -7,7 +7,7 @@ PackageDeclaration
     Keyword(Package)
     Identifier 'pkg_name'
     Keyword(Is)
-  Declarations
+  PackageDeclarativePart
     IncompleteTypeDeclaration
       Keyword(Type)
       Identifier 'foo'

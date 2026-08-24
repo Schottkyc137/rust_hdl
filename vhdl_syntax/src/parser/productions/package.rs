@@ -1,5 +1,6 @@
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{AstNode, PackageBodyDeclarativeItemSyntax, PackageDeclarativeItemSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
@@ -8,9 +9,13 @@ impl Parser {
         self.start_node(PackageDeclaration);
         self.package_preamble();
         self.package_header();
-        self.declarations();
+        self.package_declarative_part();
         self.package_epilogue();
         self.end_node();
+    }
+
+    pub fn package_declarative_part(&mut self) {
+        self.declarations(PackageDeclarativePart, PackageDeclarativeItemSyntax::META);
     }
 
     pub fn package_preamble(&mut self) {
@@ -48,9 +53,16 @@ impl Parser {
     pub fn package_body(&mut self) {
         self.start_node(PackageBody);
         self.package_body_preamble();
-        self.declarations();
+        self.package_body_declarative_part();
         self.package_body_epilogue();
         self.end_node();
+    }
+
+    pub fn package_body_declarative_part(&mut self) {
+        self.declarations(
+            PackageBodyDeclarativePart,
+            PackageBodyDeclarativeItemSyntax::META,
+        );
     }
 
     pub fn package_body_preamble(&mut self) {

@@ -146,15 +146,15 @@ ProcessStatement =
     parenthesized_process_sensitivity_list:('(' ProcessSensitivityList ')')?
     'is'?
   )
-  Declarations
+  ProcessDeclarativePart
   declaration_statement_separator:'begin'
   SequenceOfStatements
   process_epilogue:('end' 'postponed'? 'process' Label? ';')
 
-//==============================================================================
-// § 6: Declarations
-//==============================================================================
-Declaration =
+ProcessDeclarativePart =
+  ProcessDeclarativeItem*
+
+ProcessDeclarativeItem =
   SubprogramDeclaration
 | SubprogramBody
 | SubprogramInstantiationDeclaration
@@ -163,21 +163,19 @@ Declaration =
 | package_instantiation_declaration_item:PackageInstantiationDeclaration
 | TypeDeclaration
 | SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
 | FileDeclaration
 | AliasDeclaration
-| ComponentDeclaration
 | AttributeDeclaration
 | AttributeSpecification
-| ConfigurationSpecification
-| DisconnectionSpecification
 | use_clause_declaration:UseClause
 | GroupTemplateDeclaration
 | GroupDeclaration
-| ConstantDeclaration
-| SignalDeclaration
-| VariableDeclaration
 
-
+//==============================================================================
+// § 6: Declarations
+//==============================================================================
 BlockDeclarativeItem =
   SubprogramDeclaration
 | SubprogramBody
@@ -451,9 +449,6 @@ VariableDeclaration =
   SubtypeIndication
   initial_value:(':=' Expression)?
   ';'
-
-Declarations =
-  Declaration*
 
 //==============================================================================
 // § 3: Design entities and configuration
@@ -1122,10 +1117,32 @@ SubprogramHeader =
 
 SubprogramBody =
   subprogram_body_preamble:(SubprogramSpecification 'is')
-  Declarations
+  SubprogramDeclarativePart
   declaration_statement_separator:'begin'
   SequenceOfStatements
   subprogram_body_epilogue:('end' SubprogramKind? Designator? ';')
+
+SubprogramDeclarativePart =
+  SubprogramDeclarativeItem*
+
+SubprogramDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
 
 SubprogramKind =
   'procedure' | 'function'
@@ -1138,16 +1155,64 @@ SubprogramInstantiationDeclaration =
 PackageDeclaration =
   package_preamble:('package' '#identifier' 'is')
   PackageHeader?
-  Declarations
+  PackageDeclarativePart
   package_epilogue:('end' 'package'? SimpleName? ';')
+
+PackageDeclarativePart =
+  PackageDeclarativeItem*
+
+PackageDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| SignalDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| ComponentDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| DisconnectionSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+// | PSL_Property_Declaration
+// | PSL_Sequence_Declaration
 
 PackageHeader =
   GenericClause generic_map:(GenericMapAspect ';')?
 
 PackageBody =
   package_body_preamble:('package' 'body' SimpleName 'is')
-  Declarations
+  PackageBodyDeclarativePart
   package_body_epilogue:('end' end_package_body:('package' 'body')? SimpleName? ';')
+
+PackageBodyDeclarativePart =
+  PackageBodyDeclarativeItem*
+
+PackageBodyDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
 
 PackageInstantiationDeclaration =
   package_instantiation_preamble:('package' '#identifier' 'is' 'new' Name)
@@ -1220,13 +1285,44 @@ PrimaryUnitDeclaration =
 
 ProtectedTypeBody =
   protected_type_body_preamble:('protected' 'body')
-  Declarations
+  ProtectedTypeBodyDeclarativePart
   protected_type_body_epilogue:('end' 'protected' 'body' SimpleName?)
+
+ProtectedTypeBodyDeclarativePart =
+  ProtectedTypeBodyDeclarativeItem*
+
+ProtectedTypeBodyDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
 
 ProtectedTypeDeclaration =
   protected_preamble:'protected'
-  Declarations
+  ProtectedTypeDeclarativePart
   protected_type_declaration_epilogue:('end' 'protected' SimpleName?)
+
+ProtectedTypeDeclarativePart =
+  ProtectedTypeDeclarativeItem*
+
+ProtectedTypeDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramInstantiationDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
 
 ProtectedTypeDefinition =
   ProtectedTypeDeclaration | ProtectedTypeBody

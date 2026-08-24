@@ -7,8 +7,8 @@
 use crate::parser::productions::declarations::is_start_of_declarative_part;
 use crate::parser::util::StallGuard;
 use crate::parser::Parser;
-use crate::syntax::{AstNode, BlockDeclarativeItemSyntax};
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{AstNode, BlockDeclarativeItemSyntax, ProcessDeclarativeItemSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
@@ -50,7 +50,7 @@ impl Parser {
     }
 
     pub fn block_declarative_part(&mut self) {
-        self.declarations2(BlockDeclarativePart, BlockDeclarativeItemSyntax::META);
+        self.declarations(BlockDeclarativePart, BlockDeclarativeItemSyntax::META);
     }
 
     pub fn block_header(&mut self) {
@@ -425,13 +425,17 @@ impl Parser {
         self.start_node(ProcessStatement);
         self.opt_label();
         self.process_preamble();
-        self.declarations();
+        self.process_declarative_part();
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
         self.sequential_statements();
         self.process_epilogue();
         self.end_node();
+    }
+
+    pub fn process_declarative_part(&mut self) {
+        self.declarations(ProcessDeclarativePart, ProcessDeclarativeItemSyntax::META);
     }
 
     pub fn process_preamble(&mut self) {

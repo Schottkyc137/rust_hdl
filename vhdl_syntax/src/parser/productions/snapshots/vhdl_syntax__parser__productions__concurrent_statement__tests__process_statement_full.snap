@@ -11,7 +11,7 @@ ProcessStatement
         Keyword(All)
       RightPar
     Keyword(Is)
-  Declarations
+  ProcessDeclarativePart
     VariableDeclaration
       Keyword(Variable)
       IdentifierList

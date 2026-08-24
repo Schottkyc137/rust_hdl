@@ -5402,189 +5402,6 @@ impl ContextReferenceSyntax {
     }
 }
 #[derive(Debug, Clone)]
-pub enum DeclarationSyntax {
-    SubprogramDeclaration(SubprogramDeclarationSyntax),
-    SubprogramBody(SubprogramBodySyntax),
-    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
-    PackageDeclarationItem(PackageDeclarationItemSyntax),
-    PackageBodyDeclaration(PackageBodyDeclarationSyntax),
-    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
-    TypeDeclaration(TypeDeclarationSyntax),
-    SubtypeDeclaration(SubtypeDeclarationSyntax),
-    FileDeclaration(FileDeclarationSyntax),
-    AliasDeclaration(AliasDeclarationSyntax),
-    ComponentDeclaration(ComponentDeclarationSyntax),
-    AttributeDeclaration(AttributeDeclarationSyntax),
-    AttributeSpecification(AttributeSpecificationSyntax),
-    ConfigurationSpecification(ConfigurationSpecificationSyntax),
-    DisconnectionSpecification(DisconnectionSpecificationSyntax),
-    UseClauseDeclaration(UseClauseDeclarationSyntax),
-    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
-    GroupDeclaration(GroupDeclarationSyntax),
-    ConstantDeclaration(ConstantDeclarationSyntax),
-    SignalDeclaration(SignalDeclarationSyntax),
-    VariableDeclaration(VariableDeclarationSyntax),
-}
-impl AstNode for DeclarationSyntax {
-    const META: &'static Layout = &Layout::Choice(Choice {
-        options: &[
-            NodeKind::SubprogramDeclaration,
-            NodeKind::SubprogramBody,
-            NodeKind::SubprogramInstantiationDeclaration,
-            NodeKind::PackageDeclarationItem,
-            NodeKind::PackageBodyDeclaration,
-            NodeKind::PackageInstantiationDeclarationItem,
-            NodeKind::FullTypeDeclaration,
-            NodeKind::IncompleteTypeDeclaration,
-            NodeKind::SubtypeDeclaration,
-            NodeKind::FileDeclaration,
-            NodeKind::AliasDeclaration,
-            NodeKind::ComponentDeclaration,
-            NodeKind::AttributeDeclaration,
-            NodeKind::AttributeSpecification,
-            NodeKind::SimpleConfigurationSpecification,
-            NodeKind::CompoundConfigurationSpecification,
-            NodeKind::DisconnectionSpecification,
-            NodeKind::UseClauseDeclaration,
-            NodeKind::GroupTemplateDeclaration,
-            NodeKind::GroupDeclaration,
-            NodeKind::ConstantDeclaration,
-            NodeKind::SignalDeclaration,
-            NodeKind::VariableDeclaration,
-        ],
-    });
-    fn cast_unchecked(node: SyntaxNode) -> Self {
-        if SubprogramDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::SubprogramDeclaration(
-                SubprogramDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if SubprogramBodySyntax::can_cast(&node) {
-            return DeclarationSyntax::SubprogramBody(SubprogramBodySyntax::cast_unchecked(node));
-        }
-        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::SubprogramInstantiationDeclaration(
-                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if PackageDeclarationItemSyntax::can_cast(&node) {
-            return DeclarationSyntax::PackageDeclarationItem(
-                PackageDeclarationItemSyntax::cast_unchecked(node),
-            );
-        }
-        if PackageBodyDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::PackageBodyDeclaration(
-                PackageBodyDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
-            return DeclarationSyntax::PackageInstantiationDeclarationItem(
-                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
-            );
-        }
-        if TypeDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::TypeDeclaration(TypeDeclarationSyntax::cast_unchecked(node));
-        }
-        if SubtypeDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::SubtypeDeclaration(
-                SubtypeDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if FileDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::FileDeclaration(FileDeclarationSyntax::cast_unchecked(node));
-        }
-        if AliasDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::AliasDeclaration(AliasDeclarationSyntax::cast_unchecked(
-                node,
-            ));
-        }
-        if ComponentDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::ComponentDeclaration(
-                ComponentDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if AttributeDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::AttributeDeclaration(
-                AttributeDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if AttributeSpecificationSyntax::can_cast(&node) {
-            return DeclarationSyntax::AttributeSpecification(
-                AttributeSpecificationSyntax::cast_unchecked(node),
-            );
-        }
-        if ConfigurationSpecificationSyntax::can_cast(&node) {
-            return DeclarationSyntax::ConfigurationSpecification(
-                ConfigurationSpecificationSyntax::cast_unchecked(node),
-            );
-        }
-        if DisconnectionSpecificationSyntax::can_cast(&node) {
-            return DeclarationSyntax::DisconnectionSpecification(
-                DisconnectionSpecificationSyntax::cast_unchecked(node),
-            );
-        }
-        if UseClauseDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::UseClauseDeclaration(
-                UseClauseDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if GroupTemplateDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::GroupTemplateDeclaration(
-                GroupTemplateDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if GroupDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::GroupDeclaration(GroupDeclarationSyntax::cast_unchecked(
-                node,
-            ));
-        }
-        if ConstantDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::ConstantDeclaration(
-                ConstantDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        if SignalDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::SignalDeclaration(SignalDeclarationSyntax::cast_unchecked(
-                node,
-            ));
-        }
-        if VariableDeclarationSyntax::can_cast(&node) {
-            return DeclarationSyntax::VariableDeclaration(
-                VariableDeclarationSyntax::cast_unchecked(node),
-            );
-        }
-        unreachable!(
-            "cast_unchecked called with unexpected node kind {:?}",
-            node.kind()
-        )
-    }
-    fn raw(&self) -> SyntaxNode {
-        match self {
-            DeclarationSyntax::SubprogramDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::SubprogramBody(inner) => inner.raw(),
-            DeclarationSyntax::SubprogramInstantiationDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::PackageDeclarationItem(inner) => inner.raw(),
-            DeclarationSyntax::PackageBodyDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::PackageInstantiationDeclarationItem(inner) => inner.raw(),
-            DeclarationSyntax::TypeDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::SubtypeDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::FileDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::AliasDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::ComponentDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::AttributeDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::AttributeSpecification(inner) => inner.raw(),
-            DeclarationSyntax::ConfigurationSpecification(inner) => inner.raw(),
-            DeclarationSyntax::DisconnectionSpecification(inner) => inner.raw(),
-            DeclarationSyntax::UseClauseDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::GroupDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::ConstantDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::SignalDeclaration(inner) => inner.raw(),
-            DeclarationSyntax::VariableDeclaration(inner) => inner.raw(),
-        }
-    }
-}
-#[derive(Debug, Clone)]
 pub struct DeclarationStatementSeparatorSyntax(pub(crate) SyntaxNode);
 impl AstNode for DeclarationStatementSeparatorSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
@@ -5609,54 +5426,6 @@ impl DeclarationStatementSeparatorSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::Keyword(Kw::Begin))
             .nth(0)
-    }
-}
-#[derive(Debug, Clone)]
-pub struct DeclarationsSyntax(pub(crate) SyntaxNode);
-impl AstNode for DeclarationsSyntax {
-    const META: &'static Layout = &Layout::Sequence(Sequence {
-        kind: NodeKind::Declarations,
-        items: &[LayoutItem {
-            optional: true,
-            repeated: true,
-            name: "declarations",
-            kind: LayoutItemKind::NodeChoice(&[
-                NodeKind::SubprogramDeclaration,
-                NodeKind::SubprogramBody,
-                NodeKind::SubprogramInstantiationDeclaration,
-                NodeKind::PackageDeclarationItem,
-                NodeKind::PackageBodyDeclaration,
-                NodeKind::PackageInstantiationDeclarationItem,
-                NodeKind::FullTypeDeclaration,
-                NodeKind::IncompleteTypeDeclaration,
-                NodeKind::SubtypeDeclaration,
-                NodeKind::FileDeclaration,
-                NodeKind::AliasDeclaration,
-                NodeKind::ComponentDeclaration,
-                NodeKind::AttributeDeclaration,
-                NodeKind::AttributeSpecification,
-                NodeKind::SimpleConfigurationSpecification,
-                NodeKind::CompoundConfigurationSpecification,
-                NodeKind::DisconnectionSpecification,
-                NodeKind::UseClauseDeclaration,
-                NodeKind::GroupTemplateDeclaration,
-                NodeKind::GroupDeclaration,
-                NodeKind::ConstantDeclaration,
-                NodeKind::SignalDeclaration,
-                NodeKind::VariableDeclaration,
-            ]),
-        }],
-    });
-    fn cast_unchecked(node: SyntaxNode) -> Self {
-        DeclarationsSyntax(node)
-    }
-    fn raw(&self) -> SyntaxNode {
-        self.0.clone()
-    }
-}
-impl DeclarationsSyntax {
-    pub fn declarations(&self) -> impl Iterator<Item = DeclarationSyntax> + use<'_> {
-        self.0.children().filter_map(DeclarationSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -12607,8 +12376,8 @@ impl AstNode for PackageBodySyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "package_body_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::PackageBodyDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -12632,10 +12401,10 @@ impl PackageBodySyntax {
             .filter_map(PackageBodyPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn package_body_declarative_part(&self) -> Option<PackageBodyDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(PackageBodyDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn package_body_epilogue(&self) -> Option<PackageBodyEpilogueSyntax> {
@@ -12667,6 +12436,213 @@ impl AstNode for PackageBodyDeclarationSyntax {
 impl PackageBodyDeclarationSyntax {
     pub fn package_body(&self) -> Option<PackageBodySyntax> {
         self.0.children().filter_map(PackageBodySyntax::cast).nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum PackageBodyDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramBody(SubprogramBodySyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    PackageDeclarationItem(PackageDeclarationItemSyntax),
+    PackageBodyDeclaration(PackageBodyDeclarationSyntax),
+    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
+    TypeDeclaration(TypeDeclarationSyntax),
+    SubtypeDeclaration(SubtypeDeclarationSyntax),
+    ConstantDeclaration(ConstantDeclarationSyntax),
+    VariableDeclaration(VariableDeclarationSyntax),
+    FileDeclaration(FileDeclarationSyntax),
+    AliasDeclaration(AliasDeclarationSyntax),
+    AttributeDeclaration(AttributeDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for PackageBodyDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramBody,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::PackageDeclarationItem,
+            NodeKind::PackageBodyDeclaration,
+            NodeKind::PackageInstantiationDeclarationItem,
+            NodeKind::FullTypeDeclaration,
+            NodeKind::IncompleteTypeDeclaration,
+            NodeKind::SubtypeDeclaration,
+            NodeKind::ConstantDeclaration,
+            NodeKind::VariableDeclaration,
+            NodeKind::FileDeclaration,
+            NodeKind::AliasDeclaration,
+            NodeKind::AttributeDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::UseClauseDeclaration,
+            NodeKind::GroupTemplateDeclaration,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramBodySyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::SubprogramBody(
+                SubprogramBodySyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageDeclarationItemSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::PackageDeclarationItem(
+                PackageDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageBodyDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::PackageBodyDeclaration(
+                PackageBodyDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::PackageInstantiationDeclarationItem(
+                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if TypeDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::TypeDeclaration(
+                TypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubtypeDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::SubtypeDeclaration(
+                SubtypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ConstantDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::ConstantDeclaration(
+                ConstantDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if VariableDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::VariableDeclaration(
+                VariableDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if FileDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::FileDeclaration(
+                FileDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AliasDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::AliasDeclaration(
+                AliasDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::AttributeDeclaration(
+                AttributeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupTemplateDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::GroupTemplateDeclaration(
+                GroupTemplateDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return PackageBodyDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            PackageBodyDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::SubprogramBody(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => {
+                inner.raw()
+            }
+            PackageBodyDeclarativeItemSyntax::PackageDeclarationItem(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::PackageBodyDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::PackageInstantiationDeclarationItem(inner) => {
+                inner.raw()
+            }
+            PackageBodyDeclarativeItemSyntax::TypeDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::SubtypeDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::ConstantDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::VariableDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::FileDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::AliasDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::AttributeDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
+            PackageBodyDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct PackageBodyDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for PackageBodyDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::PackageBodyDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "package_body_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramBody,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageBodyDeclaration,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        PackageBodyDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl PackageBodyDeclarativePartSyntax {
+    pub fn package_body_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = PackageBodyDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(PackageBodyDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -12820,8 +12796,8 @@ impl AstNode for PackageDeclarationSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "package_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::PackageDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -12851,10 +12827,10 @@ impl PackageDeclarationSyntax {
             .filter_map(PackageHeaderSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn package_declarative_part(&self) -> Option<PackageDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(PackageDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn package_epilogue(&self) -> Option<PackageEpilogueSyntax> {
@@ -12889,6 +12865,218 @@ impl PackageDeclarationItemSyntax {
             .children()
             .filter_map(PackageDeclarationSyntax::cast)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum PackageDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    PackageDeclarationItem(PackageDeclarationItemSyntax),
+    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
+    TypeDeclaration(TypeDeclarationSyntax),
+    SubtypeDeclaration(SubtypeDeclarationSyntax),
+    ConstantDeclaration(ConstantDeclarationSyntax),
+    SignalDeclaration(SignalDeclarationSyntax),
+    VariableDeclaration(VariableDeclarationSyntax),
+    FileDeclaration(FileDeclarationSyntax),
+    AliasDeclaration(AliasDeclarationSyntax),
+    ComponentDeclaration(ComponentDeclarationSyntax),
+    AttributeDeclaration(AttributeDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    DisconnectionSpecification(DisconnectionSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for PackageDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::PackageDeclarationItem,
+            NodeKind::PackageInstantiationDeclarationItem,
+            NodeKind::FullTypeDeclaration,
+            NodeKind::IncompleteTypeDeclaration,
+            NodeKind::SubtypeDeclaration,
+            NodeKind::ConstantDeclaration,
+            NodeKind::SignalDeclaration,
+            NodeKind::VariableDeclaration,
+            NodeKind::FileDeclaration,
+            NodeKind::AliasDeclaration,
+            NodeKind::ComponentDeclaration,
+            NodeKind::AttributeDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::DisconnectionSpecification,
+            NodeKind::UseClauseDeclaration,
+            NodeKind::GroupTemplateDeclaration,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageDeclarationItemSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::PackageDeclarationItem(
+                PackageDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::PackageInstantiationDeclarationItem(
+                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if TypeDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::TypeDeclaration(
+                TypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubtypeDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::SubtypeDeclaration(
+                SubtypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ConstantDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::ConstantDeclaration(
+                ConstantDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SignalDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::SignalDeclaration(
+                SignalDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if VariableDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::VariableDeclaration(
+                VariableDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if FileDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::FileDeclaration(
+                FileDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AliasDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::AliasDeclaration(
+                AliasDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ComponentDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::ComponentDeclaration(
+                ComponentDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::AttributeDeclaration(
+                AttributeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if DisconnectionSpecificationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::DisconnectionSpecification(
+                DisconnectionSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupTemplateDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::GroupTemplateDeclaration(
+                GroupTemplateDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return PackageDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            PackageDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::PackageDeclarationItem(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::PackageInstantiationDeclarationItem(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::TypeDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::SubtypeDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::ConstantDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::SignalDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::VariableDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::FileDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::AliasDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::ComponentDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::AttributeDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::DisconnectionSpecification(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
+            PackageDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct PackageDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for PackageDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::PackageDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "package_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::SignalDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::ComponentDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::DisconnectionSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        PackageDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl PackageDeclarativePartSyntax {
+    pub fn package_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = PackageDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(PackageDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -14514,6 +14702,209 @@ impl ProcedureSpecificationSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub enum ProcessDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramBody(SubprogramBodySyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    PackageDeclarationItem(PackageDeclarationItemSyntax),
+    PackageBodyDeclaration(PackageBodyDeclarationSyntax),
+    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
+    TypeDeclaration(TypeDeclarationSyntax),
+    SubtypeDeclaration(SubtypeDeclarationSyntax),
+    ConstantDeclaration(ConstantDeclarationSyntax),
+    VariableDeclaration(VariableDeclarationSyntax),
+    FileDeclaration(FileDeclarationSyntax),
+    AliasDeclaration(AliasDeclarationSyntax),
+    AttributeDeclaration(AttributeDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for ProcessDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramBody,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::PackageDeclarationItem,
+            NodeKind::PackageBodyDeclaration,
+            NodeKind::PackageInstantiationDeclarationItem,
+            NodeKind::FullTypeDeclaration,
+            NodeKind::IncompleteTypeDeclaration,
+            NodeKind::SubtypeDeclaration,
+            NodeKind::ConstantDeclaration,
+            NodeKind::VariableDeclaration,
+            NodeKind::FileDeclaration,
+            NodeKind::AliasDeclaration,
+            NodeKind::AttributeDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::UseClauseDeclaration,
+            NodeKind::GroupTemplateDeclaration,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramBodySyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::SubprogramBody(
+                SubprogramBodySyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageDeclarationItemSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::PackageDeclarationItem(
+                PackageDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageBodyDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::PackageBodyDeclaration(
+                PackageBodyDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::PackageInstantiationDeclarationItem(
+                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if TypeDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::TypeDeclaration(
+                TypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubtypeDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::SubtypeDeclaration(
+                SubtypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ConstantDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::ConstantDeclaration(
+                ConstantDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if VariableDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::VariableDeclaration(
+                VariableDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if FileDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::FileDeclaration(
+                FileDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AliasDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::AliasDeclaration(
+                AliasDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::AttributeDeclaration(
+                AttributeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupTemplateDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::GroupTemplateDeclaration(
+                GroupTemplateDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return ProcessDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            ProcessDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::SubprogramBody(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::PackageDeclarationItem(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::PackageBodyDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::PackageInstantiationDeclarationItem(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::TypeDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::SubtypeDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::ConstantDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::VariableDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::FileDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::AliasDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::AttributeDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
+            ProcessDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ProcessDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ProcessDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::ProcessDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "process_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramBody,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageBodyDeclaration,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        ProcessDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ProcessDeclarativePartSyntax {
+    pub fn process_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = ProcessDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ProcessDeclarativeItemSyntax::cast)
+    }
+}
+#[derive(Debug, Clone)]
 pub struct ProcessEpilogueSyntax(pub(crate) SyntaxNode);
 impl AstNode for ProcessEpilogueSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
@@ -14710,8 +15101,8 @@ impl AstNode for ProcessStatementSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "process_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::ProcessDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -14750,10 +15141,10 @@ impl ProcessStatementSyntax {
             .filter_map(ProcessPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn process_declarative_part(&self) -> Option<ProcessDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(ProcessDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
@@ -14817,8 +15208,8 @@ impl AstNode for ProtectedTypeBodySyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "protected_type_body_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::ProtectedTypeBodyDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -14842,10 +15233,12 @@ impl ProtectedTypeBodySyntax {
             .filter_map(ProtectedTypeBodyPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn protected_type_body_declarative_part(
+        &self,
+    ) -> Option<ProtectedTypeBodyDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(ProtectedTypeBodyDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn protected_type_body_epilogue(&self) -> Option<ProtectedTypeBodyEpilogueSyntax> {
@@ -14853,6 +15246,213 @@ impl ProtectedTypeBodySyntax {
             .children()
             .filter_map(ProtectedTypeBodyEpilogueSyntax::cast)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum ProtectedTypeBodyDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramBody(SubprogramBodySyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    PackageDeclarationItem(PackageDeclarationItemSyntax),
+    PackageBodyDeclaration(PackageBodyDeclarationSyntax),
+    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
+    TypeDeclaration(TypeDeclarationSyntax),
+    SubtypeDeclaration(SubtypeDeclarationSyntax),
+    ConstantDeclaration(ConstantDeclarationSyntax),
+    VariableDeclaration(VariableDeclarationSyntax),
+    FileDeclaration(FileDeclarationSyntax),
+    AliasDeclaration(AliasDeclarationSyntax),
+    AttributeDeclaration(AttributeDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for ProtectedTypeBodyDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramBody,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::PackageDeclarationItem,
+            NodeKind::PackageBodyDeclaration,
+            NodeKind::PackageInstantiationDeclarationItem,
+            NodeKind::FullTypeDeclaration,
+            NodeKind::IncompleteTypeDeclaration,
+            NodeKind::SubtypeDeclaration,
+            NodeKind::ConstantDeclaration,
+            NodeKind::VariableDeclaration,
+            NodeKind::FileDeclaration,
+            NodeKind::AliasDeclaration,
+            NodeKind::AttributeDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::UseClauseDeclaration,
+            NodeKind::GroupTemplateDeclaration,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramBodySyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::SubprogramBody(
+                SubprogramBodySyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageDeclarationItemSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::PackageDeclarationItem(
+                PackageDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageBodyDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::PackageBodyDeclaration(
+                PackageBodyDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::PackageInstantiationDeclarationItem(
+                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if TypeDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::TypeDeclaration(
+                TypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubtypeDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::SubtypeDeclaration(
+                SubtypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ConstantDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::ConstantDeclaration(
+                ConstantDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if VariableDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::VariableDeclaration(
+                VariableDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if FileDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::FileDeclaration(
+                FileDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AliasDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::AliasDeclaration(
+                AliasDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::AttributeDeclaration(
+                AttributeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupTemplateDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::GroupTemplateDeclaration(
+                GroupTemplateDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeBodyDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            ProtectedTypeBodyDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::SubprogramBody(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => {
+                inner.raw()
+            }
+            ProtectedTypeBodyDeclarativeItemSyntax::PackageDeclarationItem(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::PackageBodyDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::PackageInstantiationDeclarationItem(inner) => {
+                inner.raw()
+            }
+            ProtectedTypeBodyDeclarativeItemSyntax::TypeDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::SubtypeDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::ConstantDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::VariableDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::FileDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::AliasDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::AttributeDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
+            ProtectedTypeBodyDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ProtectedTypeBodyDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ProtectedTypeBodyDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::ProtectedTypeBodyDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "protected_type_body_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramBody,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageBodyDeclaration,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        ProtectedTypeBodyDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ProtectedTypeBodyDeclarativePartSyntax {
+    pub fn protected_type_body_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = ProtectedTypeBodyDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ProtectedTypeBodyDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -14976,8 +15576,8 @@ impl AstNode for ProtectedTypeDeclarationSyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "protected_type_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::ProtectedTypeDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -15001,10 +15601,10 @@ impl ProtectedTypeDeclarationSyntax {
             .filter_map(ProtectedPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn protected_type_declarative_part(&self) -> Option<ProtectedTypeDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(ProtectedTypeDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn protected_type_declaration_epilogue(
@@ -15067,6 +15667,92 @@ impl ProtectedTypeDeclarationEpilogueSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::Identifier)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum ProtectedTypeDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+}
+impl AstNode for ProtectedTypeDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::UseClauseDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return ProtectedTypeDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return ProtectedTypeDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            ProtectedTypeDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            ProtectedTypeDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => {
+                inner.raw()
+            }
+            ProtectedTypeDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            ProtectedTypeDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ProtectedTypeDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for ProtectedTypeDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::ProtectedTypeDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "protected_type_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::UseClauseDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        ProtectedTypeDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl ProtectedTypeDeclarativePartSyntax {
+    pub fn protected_type_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = ProtectedTypeDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(ProtectedTypeDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]
@@ -17823,8 +18509,8 @@ impl AstNode for SubprogramBodySyntax {
             LayoutItem {
                 optional: true,
                 repeated: false,
-                name: "declarations",
-                kind: LayoutItemKind::Node(NodeKind::Declarations),
+                name: "subprogram_declarative_part",
+                kind: LayoutItemKind::Node(NodeKind::SubprogramDeclarativePart),
             },
             LayoutItem {
                 optional: false,
@@ -17860,10 +18546,10 @@ impl SubprogramBodySyntax {
             .filter_map(SubprogramBodyPreambleSyntax::cast)
             .nth(0)
     }
-    pub fn declarations(&self) -> Option<DeclarationsSyntax> {
+    pub fn subprogram_declarative_part(&self) -> Option<SubprogramDeclarativePartSyntax> {
         self.0
             .children()
-            .filter_map(DeclarationsSyntax::cast)
+            .filter_map(SubprogramDeclarativePartSyntax::cast)
             .nth(0)
     }
     pub fn declaration_statement_separator(&self) -> Option<DeclarationStatementSeparatorSyntax> {
@@ -18039,6 +18725,213 @@ impl SubprogramDeclarationSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum SubprogramDeclarativeItemSyntax {
+    SubprogramDeclaration(SubprogramDeclarationSyntax),
+    SubprogramBody(SubprogramBodySyntax),
+    SubprogramInstantiationDeclaration(SubprogramInstantiationDeclarationSyntax),
+    PackageDeclarationItem(PackageDeclarationItemSyntax),
+    PackageBodyDeclaration(PackageBodyDeclarationSyntax),
+    PackageInstantiationDeclarationItem(PackageInstantiationDeclarationItemSyntax),
+    TypeDeclaration(TypeDeclarationSyntax),
+    SubtypeDeclaration(SubtypeDeclarationSyntax),
+    ConstantDeclaration(ConstantDeclarationSyntax),
+    VariableDeclaration(VariableDeclarationSyntax),
+    FileDeclaration(FileDeclarationSyntax),
+    AliasDeclaration(AliasDeclarationSyntax),
+    AttributeDeclaration(AttributeDeclarationSyntax),
+    AttributeSpecification(AttributeSpecificationSyntax),
+    UseClauseDeclaration(UseClauseDeclarationSyntax),
+    GroupTemplateDeclaration(GroupTemplateDeclarationSyntax),
+    GroupDeclaration(GroupDeclarationSyntax),
+}
+impl AstNode for SubprogramDeclarativeItemSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::SubprogramDeclaration,
+            NodeKind::SubprogramBody,
+            NodeKind::SubprogramInstantiationDeclaration,
+            NodeKind::PackageDeclarationItem,
+            NodeKind::PackageBodyDeclaration,
+            NodeKind::PackageInstantiationDeclarationItem,
+            NodeKind::FullTypeDeclaration,
+            NodeKind::IncompleteTypeDeclaration,
+            NodeKind::SubtypeDeclaration,
+            NodeKind::ConstantDeclaration,
+            NodeKind::VariableDeclaration,
+            NodeKind::FileDeclaration,
+            NodeKind::AliasDeclaration,
+            NodeKind::AttributeDeclaration,
+            NodeKind::AttributeSpecification,
+            NodeKind::UseClauseDeclaration,
+            NodeKind::GroupTemplateDeclaration,
+            NodeKind::GroupDeclaration,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if SubprogramDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::SubprogramDeclaration(
+                SubprogramDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramBodySyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::SubprogramBody(
+                SubprogramBodySyntax::cast_unchecked(node),
+            );
+        }
+        if SubprogramInstantiationDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::SubprogramInstantiationDeclaration(
+                SubprogramInstantiationDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageDeclarationItemSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::PackageDeclarationItem(
+                PackageDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageBodyDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::PackageBodyDeclaration(
+                PackageBodyDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if PackageInstantiationDeclarationItemSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::PackageInstantiationDeclarationItem(
+                PackageInstantiationDeclarationItemSyntax::cast_unchecked(node),
+            );
+        }
+        if TypeDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::TypeDeclaration(
+                TypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if SubtypeDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::SubtypeDeclaration(
+                SubtypeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if ConstantDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::ConstantDeclaration(
+                ConstantDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if VariableDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::VariableDeclaration(
+                VariableDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if FileDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::FileDeclaration(
+                FileDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AliasDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::AliasDeclaration(
+                AliasDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::AttributeDeclaration(
+                AttributeDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if AttributeSpecificationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::AttributeSpecification(
+                AttributeSpecificationSyntax::cast_unchecked(node),
+            );
+        }
+        if UseClauseDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::UseClauseDeclaration(
+                UseClauseDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupTemplateDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::GroupTemplateDeclaration(
+                GroupTemplateDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        if GroupDeclarationSyntax::can_cast(&node) {
+            return SubprogramDeclarativeItemSyntax::GroupDeclaration(
+                GroupDeclarationSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            SubprogramDeclarativeItemSyntax::SubprogramDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::SubprogramBody(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::SubprogramInstantiationDeclaration(inner) => {
+                inner.raw()
+            }
+            SubprogramDeclarativeItemSyntax::PackageDeclarationItem(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::PackageBodyDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::PackageInstantiationDeclarationItem(inner) => {
+                inner.raw()
+            }
+            SubprogramDeclarativeItemSyntax::TypeDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::SubtypeDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::ConstantDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::VariableDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::FileDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::AliasDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::AttributeDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::AttributeSpecification(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::UseClauseDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::GroupTemplateDeclaration(inner) => inner.raw(),
+            SubprogramDeclarativeItemSyntax::GroupDeclaration(inner) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct SubprogramDeclarativePartSyntax(pub(crate) SyntaxNode);
+impl AstNode for SubprogramDeclarativePartSyntax {
+    const META: &'static Layout = &Layout::Sequence(Sequence {
+        kind: NodeKind::SubprogramDeclarativePart,
+        items: &[LayoutItem {
+            optional: true,
+            repeated: true,
+            name: "subprogram_declarative_items",
+            kind: LayoutItemKind::NodeChoice(&[
+                NodeKind::SubprogramDeclaration,
+                NodeKind::SubprogramBody,
+                NodeKind::SubprogramInstantiationDeclaration,
+                NodeKind::PackageDeclarationItem,
+                NodeKind::PackageBodyDeclaration,
+                NodeKind::PackageInstantiationDeclarationItem,
+                NodeKind::FullTypeDeclaration,
+                NodeKind::IncompleteTypeDeclaration,
+                NodeKind::SubtypeDeclaration,
+                NodeKind::ConstantDeclaration,
+                NodeKind::VariableDeclaration,
+                NodeKind::FileDeclaration,
+                NodeKind::AliasDeclaration,
+                NodeKind::AttributeDeclaration,
+                NodeKind::AttributeSpecification,
+                NodeKind::UseClauseDeclaration,
+                NodeKind::GroupTemplateDeclaration,
+                NodeKind::GroupDeclaration,
+            ]),
+        }],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        SubprogramDeclarativePartSyntax(node)
+    }
+    fn raw(&self) -> SyntaxNode {
+        self.0.clone()
+    }
+}
+impl SubprogramDeclarativePartSyntax {
+    pub fn subprogram_declarative_items(
+        &self,
+    ) -> impl Iterator<Item = SubprogramDeclarativeItemSyntax> + use<'_> {
+        self.0
+            .children()
+            .filter_map(SubprogramDeclarativeItemSyntax::cast)
     }
 }
 #[derive(Debug, Clone)]

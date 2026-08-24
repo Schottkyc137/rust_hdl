@@ -535,8 +535,16 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::ComponentDeclarationEpilogue
         | NodeKind::CompoundConfigurationSpecification
         | NodeKind::ConstantDeclaration
-        | NodeKind::Declarations
+        | NodeKind::ArchitectureDeclarativePart
+        | NodeKind::BlockDeclarativePart
+        | NodeKind::ConfigurationDeclarativePart
         | NodeKind::EntityDeclarativePart
+        | NodeKind::PackageBodyDeclarativePart
+        | NodeKind::PackageDeclarativePart
+        | NodeKind::ProcessDeclarativePart
+        | NodeKind::ProtectedTypeBodyDeclarativePart
+        | NodeKind::ProtectedTypeDeclarativePart
+        | NodeKind::SubprogramDeclarativePart
         | NodeKind::DisconnectionSpecification
         | NodeKind::FileDeclaration
         | NodeKind::FullTypeDeclaration

@@ -34,7 +34,7 @@ SubprogramBody
                     Identifier 'T'
           RightPar
     Keyword(Is)
-  Declarations
+  SubprogramDeclarativePart
     VariableDeclaration
       Keyword(Variable)
       IdentifierList

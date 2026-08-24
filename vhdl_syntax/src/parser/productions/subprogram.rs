@@ -6,7 +6,7 @@
 
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
-use crate::syntax::NodeKind;
+use crate::syntax::{AstNode, NodeKind, SubprogramDeclarativeItemSyntax};
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
@@ -122,13 +122,20 @@ impl Parser {
         self.start_node_at(checkpoint, SubprogramBodyPreamble);
         self.expect_kw(Kw::Is);
         self.end_node();
-        self.declarations();
+        self.subprogram_declarative_part();
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
         self.sequential_statements();
         self.subprogram_body_epilogue();
         self.end_node();
+    }
+
+    pub fn subprogram_declarative_part(&mut self) {
+        self.declarations(
+            SubprogramDeclarativePart,
+            SubprogramDeclarativeItemSyntax::META,
+        );
     }
 
     pub fn subprogram_body_epilogue(&mut self) {

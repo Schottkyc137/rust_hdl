@@ -8,7 +8,7 @@ PackageBody
     Keyword(Body)
     Identifier 'pkg_name'
     Keyword(Is)
-  Declarations
+  PackageBodyDeclarativePart
     SubprogramBody
       SubprogramBodyPreamble
         ProcedureSpecification

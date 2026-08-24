@@ -12,7 +12,7 @@ PackageDeclaration
   PackagePreamble
     Keyword(Package)
     Identifier 'math_pkg'
-  Declarations
+  PackageDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList

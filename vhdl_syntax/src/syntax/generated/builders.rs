@@ -4438,41 +4438,6 @@ impl From<DeclarationStatementSeparatorBuilder> for DeclarationStatementSeparato
         value.build()
     }
 }
-pub struct DeclarationsBuilder {
-    declarations: Vec<DeclarationSyntax>,
-}
-impl Default for DeclarationsBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-impl DeclarationsBuilder {
-    pub fn new() -> Self {
-        Self {
-            declarations: Vec::new(),
-        }
-    }
-    pub fn add_declarations(mut self, n: impl Into<DeclarationSyntax>) -> Self {
-        self.declarations.push(n.into());
-        self
-    }
-    pub fn build(self) -> DeclarationsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Declarations);
-        for n in self.declarations {
-            builder.push_node(n.raw().green().clone());
-        }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        DeclarationsSyntax::cast(node).unwrap()
-    }
-}
-impl From<DeclarationsBuilder> for DeclarationsSyntax {
-    fn from(value: DeclarationsBuilder) -> Self {
-        value.build()
-    }
-}
 pub struct DesignFileBuilder {
     design_units: Vec<DesignUnitSyntax>,
     eof_token: Token,
@@ -9721,14 +9686,14 @@ impl From<OthersChoiceBuilder> for OthersChoiceSyntax {
 }
 pub struct PackageBodyBuilder {
     package_body_preamble: PackageBodyPreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    package_body_declarative_part: Option<PackageBodyDeclarativePartSyntax>,
     package_body_epilogue: PackageBodyEpilogueSyntax,
 }
 impl PackageBodyBuilder {
     pub fn new(package_body_preamble: impl Into<PackageBodyPreambleSyntax>) -> Self {
         Self {
             package_body_preamble: package_body_preamble.into(),
-            declarations: None,
+            package_body_declarative_part: None,
             package_body_epilogue: PackageBodyEpilogueBuilder::default().build(),
         }
     }
@@ -9736,8 +9701,11 @@ impl PackageBodyBuilder {
         self.package_body_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_package_body_declarative_part(
+        mut self,
+        n: impl Into<PackageBodyDeclarativePartSyntax>,
+    ) -> Self {
+        self.package_body_declarative_part = Some(n.into());
         self
     }
     pub fn with_package_body_epilogue(mut self, n: impl Into<PackageBodyEpilogueSyntax>) -> Self {
@@ -9748,7 +9716,7 @@ impl PackageBodyBuilder {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::PackageBody);
         builder.push_node(self.package_body_preamble.raw().green().clone());
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.package_body_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.package_body_epilogue.raw().green().clone());
@@ -9788,6 +9756,44 @@ impl PackageBodyDeclarationBuilder {
 }
 impl From<PackageBodyDeclarationBuilder> for PackageBodyDeclarationSyntax {
     fn from(value: PackageBodyDeclarationBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct PackageBodyDeclarativePartBuilder {
+    package_body_declarative_items: Vec<PackageBodyDeclarativeItemSyntax>,
+}
+impl Default for PackageBodyDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl PackageBodyDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            package_body_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_package_body_declarative_items(
+        mut self,
+        n: impl Into<PackageBodyDeclarativeItemSyntax>,
+    ) -> Self {
+        self.package_body_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> PackageBodyDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::PackageBodyDeclarativePart);
+        for n in self.package_body_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        PackageBodyDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<PackageBodyDeclarativePartBuilder> for PackageBodyDeclarativePartSyntax {
+    fn from(value: PackageBodyDeclarativePartBuilder) -> Self {
         value.build()
     }
 }
@@ -9931,7 +9937,7 @@ impl From<PackageBodyPreambleBuilder> for PackageBodyPreambleSyntax {
 pub struct PackageDeclarationBuilder {
     package_preamble: PackagePreambleSyntax,
     package_header: Option<PackageHeaderSyntax>,
-    declarations: Option<DeclarationsSyntax>,
+    package_declarative_part: Option<PackageDeclarativePartSyntax>,
     package_epilogue: PackageEpilogueSyntax,
 }
 impl PackageDeclarationBuilder {
@@ -9939,7 +9945,7 @@ impl PackageDeclarationBuilder {
         Self {
             package_preamble: package_preamble.into(),
             package_header: None,
-            declarations: None,
+            package_declarative_part: None,
             package_epilogue: PackageEpilogueBuilder::default().build(),
         }
     }
@@ -9951,8 +9957,11 @@ impl PackageDeclarationBuilder {
         self.package_header = Some(n.into());
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_package_declarative_part(
+        mut self,
+        n: impl Into<PackageDeclarativePartSyntax>,
+    ) -> Self {
+        self.package_declarative_part = Some(n.into());
         self
     }
     pub fn with_package_epilogue(mut self, n: impl Into<PackageEpilogueSyntax>) -> Self {
@@ -9966,7 +9975,7 @@ impl PackageDeclarationBuilder {
         if let Some(n) = self.package_header {
             builder.push_node(n.raw().green().clone());
         }
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.package_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.package_epilogue.raw().green().clone());
@@ -10006,6 +10015,44 @@ impl PackageDeclarationItemBuilder {
 }
 impl From<PackageDeclarationItemBuilder> for PackageDeclarationItemSyntax {
     fn from(value: PackageDeclarationItemBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct PackageDeclarativePartBuilder {
+    package_declarative_items: Vec<PackageDeclarativeItemSyntax>,
+}
+impl Default for PackageDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl PackageDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            package_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_package_declarative_items(
+        mut self,
+        n: impl Into<PackageDeclarativeItemSyntax>,
+    ) -> Self {
+        self.package_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> PackageDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::PackageDeclarativePart);
+        for n in self.package_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        PackageDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<PackageDeclarativePartBuilder> for PackageDeclarativePartSyntax {
+    fn from(value: PackageDeclarativePartBuilder) -> Self {
         value.build()
     }
 }
@@ -11511,6 +11558,44 @@ impl From<ProcedureSpecificationBuilder> for ProcedureSpecificationSyntax {
         value.build()
     }
 }
+pub struct ProcessDeclarativePartBuilder {
+    process_declarative_items: Vec<ProcessDeclarativeItemSyntax>,
+}
+impl Default for ProcessDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ProcessDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            process_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_process_declarative_items(
+        mut self,
+        n: impl Into<ProcessDeclarativeItemSyntax>,
+    ) -> Self {
+        self.process_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> ProcessDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ProcessDeclarativePart);
+        for n in self.process_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ProcessDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ProcessDeclarativePartBuilder> for ProcessDeclarativePartSyntax {
+    fn from(value: ProcessDeclarativePartBuilder) -> Self {
+        value.build()
+    }
+}
 pub struct ProcessEpilogueBuilder {
     end_token: Token,
     postponed_token: Option<Token>,
@@ -11685,7 +11770,7 @@ impl From<ProcessPreambleBuilder> for ProcessPreambleSyntax {
 pub struct ProcessStatementBuilder {
     stmt_label: Option<StmtLabelSyntax>,
     process_preamble: ProcessPreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    process_declarative_part: Option<ProcessDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
     sequence_of_statements: Option<SequenceOfStatementsSyntax>,
     process_epilogue: ProcessEpilogueSyntax,
@@ -11700,7 +11785,7 @@ impl ProcessStatementBuilder {
         Self {
             stmt_label: None,
             process_preamble: ProcessPreambleBuilder::default().build(),
-            declarations: None,
+            process_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
             sequence_of_statements: None,
@@ -11715,8 +11800,11 @@ impl ProcessStatementBuilder {
         self.process_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_process_declarative_part(
+        mut self,
+        n: impl Into<ProcessDeclarativePartSyntax>,
+    ) -> Self {
+        self.process_declarative_part = Some(n.into());
         self
     }
     pub fn with_declaration_statement_separator(
@@ -11741,7 +11829,7 @@ impl ProcessStatementBuilder {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.process_preamble.raw().green().clone());
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.process_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
@@ -11799,7 +11887,7 @@ impl From<ProtectedPreambleBuilder> for ProtectedPreambleSyntax {
 }
 pub struct ProtectedTypeBodyBuilder {
     protected_type_body_preamble: ProtectedTypeBodyPreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    protected_type_body_declarative_part: Option<ProtectedTypeBodyDeclarativePartSyntax>,
     protected_type_body_epilogue: ProtectedTypeBodyEpilogueSyntax,
 }
 impl Default for ProtectedTypeBodyBuilder {
@@ -11811,7 +11899,7 @@ impl ProtectedTypeBodyBuilder {
     pub fn new() -> Self {
         Self {
             protected_type_body_preamble: ProtectedTypeBodyPreambleBuilder::default().build(),
-            declarations: None,
+            protected_type_body_declarative_part: None,
             protected_type_body_epilogue: ProtectedTypeBodyEpilogueBuilder::default().build(),
         }
     }
@@ -11822,8 +11910,11 @@ impl ProtectedTypeBodyBuilder {
         self.protected_type_body_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_protected_type_body_declarative_part(
+        mut self,
+        n: impl Into<ProtectedTypeBodyDeclarativePartSyntax>,
+    ) -> Self {
+        self.protected_type_body_declarative_part = Some(n.into());
         self
     }
     pub fn with_protected_type_body_epilogue(
@@ -11837,7 +11928,7 @@ impl ProtectedTypeBodyBuilder {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::ProtectedTypeBody);
         builder.push_node(self.protected_type_body_preamble.raw().green().clone());
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.protected_type_body_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.protected_type_body_epilogue.raw().green().clone());
@@ -11849,6 +11940,44 @@ impl ProtectedTypeBodyBuilder {
 }
 impl From<ProtectedTypeBodyBuilder> for ProtectedTypeBodySyntax {
     fn from(value: ProtectedTypeBodyBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ProtectedTypeBodyDeclarativePartBuilder {
+    protected_type_body_declarative_items: Vec<ProtectedTypeBodyDeclarativeItemSyntax>,
+}
+impl Default for ProtectedTypeBodyDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ProtectedTypeBodyDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            protected_type_body_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_protected_type_body_declarative_items(
+        mut self,
+        n: impl Into<ProtectedTypeBodyDeclarativeItemSyntax>,
+    ) -> Self {
+        self.protected_type_body_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> ProtectedTypeBodyDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ProtectedTypeBodyDeclarativePart);
+        for n in self.protected_type_body_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ProtectedTypeBodyDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ProtectedTypeBodyDeclarativePartBuilder> for ProtectedTypeBodyDeclarativePartSyntax {
+    fn from(value: ProtectedTypeBodyDeclarativePartBuilder) -> Self {
         value.build()
     }
 }
@@ -11976,7 +12105,7 @@ impl From<ProtectedTypeBodyPreambleBuilder> for ProtectedTypeBodyPreambleSyntax 
 }
 pub struct ProtectedTypeDeclarationBuilder {
     protected_preamble: ProtectedPreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    protected_type_declarative_part: Option<ProtectedTypeDeclarativePartSyntax>,
     protected_type_declaration_epilogue: ProtectedTypeDeclarationEpilogueSyntax,
 }
 impl Default for ProtectedTypeDeclarationBuilder {
@@ -11988,7 +12117,7 @@ impl ProtectedTypeDeclarationBuilder {
     pub fn new() -> Self {
         Self {
             protected_preamble: ProtectedPreambleBuilder::default().build(),
-            declarations: None,
+            protected_type_declarative_part: None,
             protected_type_declaration_epilogue: ProtectedTypeDeclarationEpilogueBuilder::default()
                 .build(),
         }
@@ -11997,8 +12126,11 @@ impl ProtectedTypeDeclarationBuilder {
         self.protected_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_protected_type_declarative_part(
+        mut self,
+        n: impl Into<ProtectedTypeDeclarativePartSyntax>,
+    ) -> Self {
+        self.protected_type_declarative_part = Some(n.into());
         self
     }
     pub fn with_protected_type_declaration_epilogue(
@@ -12012,7 +12144,7 @@ impl ProtectedTypeDeclarationBuilder {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::ProtectedTypeDeclaration);
         builder.push_node(self.protected_preamble.raw().green().clone());
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.protected_type_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(
@@ -12092,6 +12224,44 @@ impl ProtectedTypeDeclarationEpilogueBuilder {
 }
 impl From<ProtectedTypeDeclarationEpilogueBuilder> for ProtectedTypeDeclarationEpilogueSyntax {
     fn from(value: ProtectedTypeDeclarationEpilogueBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct ProtectedTypeDeclarativePartBuilder {
+    protected_type_declarative_items: Vec<ProtectedTypeDeclarativeItemSyntax>,
+}
+impl Default for ProtectedTypeDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl ProtectedTypeDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            protected_type_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_protected_type_declarative_items(
+        mut self,
+        n: impl Into<ProtectedTypeDeclarativeItemSyntax>,
+    ) -> Self {
+        self.protected_type_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> ProtectedTypeDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::ProtectedTypeDeclarativePart);
+        for n in self.protected_type_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        ProtectedTypeDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<ProtectedTypeDeclarativePartBuilder> for ProtectedTypeDeclarativePartSyntax {
+    fn from(value: ProtectedTypeDeclarativePartBuilder) -> Self {
         value.build()
     }
 }
@@ -14046,7 +14216,7 @@ impl From<StmtLabelBuilder> for StmtLabelSyntax {
 }
 pub struct SubprogramBodyBuilder {
     subprogram_body_preamble: SubprogramBodyPreambleSyntax,
-    declarations: Option<DeclarationsSyntax>,
+    subprogram_declarative_part: Option<SubprogramDeclarativePartSyntax>,
     declaration_statement_separator: DeclarationStatementSeparatorSyntax,
     sequence_of_statements: Option<SequenceOfStatementsSyntax>,
     subprogram_body_epilogue: SubprogramBodyEpilogueSyntax,
@@ -14055,7 +14225,7 @@ impl SubprogramBodyBuilder {
     pub fn new(subprogram_body_preamble: impl Into<SubprogramBodyPreambleSyntax>) -> Self {
         Self {
             subprogram_body_preamble: subprogram_body_preamble.into(),
-            declarations: None,
+            subprogram_declarative_part: None,
             declaration_statement_separator: DeclarationStatementSeparatorBuilder::default()
                 .build(),
             sequence_of_statements: None,
@@ -14069,8 +14239,11 @@ impl SubprogramBodyBuilder {
         self.subprogram_body_preamble = n.into();
         self
     }
-    pub fn with_declarations(mut self, n: impl Into<DeclarationsSyntax>) -> Self {
-        self.declarations = Some(n.into());
+    pub fn with_subprogram_declarative_part(
+        mut self,
+        n: impl Into<SubprogramDeclarativePartSyntax>,
+    ) -> Self {
+        self.subprogram_declarative_part = Some(n.into());
         self
     }
     pub fn with_declaration_statement_separator(
@@ -14095,7 +14268,7 @@ impl SubprogramBodyBuilder {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::SubprogramBody);
         builder.push_node(self.subprogram_body_preamble.raw().green().clone());
-        if let Some(n) = self.declarations {
+        if let Some(n) = self.subprogram_declarative_part {
             builder.push_node(n.raw().green().clone());
         }
         builder.push_node(self.declaration_statement_separator.raw().green().clone());
@@ -14261,6 +14434,44 @@ impl SubprogramDeclarationBuilder {
 }
 impl From<SubprogramDeclarationBuilder> for SubprogramDeclarationSyntax {
     fn from(value: SubprogramDeclarationBuilder) -> Self {
+        value.build()
+    }
+}
+pub struct SubprogramDeclarativePartBuilder {
+    subprogram_declarative_items: Vec<SubprogramDeclarativeItemSyntax>,
+}
+impl Default for SubprogramDeclarativePartBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl SubprogramDeclarativePartBuilder {
+    pub fn new() -> Self {
+        Self {
+            subprogram_declarative_items: Vec::new(),
+        }
+    }
+    pub fn add_subprogram_declarative_items(
+        mut self,
+        n: impl Into<SubprogramDeclarativeItemSyntax>,
+    ) -> Self {
+        self.subprogram_declarative_items.push(n.into());
+        self
+    }
+    pub fn build(self) -> SubprogramDeclarativePartSyntax {
+        let mut builder = NodeBuilder::new();
+        builder.start_node(NodeKind::SubprogramDeclarativePart);
+        for n in self.subprogram_declarative_items {
+            builder.push_node(n.raw().green().clone());
+        }
+        builder.end_node();
+        let green = builder.end();
+        let node = SyntaxNode::new_root(green);
+        SubprogramDeclarativePartSyntax::cast(node).unwrap()
+    }
+}
+impl From<SubprogramDeclarativePartBuilder> for SubprogramDeclarativePartSyntax {
+    fn from(value: SubprogramDeclarativePartBuilder) -> Self {
         value.build()
     }
 }

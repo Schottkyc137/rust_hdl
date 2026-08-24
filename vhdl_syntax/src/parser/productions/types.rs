@@ -6,6 +6,9 @@
 
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{
+    AstNode, ProtectedTypeBodyDeclarativeItemSyntax, ProtectedTypeDeclarativeItemSyntax,
+};
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
@@ -59,10 +62,11 @@ impl Parser {
         self.end_node();
         if is_body {
             self.start_node_at(checkpoint, ProtectedTypeBody);
+            self.protected_type_body_declarative_part();
         } else {
             self.start_node_at(checkpoint, ProtectedTypeDeclaration);
+            self.protected_type_declarative_part();
         }
-        self.declarations();
         if is_body {
             self.start_node(ProtectedTypeBodyEpilogue);
         } else {
@@ -75,6 +79,20 @@ impl Parser {
         self.opt_identifier();
         self.end_node();
         self.end_node();
+    }
+
+    pub fn protected_type_declarative_part(&mut self) {
+        self.declarations(
+            ProtectedTypeDeclarativePart,
+            ProtectedTypeDeclarativeItemSyntax::META,
+        );
+    }
+
+    pub fn protected_type_body_declarative_part(&mut self) {
+        self.declarations(
+            ProtectedTypeBodyDeclarativePart,
+            ProtectedTypeBodyDeclarativeItemSyntax::META,
+        );
     }
 
     pub fn file_type_definition(&mut self) {

@@ -41,59 +41,7 @@ pub(crate) fn is_start_of_declarative_part(token_kind: TokenKind) -> bool {
 }
 
 impl Parser {
-    pub(crate) fn declarations(&mut self) {
-        self.start_node(Declarations);
-        let mut guard = StallGuard::new();
-        while guard.should_continue(self) {
-            match self.peek_token() {
-                Keyword(Kw::Begin | Kw::End) | Eof => break,
-                Keyword(Kw::Type) => self.type_declaration(),
-                Keyword(Kw::Subtype) => self.subtype_declaration(),
-                Keyword(Kw::Component) => self.component_declaration(),
-                Keyword(Kw::Impure | Kw::Pure | Kw::Function | Kw::Procedure) => {
-                    // TODO: Brittle
-                    if self.next_nth_is(Keyword(Kw::New), 3) {
-                        self.subprogram_instantiation_declaration();
-                    } else {
-                        self.subprogram_declaration_or_body()
-                    }
-                }
-                Keyword(Kw::Package) => self.package_instantiation_declaration(),
-                Keyword(Kw::For) => self.configuration_specification(),
-                Keyword(Kw::File) => self.file_declaration(),
-                Keyword(Kw::Shared | Kw::Variable) => self.variable_declaration(),
-                Keyword(Kw::Constant) => self.constant_declaration(),
-                Keyword(Kw::Signal) => self.signal_declaration(),
-                Keyword(Kw::Attribute) => self.attribute_declaration_or_specification(),
-                Keyword(Kw::Use) => self.use_clause_declaration(),
-                Keyword(Kw::Alias) => self.alias_declaration(),
-                _ => {
-                    self.expect_tokens_recover([
-                        Keyword(Kw::Type),
-                        Keyword(Kw::Subtype),
-                        Keyword(Kw::Component),
-                        Keyword(Kw::Impure),
-                        Keyword(Kw::Pure),
-                        Keyword(Kw::Function),
-                        Keyword(Kw::Procedure),
-                        Keyword(Kw::Package),
-                        Keyword(Kw::For),
-                        Keyword(Kw::File),
-                        Keyword(Kw::Shared),
-                        Keyword(Kw::Variable),
-                        Keyword(Kw::Constant),
-                        Keyword(Kw::Signal),
-                        Keyword(Kw::Attribute),
-                        Keyword(Kw::Use),
-                        Keyword(Kw::Alias),
-                    ]);
-                }
-            }
-        }
-        self.end_node();
-    }
-
-    pub(crate) fn declarations2(&mut self, node_kind: NodeKind, layout: &Layout) {
+    pub(crate) fn declarations(&mut self, node_kind: NodeKind, layout: &Layout) {
         const fn choice_options(layout: &Layout) -> &[NodeKind] {
             match layout {
                 Layout::Choice(choice) => choice.options,

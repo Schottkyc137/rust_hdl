@@ -52,7 +52,7 @@ impl Parser {
     }
 
     pub fn entity_declarative_part(&mut self) {
-        self.declarations2(EntityDeclarativePart, EntityDeclarativeItemSyntax::META);
+        self.declarations(EntityDeclarativePart, EntityDeclarativeItemSyntax::META);
     }
 }
 

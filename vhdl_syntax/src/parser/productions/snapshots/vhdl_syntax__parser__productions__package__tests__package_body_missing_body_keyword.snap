@@ -13,7 +13,7 @@ PackageBody
     Keyword(Package)
     Identifier 'math_pkg'
     Keyword(Is)
-  Declarations
+  PackageBodyDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList

@@ -1247,6 +1247,10 @@ ProtectedTypeBodyDeclarativeItem =
 | FileDeclaration
 | AliasDeclaration
 | AttributeDeclaration
+| AttributeSpecification
+| UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
 
 // § 5.6.3
 ProtectedTypeBodyDeclarativePart =

@@ -38,7 +38,10 @@ impl Parser {
     }
 
     pub fn architecture_declarative_part(&mut self) {
-        self.declarations2(ArchitectureDeclarativePart, BlockDeclarativeItemSyntax::META);
+        self.declarations(
+            ArchitectureDeclarativePart,
+            BlockDeclarativeItemSyntax::META,
+        );
     }
 }
 
