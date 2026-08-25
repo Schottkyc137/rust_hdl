@@ -17329,7 +17329,7 @@ impl From<InterfaceObjectClassSyntax> for InterfaceObjectClassToken {
 }
 pub struct LiteralToken(pub(crate) Token);
 impl LiteralToken {
-    pub fn bit_string_literal(v: impl Into<crate::builder::BitStringLiteral>) -> Self {
+    pub fn abstract_literal(v: impl Into<crate::builder::AbstractLiteral>) -> Self {
         Self(v.into().into())
     }
     pub fn character_literal(v: impl Into<crate::builder::CharLiteral>) -> Self {
@@ -17338,7 +17338,7 @@ impl LiteralToken {
     pub fn string_literal(v: impl Into<crate::builder::StringLiteral>) -> Self {
         Self(v.into().into())
     }
-    pub fn abstract_literal(v: impl Into<crate::builder::AbstractLiteral>) -> Self {
+    pub fn bit_string_literal(v: impl Into<crate::builder::BitStringLiteral>) -> Self {
         Self(v.into().into())
     }
     pub fn null() -> Self {
@@ -17350,9 +17350,9 @@ impl From<LiteralSyntax> for LiteralToken {
         LiteralToken(s.raw().token().clone())
     }
 }
-impl From<crate::builder::BitStringLiteral> for LiteralToken {
-    fn from(v: crate::builder::BitStringLiteral) -> Self {
-        LiteralToken::bit_string_literal(v)
+impl From<crate::builder::AbstractLiteral> for LiteralToken {
+    fn from(v: crate::builder::AbstractLiteral) -> Self {
+        LiteralToken::abstract_literal(v)
     }
 }
 impl From<crate::builder::CharLiteral> for LiteralToken {
@@ -17365,9 +17365,9 @@ impl From<crate::builder::StringLiteral> for LiteralToken {
         LiteralToken::string_literal(v)
     }
 }
-impl From<crate::builder::AbstractLiteral> for LiteralToken {
-    fn from(v: crate::builder::AbstractLiteral) -> Self {
-        LiteralToken::abstract_literal(v)
+impl From<crate::builder::BitStringLiteral> for LiteralToken {
+    fn from(v: crate::builder::BitStringLiteral) -> Self {
+        LiteralToken::bit_string_literal(v)
     }
 }
 pub struct ModeToken(pub(crate) Token);

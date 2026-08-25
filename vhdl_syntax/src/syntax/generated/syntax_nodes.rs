@@ -910,10 +910,10 @@ impl AstNode for ArchitectureStatementPartSyntax {
                 NodeKind::ProcessStatement,
                 NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
                 NodeKind::ConcurrentAssertionStatement,
-                NodeKind::ComponentInstantiationStatement,
                 NodeKind::ConcurrentSimpleSignalAssignment,
                 NodeKind::ConcurrentConditionalSignalAssignment,
                 NodeKind::ConcurrentSelectedSignalAssignment,
+                NodeKind::ComponentInstantiationStatement,
                 NodeKind::ForGenerateStatement,
                 NodeKind::IfGenerateStatement,
                 NodeKind::CaseGenerateStatement,
@@ -2455,10 +2455,10 @@ impl AstNode for BlockStatementPartSyntax {
                 NodeKind::ProcessStatement,
                 NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
                 NodeKind::ConcurrentAssertionStatement,
-                NodeKind::ComponentInstantiationStatement,
                 NodeKind::ConcurrentSimpleSignalAssignment,
                 NodeKind::ConcurrentConditionalSignalAssignment,
                 NodeKind::ConcurrentSelectedSignalAssignment,
+                NodeKind::ComponentInstantiationStatement,
                 NodeKind::ForGenerateStatement,
                 NodeKind::IfGenerateStatement,
                 NodeKind::CaseGenerateStatement,
@@ -4160,8 +4160,8 @@ pub enum ConcurrentStatementSyntax {
         ConcurrentProcedureCallOrComponentInstantiationStatementSyntax,
     ),
     ConcurrentAssertionStatement(ConcurrentAssertionStatementSyntax),
-    ComponentInstantiationStatement(ComponentInstantiationStatementSyntax),
     ConcurrentSignalAssignmentStatement(ConcurrentSignalAssignmentStatementSyntax),
+    ComponentInstantiationStatement(ComponentInstantiationStatementSyntax),
     GenerateStatement(GenerateStatementSyntax),
 }
 impl AstNode for ConcurrentStatementSyntax {
@@ -4171,10 +4171,10 @@ impl AstNode for ConcurrentStatementSyntax {
             NodeKind::ProcessStatement,
             NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
             NodeKind::ConcurrentAssertionStatement,
-            NodeKind::ComponentInstantiationStatement,
             NodeKind::ConcurrentSimpleSignalAssignment,
             NodeKind::ConcurrentConditionalSignalAssignment,
             NodeKind::ConcurrentSelectedSignalAssignment,
+            NodeKind::ComponentInstantiationStatement,
             NodeKind::ForGenerateStatement,
             NodeKind::IfGenerateStatement,
             NodeKind::CaseGenerateStatement,
@@ -4199,14 +4199,14 @@ impl AstNode for ConcurrentStatementSyntax {
                 ConcurrentAssertionStatementSyntax::cast_unchecked(node),
             );
         }
-        if ComponentInstantiationStatementSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::ComponentInstantiationStatement(
-                ComponentInstantiationStatementSyntax::cast_unchecked(node),
-            );
-        }
         if ConcurrentSignalAssignmentStatementSyntax::can_cast(&node) {
             return ConcurrentStatementSyntax::ConcurrentSignalAssignmentStatement(
                 ConcurrentSignalAssignmentStatementSyntax::cast_unchecked(node),
+            );
+        }
+        if ComponentInstantiationStatementSyntax::can_cast(&node) {
+            return ConcurrentStatementSyntax::ComponentInstantiationStatement(
+                ComponentInstantiationStatementSyntax::cast_unchecked(node),
             );
         }
         if GenerateStatementSyntax::can_cast(&node) {
@@ -4227,8 +4227,8 @@ impl AstNode for ConcurrentStatementSyntax {
                 inner,
             ) => inner.raw(),
             ConcurrentStatementSyntax::ConcurrentAssertionStatement(inner) => inner.raw(),
-            ConcurrentStatementSyntax::ComponentInstantiationStatement(inner) => inner.raw(),
             ConcurrentStatementSyntax::ConcurrentSignalAssignmentStatement(inner) => inner.raw(),
+            ConcurrentStatementSyntax::ComponentInstantiationStatement(inner) => inner.raw(),
             ConcurrentStatementSyntax::GenerateStatement(inner) => inner.raw(),
         }
     }
@@ -8971,10 +8971,10 @@ impl AstNode for GenerateStatementBodySyntax {
                     NodeKind::ProcessStatement,
                     NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
                     NodeKind::ConcurrentAssertionStatement,
-                    NodeKind::ComponentInstantiationStatement,
                     NodeKind::ConcurrentSimpleSignalAssignment,
                     NodeKind::ConcurrentConditionalSignalAssignment,
                     NodeKind::ConcurrentSelectedSignalAssignment,
+                    NodeKind::ComponentInstantiationStatement,
                     NodeKind::ForGenerateStatement,
                     NodeKind::IfGenerateStatement,
                     NodeKind::CaseGenerateStatement,
@@ -11784,29 +11784,29 @@ impl AstNode for LibraryUnitSyntax {
 }
 #[derive(Debug, Clone)]
 pub enum LiteralSyntax {
-    BitStringLiteral(SyntaxToken),
+    AbstractLiteral(SyntaxToken),
     CharacterLiteral(SyntaxToken),
     StringLiteral(SyntaxToken),
-    AbstractLiteral(SyntaxToken),
+    BitStringLiteral(SyntaxToken),
     Null(SyntaxToken),
 }
 impl LiteralSyntax {
     pub fn cast(token: SyntaxToken) -> Option<Self> {
         match token.kind() {
-            TokenKind::BitStringLiteral => Some(LiteralSyntax::BitStringLiteral(token)),
+            TokenKind::AbstractLiteral => Some(LiteralSyntax::AbstractLiteral(token)),
             TokenKind::CharacterLiteral => Some(LiteralSyntax::CharacterLiteral(token)),
             TokenKind::StringLiteral => Some(LiteralSyntax::StringLiteral(token)),
-            TokenKind::AbstractLiteral => Some(LiteralSyntax::AbstractLiteral(token)),
+            TokenKind::BitStringLiteral => Some(LiteralSyntax::BitStringLiteral(token)),
             TokenKind::Keyword(Kw::Null) => Some(LiteralSyntax::Null(token)),
             _ => None,
         }
     }
     pub fn raw(&self) -> SyntaxToken {
         match self {
-            LiteralSyntax::BitStringLiteral(token) => token.clone(),
+            LiteralSyntax::AbstractLiteral(token) => token.clone(),
             LiteralSyntax::CharacterLiteral(token) => token.clone(),
             LiteralSyntax::StringLiteral(token) => token.clone(),
-            LiteralSyntax::AbstractLiteral(token) => token.clone(),
+            LiteralSyntax::BitStringLiteral(token) => token.clone(),
             LiteralSyntax::Null(token) => token.clone(),
         }
     }
@@ -11821,10 +11821,10 @@ impl AstNode for LiteralExpressionSyntax {
             repeated: false,
             name: "literal",
             kind: LayoutItemKind::TokenChoice(&[
-                TokenKind::BitStringLiteral,
+                TokenKind::AbstractLiteral,
                 TokenKind::CharacterLiteral,
                 TokenKind::StringLiteral,
-                TokenKind::AbstractLiteral,
+                TokenKind::BitStringLiteral,
                 TokenKind::Keyword(Kw::Null),
             ]),
         }],

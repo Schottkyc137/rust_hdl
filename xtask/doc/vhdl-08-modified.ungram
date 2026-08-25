@@ -105,8 +105,8 @@ ConcurrentStatement =
 | ProcessStatement
 | ConcurrentProcedureCallOrComponentInstantiationStatement
 | ConcurrentAssertionStatement
-| ComponentInstantiationStatement
 | ConcurrentSignalAssignmentStatement
+| ComponentInstantiationStatement
 | GenerateStatement
 
 // | PslDirective  -- add here if PSL is supported
@@ -605,10 +605,10 @@ SecondaryUnit =
 // § 9: Expression
 //==============================================================================
 Literal =
-  '#bit_string_literal'
+ '#abstract_literal'
 | '#character_literal'
 | '#string_literal'
-| '#abstract_literal'
+| '#bit_string_literal'
 | 'null'
 
 ParenthesizedExpressionOrAggregate =
