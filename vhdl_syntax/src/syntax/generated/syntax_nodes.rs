@@ -4117,9 +4117,7 @@ pub enum ConcurrentStatementSyntax {
     ConcurrentProcedureCallOrComponentInstantiationStatement(
         ConcurrentProcedureCallOrComponentInstantiationStatementSyntax,
     ),
-    ForGenerateStatement(ForGenerateStatementSyntax),
-    IfGenerateStatement(IfGenerateStatementSyntax),
-    CaseGenerateStatement(CaseGenerateStatementSyntax),
+    GenerateStatement(GenerateStatementSyntax),
 }
 impl AstNode for ConcurrentStatementSyntax {
     const META: &'static Layout = &Layout::Choice(Choice {
@@ -4176,19 +4174,9 @@ impl AstNode for ConcurrentStatementSyntax {
         if ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::can_cast(&node) {
             return ConcurrentStatementSyntax :: ConcurrentProcedureCallOrComponentInstantiationStatement (ConcurrentProcedureCallOrComponentInstantiationStatementSyntax :: cast_unchecked (node)) ;
         }
-        if ForGenerateStatementSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::ForGenerateStatement(
-                ForGenerateStatementSyntax::cast_unchecked(node),
-            );
-        }
-        if IfGenerateStatementSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::IfGenerateStatement(
-                IfGenerateStatementSyntax::cast_unchecked(node),
-            );
-        }
-        if CaseGenerateStatementSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::CaseGenerateStatement(
-                CaseGenerateStatementSyntax::cast_unchecked(node),
+        if GenerateStatementSyntax::can_cast(&node) {
+            return ConcurrentStatementSyntax::GenerateStatement(
+                GenerateStatementSyntax::cast_unchecked(node),
             );
         }
         unreachable!(
@@ -4208,9 +4196,7 @@ impl AstNode for ConcurrentStatementSyntax {
             ConcurrentStatementSyntax::ConcurrentProcedureCallOrComponentInstantiationStatement(
                 inner,
             ) => inner.raw(),
-            ConcurrentStatementSyntax::ForGenerateStatement(inner) => inner.raw(),
-            ConcurrentStatementSyntax::IfGenerateStatement(inner) => inner.raw(),
-            ConcurrentStatementSyntax::CaseGenerateStatement(inner) => inner.raw(),
+            ConcurrentStatementSyntax::GenerateStatement(inner) => inner.raw(),
         }
     }
 }
@@ -8886,6 +8872,49 @@ impl GenerateEpilogueSyntax {
             .tokens()
             .filter(|token| token.kind() == TokenKind::SemiColon)
             .nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum GenerateStatementSyntax {
+    ForGenerateStatement(ForGenerateStatementSyntax),
+    IfGenerateStatement(IfGenerateStatementSyntax),
+    CaseGenerateStatement(CaseGenerateStatementSyntax),
+}
+impl AstNode for GenerateStatementSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::ForGenerateStatement,
+            NodeKind::IfGenerateStatement,
+            NodeKind::CaseGenerateStatement,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if ForGenerateStatementSyntax::can_cast(&node) {
+            return GenerateStatementSyntax::ForGenerateStatement(
+                ForGenerateStatementSyntax::cast_unchecked(node),
+            );
+        }
+        if IfGenerateStatementSyntax::can_cast(&node) {
+            return GenerateStatementSyntax::IfGenerateStatement(
+                IfGenerateStatementSyntax::cast_unchecked(node),
+            );
+        }
+        if CaseGenerateStatementSyntax::can_cast(&node) {
+            return GenerateStatementSyntax::CaseGenerateStatement(
+                CaseGenerateStatementSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            GenerateStatementSyntax::ForGenerateStatement(inner) => inner.raw(),
+            GenerateStatementSyntax::IfGenerateStatement(inner) => inner.raw(),
+            GenerateStatementSyntax::CaseGenerateStatement(inner) => inner.raw(),
+        }
     }
 }
 #[derive(Debug, Clone)]
