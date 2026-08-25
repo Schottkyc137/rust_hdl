@@ -908,12 +908,12 @@ impl AstNode for ArchitectureStatementPartSyntax {
             kind: LayoutItemKind::NodeChoice(&[
                 NodeKind::BlockStatement,
                 NodeKind::ProcessStatement,
+                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
                 NodeKind::ConcurrentAssertionStatement,
                 NodeKind::ComponentInstantiationStatement,
-                NodeKind::ConcurrentSelectedSignalAssignment,
-                NodeKind::ConcurrentConditionalSignalAssignment,
                 NodeKind::ConcurrentSimpleSignalAssignment,
-                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+                NodeKind::ConcurrentConditionalSignalAssignment,
+                NodeKind::ConcurrentSelectedSignalAssignment,
                 NodeKind::ForGenerateStatement,
                 NodeKind::IfGenerateStatement,
                 NodeKind::CaseGenerateStatement,
@@ -2453,12 +2453,12 @@ impl AstNode for BlockStatementPartSyntax {
             kind: LayoutItemKind::NodeChoice(&[
                 NodeKind::BlockStatement,
                 NodeKind::ProcessStatement,
+                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
                 NodeKind::ConcurrentAssertionStatement,
                 NodeKind::ComponentInstantiationStatement,
-                NodeKind::ConcurrentSelectedSignalAssignment,
-                NodeKind::ConcurrentConditionalSignalAssignment,
                 NodeKind::ConcurrentSimpleSignalAssignment,
-                NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+                NodeKind::ConcurrentConditionalSignalAssignment,
+                NodeKind::ConcurrentSelectedSignalAssignment,
                 NodeKind::ForGenerateStatement,
                 NodeKind::IfGenerateStatement,
                 NodeKind::CaseGenerateStatement,
@@ -3993,6 +3993,53 @@ impl ConcurrentSelectedSignalAssignmentSyntax {
     }
 }
 #[derive(Debug, Clone)]
+pub enum ConcurrentSignalAssignmentStatementSyntax {
+    ConcurrentSimpleSignalAssignment(ConcurrentSimpleSignalAssignmentSyntax),
+    ConcurrentConditionalSignalAssignment(ConcurrentConditionalSignalAssignmentSyntax),
+    ConcurrentSelectedSignalAssignment(ConcurrentSelectedSignalAssignmentSyntax),
+}
+impl AstNode for ConcurrentSignalAssignmentStatementSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::ConcurrentSimpleSignalAssignment,
+            NodeKind::ConcurrentConditionalSignalAssignment,
+            NodeKind::ConcurrentSelectedSignalAssignment,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if ConcurrentSimpleSignalAssignmentSyntax::can_cast(&node) {
+            return ConcurrentSignalAssignmentStatementSyntax::ConcurrentSimpleSignalAssignment(
+                ConcurrentSimpleSignalAssignmentSyntax::cast_unchecked(node),
+            );
+        }
+        if ConcurrentConditionalSignalAssignmentSyntax::can_cast(&node) {
+            return ConcurrentSignalAssignmentStatementSyntax :: ConcurrentConditionalSignalAssignment (ConcurrentConditionalSignalAssignmentSyntax :: cast_unchecked (node)) ;
+        }
+        if ConcurrentSelectedSignalAssignmentSyntax::can_cast(&node) {
+            return ConcurrentSignalAssignmentStatementSyntax::ConcurrentSelectedSignalAssignment(
+                ConcurrentSelectedSignalAssignmentSyntax::cast_unchecked(node),
+            );
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            ConcurrentSignalAssignmentStatementSyntax::ConcurrentSimpleSignalAssignment(inner) => {
+                inner.raw()
+            }
+            ConcurrentSignalAssignmentStatementSyntax::ConcurrentConditionalSignalAssignment(
+                inner,
+            ) => inner.raw(),
+            ConcurrentSignalAssignmentStatementSyntax::ConcurrentSelectedSignalAssignment(
+                inner,
+            ) => inner.raw(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
 pub struct ConcurrentSimpleSignalAssignmentSyntax(pub(crate) SyntaxNode);
 impl AstNode for ConcurrentSimpleSignalAssignmentSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
@@ -4109,14 +4156,12 @@ impl ConcurrentSimpleSignalAssignmentSyntax {
 pub enum ConcurrentStatementSyntax {
     BlockStatement(BlockStatementSyntax),
     ProcessStatement(ProcessStatementSyntax),
-    ConcurrentAssertionStatement(ConcurrentAssertionStatementSyntax),
-    ComponentInstantiationStatement(ComponentInstantiationStatementSyntax),
-    ConcurrentSelectedSignalAssignment(ConcurrentSelectedSignalAssignmentSyntax),
-    ConcurrentConditionalSignalAssignment(ConcurrentConditionalSignalAssignmentSyntax),
-    ConcurrentSimpleSignalAssignment(ConcurrentSimpleSignalAssignmentSyntax),
     ConcurrentProcedureCallOrComponentInstantiationStatement(
         ConcurrentProcedureCallOrComponentInstantiationStatementSyntax,
     ),
+    ConcurrentAssertionStatement(ConcurrentAssertionStatementSyntax),
+    ComponentInstantiationStatement(ComponentInstantiationStatementSyntax),
+    ConcurrentSignalAssignmentStatement(ConcurrentSignalAssignmentStatementSyntax),
     GenerateStatement(GenerateStatementSyntax),
 }
 impl AstNode for ConcurrentStatementSyntax {
@@ -4124,12 +4169,12 @@ impl AstNode for ConcurrentStatementSyntax {
         options: &[
             NodeKind::BlockStatement,
             NodeKind::ProcessStatement,
+            NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
             NodeKind::ConcurrentAssertionStatement,
             NodeKind::ComponentInstantiationStatement,
-            NodeKind::ConcurrentSelectedSignalAssignment,
-            NodeKind::ConcurrentConditionalSignalAssignment,
             NodeKind::ConcurrentSimpleSignalAssignment,
-            NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+            NodeKind::ConcurrentConditionalSignalAssignment,
+            NodeKind::ConcurrentSelectedSignalAssignment,
             NodeKind::ForGenerateStatement,
             NodeKind::IfGenerateStatement,
             NodeKind::CaseGenerateStatement,
@@ -4146,6 +4191,9 @@ impl AstNode for ConcurrentStatementSyntax {
                 ProcessStatementSyntax::cast_unchecked(node),
             );
         }
+        if ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::can_cast(&node) {
+            return ConcurrentStatementSyntax :: ConcurrentProcedureCallOrComponentInstantiationStatement (ConcurrentProcedureCallOrComponentInstantiationStatementSyntax :: cast_unchecked (node)) ;
+        }
         if ConcurrentAssertionStatementSyntax::can_cast(&node) {
             return ConcurrentStatementSyntax::ConcurrentAssertionStatement(
                 ConcurrentAssertionStatementSyntax::cast_unchecked(node),
@@ -4156,23 +4204,10 @@ impl AstNode for ConcurrentStatementSyntax {
                 ComponentInstantiationStatementSyntax::cast_unchecked(node),
             );
         }
-        if ConcurrentSelectedSignalAssignmentSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::ConcurrentSelectedSignalAssignment(
-                ConcurrentSelectedSignalAssignmentSyntax::cast_unchecked(node),
+        if ConcurrentSignalAssignmentStatementSyntax::can_cast(&node) {
+            return ConcurrentStatementSyntax::ConcurrentSignalAssignmentStatement(
+                ConcurrentSignalAssignmentStatementSyntax::cast_unchecked(node),
             );
-        }
-        if ConcurrentConditionalSignalAssignmentSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::ConcurrentConditionalSignalAssignment(
-                ConcurrentConditionalSignalAssignmentSyntax::cast_unchecked(node),
-            );
-        }
-        if ConcurrentSimpleSignalAssignmentSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax::ConcurrentSimpleSignalAssignment(
-                ConcurrentSimpleSignalAssignmentSyntax::cast_unchecked(node),
-            );
-        }
-        if ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::can_cast(&node) {
-            return ConcurrentStatementSyntax :: ConcurrentProcedureCallOrComponentInstantiationStatement (ConcurrentProcedureCallOrComponentInstantiationStatementSyntax :: cast_unchecked (node)) ;
         }
         if GenerateStatementSyntax::can_cast(&node) {
             return ConcurrentStatementSyntax::GenerateStatement(
@@ -4188,14 +4223,12 @@ impl AstNode for ConcurrentStatementSyntax {
         match self {
             ConcurrentStatementSyntax::BlockStatement(inner) => inner.raw(),
             ConcurrentStatementSyntax::ProcessStatement(inner) => inner.raw(),
-            ConcurrentStatementSyntax::ConcurrentAssertionStatement(inner) => inner.raw(),
-            ConcurrentStatementSyntax::ComponentInstantiationStatement(inner) => inner.raw(),
-            ConcurrentStatementSyntax::ConcurrentSelectedSignalAssignment(inner) => inner.raw(),
-            ConcurrentStatementSyntax::ConcurrentConditionalSignalAssignment(inner) => inner.raw(),
-            ConcurrentStatementSyntax::ConcurrentSimpleSignalAssignment(inner) => inner.raw(),
             ConcurrentStatementSyntax::ConcurrentProcedureCallOrComponentInstantiationStatement(
                 inner,
             ) => inner.raw(),
+            ConcurrentStatementSyntax::ConcurrentAssertionStatement(inner) => inner.raw(),
+            ConcurrentStatementSyntax::ComponentInstantiationStatement(inner) => inner.raw(),
+            ConcurrentStatementSyntax::ConcurrentSignalAssignmentStatement(inner) => inner.raw(),
             ConcurrentStatementSyntax::GenerateStatement(inner) => inner.raw(),
         }
     }
@@ -8936,12 +8969,12 @@ impl AstNode for GenerateStatementBodySyntax {
                 kind: LayoutItemKind::NodeChoice(&[
                     NodeKind::BlockStatement,
                     NodeKind::ProcessStatement,
+                    NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
                     NodeKind::ConcurrentAssertionStatement,
                     NodeKind::ComponentInstantiationStatement,
-                    NodeKind::ConcurrentSelectedSignalAssignment,
-                    NodeKind::ConcurrentConditionalSignalAssignment,
                     NodeKind::ConcurrentSimpleSignalAssignment,
-                    NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement,
+                    NodeKind::ConcurrentConditionalSignalAssignment,
+                    NodeKind::ConcurrentSelectedSignalAssignment,
                     NodeKind::ForGenerateStatement,
                     NodeKind::IfGenerateStatement,
                     NodeKind::CaseGenerateStatement,

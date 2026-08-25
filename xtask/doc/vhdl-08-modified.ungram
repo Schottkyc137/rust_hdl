@@ -94,16 +94,19 @@ GenerateStatement =
 | IfGenerateStatement
 | CaseGenerateStatement
 
+ConcurrentSignalAssignmentStatement =
+  ConcurrentSimpleSignalAssignment
+| ConcurrentConditionalSignalAssignment
+| ConcurrentSelectedSignalAssignment
+
 
 ConcurrentStatement =
   BlockStatement
 | ProcessStatement
+| ConcurrentProcedureCallOrComponentInstantiationStatement
 | ConcurrentAssertionStatement
 | ComponentInstantiationStatement
-| ConcurrentSelectedSignalAssignment
-| ConcurrentConditionalSignalAssignment
-| ConcurrentSimpleSignalAssignment
-| ConcurrentProcedureCallOrComponentInstantiationStatement
+| ConcurrentSignalAssignmentStatement
 | GenerateStatement
 
 // | PslDirective  -- add here if PSL is supported
