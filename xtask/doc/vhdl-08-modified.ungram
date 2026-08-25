@@ -1120,21 +1120,21 @@ SubprogramSpecification =
 ProcedureSpecification =
   'procedure'
   Designator
-  SubprogramHeader?
+  SubprogramHeader
   parameter_list:('parameter'? parenthesized_interface_list:('(' FormalParameterList ')'))?
 
 FunctionSpecification =
   purity:('pure' | 'impure')?
   'function'
   Designator
-  SubprogramHeader?
+  SubprogramHeader
   parameter_list:('parameter'? parenthesized_interface_list:('(' FormalParameterList ')'))?
   'return'
   TypeMark
 
 SubprogramHeader =
-  subprogram_header_generic_clause:('generic' '(' GenericList ')')
-  GenericMapAspect?
+  (subprogram_header_generic_clause:('generic' '(' GenericList ')')
+  GenericMapAspect?)?
 
 SubprogramBody =
   subprogram_body_preamble:(SubprogramSpecification 'is')
@@ -1178,7 +1178,7 @@ SubprogramInstantiationDeclaration =
 
 PackageDeclaration =
   package_preamble:('package' '#identifier' 'is')
-  PackageHeader?
+  PackageHeader
   PackageDeclarativePart
   package_epilogue:('end' 'package'? SimpleName? ';')
 
@@ -1209,7 +1209,7 @@ PackageDeclarativeItem =
 // | PSL_Sequence_Declaration
 
 PackageHeader =
-  GenericClause generic_map:(GenericMapAspect ';')?
+  (GenericClause generic_map:(GenericMapAspect ';')?)?
 
 PackageBody =
   package_body_preamble:('package' 'body' SimpleName 'is')

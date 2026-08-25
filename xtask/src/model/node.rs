@@ -343,6 +343,14 @@ impl From<AliasNode> for Node {
 pub struct SequenceNode {
     pub name: NodeKind,
     pub items: Vec<Field>,
+    /// Whether the production declares its whole body optional (`Foo = (A B)?`).
+    ///
+    /// The marker is about the node, not about its items: those stay exactly as they are and are
+    /// required whenever the node exists. What it adds is that the node may match nothing at
+    /// all, which the tree cannot express by itself -- an empty node is dropped -- so it shows
+    /// up at the use sites instead, as the `?` that
+    /// [`Model::fixup_empty_capable_optional_markers`] puts on every reference to the node.
+    pub optional_body: bool,
 }
 
 #[cfg(test)]
@@ -353,6 +361,15 @@ impl SequenceNode {
         SequenceNode {
             name: name.into(),
             items,
+            optional_body: false,
+        }
+    }
+
+    /// Test-only: the same, for a production whose body carries `?` as a whole.
+    pub fn new_optional_body(name: impl Into<NodeKind>, items: Vec<Field>) -> SequenceNode {
+        SequenceNode {
+            optional_body: true,
+            ..SequenceNode::new(name, items)
         }
     }
 }
@@ -564,6 +581,7 @@ impl Model {
         self.check_choice_alternatives_are_nodes();
         self.check_choice_alternatives_are_disjoint();
         self.check_empty_capable_nodes_marked_optional();
+        self.check_optional_bodies_are_not_redundant();
         self.check_nth_accessors_are_unambiguous();
     }
 
@@ -764,6 +782,21 @@ impl Model {
     /// those tokens are always emitted. The computation is a fixed-point iteration to handle
     /// transitive cases.
     pub fn compute_empty_capable_nodes(&self) -> HashSet<NodeKind> {
+        self.empty_capable_fixed_point(is_empty_capable)
+    }
+
+    /// The same fixed point with every declared `?` body ignored, i.e. the empty-capability that
+    /// the items alone account for. [`Model::check_optional_bodies_are_not_redundant`] compares
+    /// the two.
+    fn compute_structurally_empty_capable_nodes(&self) -> HashSet<NodeKind> {
+        self.empty_capable_fixed_point(is_structurally_empty_capable)
+    }
+
+    /// Grows the set of empty-capable kinds until `is_empty` adds nothing more to it.
+    fn empty_capable_fixed_point(
+        &self,
+        is_empty: impl Fn(&Node, &HashSet<NodeKind>) -> bool,
+    ) -> HashSet<NodeKind> {
         let mut empty_capable: HashSet<NodeKind> = HashSet::new();
         loop {
             let prev_size = empty_capable.len();
@@ -771,7 +804,7 @@ impl Model {
                 if empty_capable.contains(node.name()) {
                     continue;
                 }
-                if is_empty_capable(node, &empty_capable) {
+                if is_empty(node, &empty_capable) {
                     empty_capable.insert(node.name().clone());
                 }
             }
@@ -808,6 +841,27 @@ impl Model {
                 println!("  {child} in {parent}");
             }
             panic!("fix the violations above by appending `?` to each listed node reference in the grammar definition");
+        }
+    }
+
+    /// Checks that no production declares its whole body optional when its items already make it
+    /// empty-capable.
+    ///
+    /// The marker would decide nothing there: references to the node come out optional either
+    /// way. Rejecting it keeps `?` on a body meaning what it says -- that the items require
+    /// something the parser may nevertheless leave out altogether.
+    pub fn check_optional_bodies_are_not_redundant(&self) {
+        let structurally_empty_capable = self.compute_structurally_empty_capable_nodes();
+        for node in self.all_nodes() {
+            let Node::Items(seq) = node else {
+                continue;
+            };
+            assert!(
+                !(seq.optional_body && structurally_empty_capable.contains(&seq.name)),
+                "production {} marks its whole body `?`, but its items already let it match \
+                 nothing, so every reference to it is optional either way; drop the marker.",
+                seq.name
+            );
         }
     }
 
@@ -950,7 +1004,21 @@ impl Model {
 
 /// Whether `node` can produce a completely empty green node, given the kinds already known to be
 /// empty-capable. See [`Model::compute_empty_capable_nodes`].
+///
+/// Either the production says so itself, by carrying `?` on its whole body, or its items leave
+/// it nothing it has to emit.
 fn is_empty_capable(node: &Node, empty_capable: &HashSet<NodeKind>) -> bool {
+    declares_optional_body(node) || is_structurally_empty_capable(node, empty_capable)
+}
+
+/// Whether `node`'s production declares its whole body optional (`Foo = (A B)?`).
+fn declares_optional_body(node: &Node) -> bool {
+    matches!(node, Node::Items(seq) if seq.optional_body)
+}
+
+/// Whether `node`'s *items* let it produce a completely empty green node -- the declared `?` of
+/// [`declares_optional_body`] left aside.
+fn is_structurally_empty_capable(node: &Node, empty_capable: &HashSet<NodeKind>) -> bool {
     match node {
         Node::Items(seq) => seq.items.iter().all(|item| match &item.kind {
             NodeOrTokenKind::Token(_) => item.may_be_absent(),
@@ -1162,6 +1230,33 @@ mod tests {
         model.push_node(Node::Items(root));
         model.do_postprocessing();
         model.check_empty_capable_nodes_marked_optional(); // must not panic
+    }
+
+    /// A production that declares its whole body optional is empty-capable even though its items
+    /// are not, and the fixup carries that to the reference in the parent.
+    #[test]
+    fn a_declared_optional_body_is_empty_capable() {
+        let mut model = Model::default();
+        // Header: a required canonical token, so nothing about its items says it may be absent.
+        let header =
+            SequenceNode::new_optional_body("Header", vec![Field::token(TokenKind::SemiColon)]);
+        let root = SequenceNode::new("DesignFile", vec![Field::node("Header")]);
+        model.push_node(Node::Items(header));
+        model.push_node(Node::Items(root));
+        model.do_postprocessing();
+
+        assert!(
+            model.compute_empty_capable_nodes().contains("Header"),
+            "a declared `?` body must make the node empty-capable"
+        );
+        // The marker is not redundant: only the declaration makes Header empty-capable.
+        model.check_optional_bodies_are_not_redundant();
+
+        model.fixup_empty_capable_optional_markers();
+        let Some(Node::Items(root)) = model.node(&"DesignFile".into()) else {
+            panic!("DesignFile should be a sequence node")
+        };
+        assert_eq!(root.items[0].cardinality, Cardinality::Optional { nth: 0 });
     }
 
     fn model_with(items: Vec<Field>) -> Model {

@@ -83,6 +83,7 @@ fn map_single(
                     let node = Node::Items(SequenceNode {
                         name: kind.clone(),
                         items: vec![map_single(production, rule, grammar, model)],
+                        optional_body: false,
                     });
                     model.push_node(node);
                     return Field::node(kind);
@@ -180,6 +181,37 @@ fn alternative_denotes_token(rule: &Rule, grammar: &ungrammar::Grammar, fuel: us
     }
 }
 
+/// Marks a production as able to match nothing at all, for a body that carries `?` as a whole.
+///
+/// Only a sequence can say that. A list always contributes at least one element, and an
+/// alternation has no node of its own in the tree to carry the marker -- for either of them,
+/// whether the construct is there at all is the use site's business, so the `?` belongs there.
+fn declare_optional_body(node: Node) -> Node {
+    match node {
+        Node::Items(seq) => Node::Items(SequenceNode {
+            optional_body: true,
+            ..seq
+        }),
+        Node::List(list) => panic!(
+            "Production {} is a separated list whose whole body carries `?`. A list always \
+             contributes at least one element; move the `?` to the use sites of {}.",
+            list.kind, list.kind
+        ),
+        Node::Choices(choice) => panic!(
+            "Production {} is an alternation whose whole body carries `?`. An alternation \
+             materializes as whichever alternative was taken and has no node of its own to \
+             carry the marker; move the `?` to the use sites of {}.",
+            choice.name, choice.name
+        ),
+        Node::Alias(alias) => {
+            unreachable!(
+                "mapping a group never yields an alias, but {} is one",
+                alias.name
+            )
+        }
+    }
+}
+
 fn map_rule(
     name: NodeKind,
     rule: &ungrammar::Rule,
@@ -197,6 +229,19 @@ fn map_rule(
             let aliased = map_single(name.as_str(), rule, grammar, model);
             Node::Alias(AliasNode::new(name, aliased.kind))
         }
+        // `Foo = (A B)?` puts the `?` on the production rather than on any one item: the node
+        // may match nothing at all. Its items are unaffected -- each is still required whenever
+        // the node is there -- and what the marker amounts to is that every *reference* to the
+        // node may be absent, which `Model::fixup_empty_capable_optional_markers` derives from
+        // the node being empty-capable.
+        ungrammar::Rule::Opt(inner)
+            if matches!(
+                inner.as_ref(),
+                ungrammar::Rule::Seq(_) | ungrammar::Rule::Alt(_)
+            ) =>
+        {
+            declare_optional_body(map_rule(name, inner, grammar, model))
+        }
         // `Foo = Bar?` / `Foo = Bar*` do: the node is what carries the "absent" and the
         // "repeated" of the reference.
         ungrammar::Rule::Rep(_) | ungrammar::Rule::Opt(_) => {
@@ -204,6 +249,7 @@ fn map_rule(
             Node::Items(SequenceNode {
                 name,
                 items: vec![mapped],
+                optional_body: false,
             })
         }
         ungrammar::Rule::Seq(rules) => {
@@ -239,6 +285,7 @@ fn map_rule(
             Node::Items(SequenceNode {
                 name,
                 items: mapped,
+                optional_body: false,
             })
         }
         ungrammar::Rule::Alt(rules) => {
@@ -533,6 +580,74 @@ mod tests {
                 "{kind} should still be a sequence node"
             );
         }
+    }
+
+    /// `Foo = (A B)?` is the LRM's own spelling for a production that may match nothing at all.
+    /// The node keeps its items -- `A` is required whenever the node is there -- and it is the
+    /// *reference* in the parent that the marker makes optional.
+    #[test]
+    fn a_production_whose_whole_body_is_optional_is_empty_capable() {
+        let model = model_of(
+            "
+            DesignFile = Header ';'
+            Header = ('generic' Generics)?
+            Generics = '#identifier' ';'
+            ",
+        );
+        assert!(model
+            .compute_empty_capable_nodes()
+            .contains(&NodeKind::from("Header")));
+        assert_eq!(
+            fields_of(&model, "Header"),
+            [
+                ("generic_token".to_owned(), Cardinality::Required { nth: 0 }),
+                ("generics".to_owned(), Cardinality::Required { nth: 0 }),
+            ]
+        );
+        assert_eq!(
+            fields_of(&model, "DesignFile")[0],
+            ("header".to_owned(), Cardinality::Optional { nth: 0 })
+        );
+    }
+
+    /// A `?` on a body whose items already allow the node to match nothing decides nothing, so
+    /// it is a modelling mistake rather than a second way of saying the same thing.
+    #[test]
+    fn a_redundant_optional_body_is_rejected() {
+        assert!(is_rejected(
+            "
+            DesignFile = Header ';'
+            Header = (Generics? ','?)?
+            Generics = '#identifier' ';'
+            "
+        ));
+    }
+
+    /// A list always contributes at least one element, so whether it is there at all is the use
+    /// site's business and the `?` belongs there.
+    #[test]
+    fn an_optional_body_on_a_list_is_rejected() {
+        assert!(is_rejected(
+            "
+            DesignFile = Names ';'
+            Names = (Name (',' Name)*)?
+            Name = '#identifier' ';'
+            "
+        ));
+    }
+
+    /// An alternation materializes as whichever alternative was taken, so it has no node of its
+    /// own to carry the marker.
+    #[test]
+    fn an_optional_body_on_an_alternation_is_rejected() {
+        assert!(is_rejected(
+            "
+            DesignFile = Item ';'
+            Item = (First | Second)?
+            First = '#identifier' ';'
+            Second = '#identifier' ','
+            "
+        ));
     }
 
     /// A label on a single reference wraps it in a node of its own, named after the label — the
