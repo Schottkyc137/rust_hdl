@@ -567,7 +567,7 @@ ContextDeclaration =
   context_declaration_epilogue:('end' 'context'? SimpleName? ';')
 
 ContextReference =
-  'context' NameList ';'
+  'context' name_list:(Name (',' Name)*) ';'
 
 ContextItem =
   LibraryClause | use_clause_context_item:UseClause | ContextReference
@@ -760,9 +760,6 @@ PartialPathname =
 PathnameElement =
   '#identifier' parenthesized_expression:('(' Expression ')')?
 
-NameList =
-  Name (',' Name)*
-
 Label =
   '#identifier'
 
@@ -802,7 +799,7 @@ NameTail =
 // § 12: Scope and Visibility
 //==============================================================================
 UseClause =
-  'use' NameList ';'
+  'use' name_list:(Name  (',' Name)*) ';'
 
 //==============================================================================
 // § 10: Sequential Statements
