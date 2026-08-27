@@ -24,21 +24,59 @@
 //! production, so a difference counts as *explained* only for as long as the prose
 //! still describes the grammar. Once the grammar moves on, the fence stops matching
 //! and is reported as stale rather than quietly going on being counted.
+//!
+//! A production that exists on only one side has no such per-element diff -- all of it
+//! is the difference -- so the sign moves onto the name and the body falls away. What
+//! is left is short enough that one fence carries the whole family:
+//!
+//! ```text
+//! ```diff
+//! + BinaryExpression
+//! + UnaryExpression
+//! - Term
+//! - Factor
+//! ```
+//! ```
+//!
+//! `+` claims the production exists only in the modified grammar and `-` only in the
+//! LRM's, and each line is one such claim, checked like any other: a fence outlives the
+//! grammar no longer here than it does there. See [`Claim`].
+//!
+//! The two shapes do not mix. A fence heads a diff or it lists claims, and which one it
+//! is is decided by its first line -- otherwise `+ Lhs` could as well be the second line
+//! of a quoted body as a claim of its own.
 
 use anyhow::{bail, Context, Result};
 use std::path::Path;
 
-/// One fenced `diff` block from the book: a difference somebody wrote the reason for.
+/// What a fence says the difference *is*, which is the first thing
+/// [`super::diff_grammar`] checks it against.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Claim {
+    /// `DesignFile =` -- the production is in both grammars and their bodies differ.
+    Differing,
+    /// `+ BinaryExpression` -- the production exists only in the modified grammar.
+    OnlyInModified,
+    /// `- Primary` -- the production exists only in the LRM grammar.
+    OnlyInLrm,
+}
+
+/// One difference somebody wrote the reason for: a whole fence when it heads a diff,
+/// one of its lines when it lists claims.
 #[derive(Debug)]
 pub struct Explanation {
-    /// The production named by the fence's header line (`DesignFile =`).
+    /// The production the fence names (`DesignFile =`, `+ BinaryExpression`).
     pub production: String,
+    /// What the fence says about that production.
+    pub claim: Claim,
     /// The diff below the header, [`normalize`]d so it can be compared line by line
-    /// with the diff the tool renders.
+    /// with the diff the tool renders. Empty for a [`Claim::OnlyInModified`] or
+    /// [`Claim::OnlyInLrm`] claim, which is about the production's presence rather
+    /// than its body.
     pub diff: Vec<String>,
     /// The file the fence came from, for reporting.
     file: String,
-    /// 1-based line of the opening fence, for reporting.
+    /// 1-based line the explanation starts at, for reporting.
     line: usize,
 }
 
@@ -123,36 +161,99 @@ pub(super) fn parse(text: &str, file: &str) -> Result<Vec<Explanation>> {
         if !terminated {
             bail!("{file}:{line}: unterminated diff fence");
         }
-        explanations.push(explanation(body, file, line)?);
+        explanations.extend(explanations_of(body, file, line)?);
     }
 
     Ok(explanations)
 }
 
-/// Splits a fence into the production it heads and the diff it quotes.
-fn explanation(mut body: Vec<String>, file: &str, line: usize) -> Result<Explanation> {
-    if body.is_empty() {
+/// Splits a fence into the explanations it carries.
+///
+/// Its first line decides which of the two shapes it has: a production name heads the
+/// diff of a production both grammars have, a signed name makes the whole fence a list
+/// of productions only one grammar has.
+fn explanations_of(mut body: Vec<String>, file: &str, line: usize) -> Result<Vec<Explanation>> {
+    let Some(first) = body.first() else {
         bail!("{file}:{line}: empty diff fence");
+    };
+    if signed(first).is_some() {
+        return claims(&body, file, line);
     }
+
     let header = body.remove(0);
-    let production = header.trim().trim_end_matches('=').trim();
-    let is_production_name = !production.is_empty()
-        && production
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_');
-    if !is_production_name {
+    let Some(production) = production_name(&header) else {
         bail!(
-            "{file}:{line}: a diff fence starts with the production it explains, \
-             written like `DesignFile =`; found `{header}`"
+            "{file}:{line}: a diff fence either heads the diff of one production, \
+             written like `DesignFile =`, or lists the productions only one grammar \
+             has, one `+ Name` or `- Name` per line; found `{header}`"
+        );
+    };
+
+    let diff = normalize(body);
+    // Nothing else in the fence says which elements changed, so without a body there is
+    // no difference left to explain.
+    if diff.is_empty() {
+        bail!(
+            "{file}:{line}: `{production}` heads no diff; a fence for a production only \
+             one grammar has is a signed list, `+ {production}` or `- {production}`"
         );
     }
 
-    Ok(Explanation {
+    Ok(vec![Explanation {
         production: production.to_owned(),
-        diff: normalize(body),
+        claim: Claim::Differing,
+        diff,
         file: file.to_owned(),
         line,
-    })
+    }])
+}
+
+/// One explanation per signed line, each reported at the line it is written on.
+fn claims(body: &[String], file: &str, line: usize) -> Result<Vec<Explanation>> {
+    let mut claims = Vec::new();
+    for (offset, text) in body.iter().enumerate() {
+        // Blank lines are the writer's spacing, not a claim.
+        if text.trim().is_empty() {
+            continue;
+        }
+        let line = line + 1 + offset;
+        let named =
+            signed(text).and_then(|(claim, rest)| Some((claim, production_name(rest)?.to_owned())));
+        let Some((claim, production)) = named else {
+            bail!(
+                "{file}:{line}: a fence that starts with a `+` or a `-` lists the \
+                 productions only one grammar has, one per line, written like \
+                 `+ BinaryExpression` or `- Primary`; found `{text}`"
+            );
+        };
+        claims.push(Explanation {
+            production,
+            claim,
+            diff: Vec::new(),
+            file: file.to_owned(),
+            line,
+        });
+    }
+    Ok(claims)
+}
+
+/// The claim a leading `+` or `-` makes, and the rest of the line it made it about.
+fn signed(line: &str) -> Option<(Claim, &str)> {
+    let line = line.trim_start();
+    if let Some(rest) = line.strip_prefix('+') {
+        Some((Claim::OnlyInModified, rest))
+    } else if let Some(rest) = line.strip_prefix('-') {
+        Some((Claim::OnlyInLrm, rest))
+    } else {
+        None
+    }
+}
+
+/// The production `text` names, if a production name with an optional `=` is all it is.
+fn production_name(text: &str) -> Option<&str> {
+    let name = text.trim().trim_end_matches('=').trim();
+    let is_name = !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+    is_name.then_some(name)
 }
 
 #[cfg(test)]
@@ -203,9 +304,81 @@ mod tests {
     }
 
     #[test]
+    fn a_fence_is_the_claim_that_a_production_is_only_in_the_modified_grammar() {
+        let explanations = parsed("```diff\n+ BinaryExpression\n```\n");
+        assert_eq!(explanations[0].production, "BinaryExpression");
+        assert_eq!(explanations[0].claim, Claim::OnlyInModified);
+        assert!(explanations[0].diff.is_empty());
+    }
+
+    #[test]
+    fn a_fence_is_the_claim_that_a_production_is_only_in_the_lrm_grammar() {
+        let explanations = parsed("```diff\n- Primary =\n```\n");
+        assert_eq!(explanations[0].production, "Primary");
+        assert_eq!(explanations[0].claim, Claim::OnlyInLrm);
+    }
+
+    #[test]
+    fn a_fence_of_signed_names_is_one_claim_per_line() {
+        let explanations = parsed(
+            "```diff\n\
+             + BinaryExpression\n\
+             + UnaryExpression\n\
+             \n\
+             - Term\n\
+             - Factor\n\
+             ```\n",
+        );
+        let claims: Vec<_> = explanations
+            .iter()
+            .map(|e| (e.production.as_str(), e.claim))
+            .collect();
+        assert_eq!(
+            claims,
+            [
+                ("BinaryExpression", Claim::OnlyInModified),
+                ("UnaryExpression", Claim::OnlyInModified),
+                ("Term", Claim::OnlyInLrm),
+                ("Factor", Claim::OnlyInLrm),
+            ]
+        );
+        assert!(explanations.iter().all(|e| e.diff.is_empty()));
+    }
+
+    /// Each line is its own explanation, so a stale one is reported where it is written
+    /// rather than at the fence that happens to carry it.
+    #[test]
+    fn a_claim_is_reported_at_its_own_line() {
+        let explanations = parsed("prose\n\n```diff\n+ A\n+ B\n```\n");
+        assert_eq!(explanations[0].location(), "test.md:4");
+        assert_eq!(explanations[1].location(), "test.md:5");
+    }
+
+    /// The first line decides the shape, so what would otherwise be a body line is a
+    /// claim -- and a body line that names no single production is an error.
+    #[test]
+    fn a_fence_of_signed_names_takes_no_body() {
+        let err = parse("```diff\n+ X\n+  'a' 'b'\n```\n", "test.md").unwrap_err();
+        assert!(err.to_string().contains("one per line"));
+        assert!(err.to_string().contains("test.md:3"));
+    }
+
+    #[test]
+    fn an_unsigned_header_is_the_diff_of_a_production_both_grammars_have() {
+        let explanations = parsed("```diff\nDesignFile =\n+  '#eof'\n```\n");
+        assert_eq!(explanations[0].claim, Claim::Differing);
+    }
+
+    #[test]
     fn a_fence_without_a_production_header_is_an_error() {
-        let err = parse("```diff\n-  Prefix\n+  Name\n```\n", "test.md").unwrap_err();
-        assert!(err.to_string().contains("starts with the production"));
+        let err = parse("```diff\n   'a' 'b'\n+  'c'\n```\n", "test.md").unwrap_err();
+        assert!(err.to_string().contains("either heads the diff"));
+    }
+
+    #[test]
+    fn a_diff_of_a_production_both_grammars_have_may_not_be_left_off() {
+        let err = parse("```diff\nDesignFile =\n```\n", "test.md").unwrap_err();
+        assert!(err.to_string().contains("heads no diff"));
     }
 
     #[test]

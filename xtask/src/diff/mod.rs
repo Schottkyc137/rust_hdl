@@ -31,11 +31,16 @@
 //! out of the developer book, so a difference somebody has written up stops taking up
 //! room in the listing and is counted on its own -- and an explanation the grammar has
 //! moved out from under is reported instead of quietly still counting.
+//!
+//! A production only one of the grammars has is a divergence like any other, and is
+//! compared -- and explained -- like any other: against an [`absent`] body, so all of it
+//! shows up as added or removed. Only its listing is shorter, by name rather than in
+//! full, there being 60-odd of them.
 
-use crate::diff::explained::Explanation;
+use crate::diff::explained::{Claim, Explanation};
 use anyhow::{Context, Result};
 use similar::{ChangeTag, TextDiff};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::Path;
 use std::str::FromStr;
@@ -264,23 +269,36 @@ pub fn diff_grammar(
     let mut is_matched = vec![false; explanations.len()];
 
     let mut differing = Vec::new();
+    let mut lrm_only = Vec::new();
+    let mut modified_only = Vec::new();
     let mut explained = Vec::new();
     let mut identical = 0usize;
     // Identical only because the grouping was flattened away -- reported separately, so
     // that a relaxation of the comparison never passes for an exact match.
     let mut identical_when_flattened = 0usize;
 
-    for (name, lrm_rule) in &lrm {
+    // Both grammars' productions, so that one only one of them has is compared -- and
+    // can be explained -- like any other rather than only being counted at the end.
+    let names: BTreeSet<&String> = lrm.keys().chain(modified.keys()).collect();
+    for name in names {
         if filter.is_some_and(|filter| filter != name) {
             continue;
         }
-        let Some(modified_rule) = modified.get(name) else {
-            continue;
+        let (claim, lrm_rule, modified_rule) = match (lrm.get(name), modified.get(name)) {
+            (Some(lrm_rule), Some(modified_rule)) => (
+                Claim::Differing,
+                lrm_rule.as_compared(nesting),
+                modified_rule.as_compared(nesting),
+            ),
+            (Some(lrm_rule), None) => (Claim::OnlyInLrm, lrm_rule.as_compared(nesting), absent()),
+            (None, Some(modified_rule)) => (
+                Claim::OnlyInModified,
+                absent(),
+                modified_rule.as_compared(nesting),
+            ),
+            (None, None) => unreachable!("a name comes from one of the two grammars"),
         };
-        let (lrm_rule, modified_rule) = (
-            lrm_rule.as_compared(nesting),
-            modified_rule.as_compared(nesting),
-        );
+
         if lrm_rule == modified_rule {
             identical += 1;
             if lrm.get(name) != modified.get(name) {
@@ -292,28 +310,29 @@ pub fn diff_grammar(
         let diff = render_diff(&lrm_rule, &modified_rule);
         let explanation = explanations
             .iter()
-            .position(|explanation| explanation.production == *name && explanation.diff == diff);
+            .position(|explanation| explains(explanation, name, claim, &diff));
         match explanation {
             Some(index) => {
                 is_matched[index] = true;
                 explained.push((name, &explanations[index]));
             }
-            None => differing.push((name, diff)),
+            None => match claim {
+                Claim::Differing => differing.push((name, diff)),
+                Claim::OnlyInLrm => lrm_only.push((name, diff)),
+                Claim::OnlyInModified => modified_only.push((name, diff)),
+            },
         }
     }
 
-    for (name, diff) in &differing {
-        println!("~~ {name} ~~");
-        for line in diff {
-            println!("{line}");
-        }
-        println!();
-    }
-
+    print_diffs(&differing);
     print_explained(&explained);
     print_unmatched(&explanations, &is_matched);
 
     if let Some(filter) = filter {
+        // Nothing else is in scope, so the one production is worth spelling out in full
+        // -- a fence quoting the body copies it from here.
+        print_diffs(&lrm_only);
+        print_diffs(&modified_only);
         match (lrm.contains_key(filter), modified.contains_key(filter)) {
             (false, false) => println!("no production named `{filter}` in either grammar"),
             (true, false) => println!("`{filter}` exists only in {}", file_name(lrm_file)),
@@ -326,15 +345,6 @@ pub fn diff_grammar(
         }
         return Ok(());
     }
-
-    let lrm_only: Vec<_> = lrm
-        .keys()
-        .filter(|name| !modified.contains_key(*name))
-        .collect();
-    let modified_only: Vec<_> = modified
-        .keys()
-        .filter(|name| !lrm.contains_key(*name))
-        .collect();
 
     print_only_in(lrm_file, &lrm_only);
     print_only_in(modified_file, &modified_only);
@@ -361,6 +371,36 @@ pub fn diff_grammar(
     Ok(())
 }
 
+/// Whether the explanation accounts for this difference.
+///
+/// It has to be about the same production and to say the same thing about it -- a
+/// production the modified grammar dropped is not explained by prose about one it
+/// added. A signed claim stops there, its whole content being that the production is
+/// one-sided; a quoted diff has to match element for element, which is what makes it
+/// go stale when the grammar moves.
+fn explains(explanation: &Explanation, name: &str, claim: Claim, diff: &[String]) -> bool {
+    explanation.production == name
+        && explanation.claim == claim
+        && (claim != Claim::Differing || explanation.diff == diff)
+}
+
+/// The rule a production only one grammar has is compared against: an empty body, so
+/// every element of the one that is there shows up as a whole-production difference.
+fn absent() -> Rule {
+    Rule::Seq(Vec::new())
+}
+
+/// The differences still awaiting an explanation, spelled out one element per line.
+fn print_diffs(differences: &[(&String, Vec<String>)]) {
+    for (name, diff) in differences {
+        println!("~~ {name} ~~");
+        for line in diff {
+            println!("{line}");
+        }
+        println!();
+    }
+}
+
 /// The differences the book accounts for, named rather than spelled out.
 fn print_explained(explained: &[(&String, &Explanation)]) {
     if explained.is_empty() {
@@ -373,37 +413,70 @@ fn print_explained(explained: &[(&String, &Explanation)]) {
     println!();
 }
 
-/// Fences the grammar has moved out from under.
+/// The explanations that account for no difference.
 ///
-/// An explanation only counts while it quotes the difference as it stands today, so one
-/// that matches nothing is prose describing a grammar that no longer exists.
+/// An explanation only counts while it describes the difference as it stands today, so
+/// one that matches nothing is either prose about a grammar that no longer exists or a
+/// second copy of an explanation that already did the job -- told apart by whether the
+/// production is explained anywhere else.
 fn print_unmatched(explanations: &[Explanation], is_matched: &[bool]) {
-    let unmatched: Vec<_> = explanations
-        .iter()
-        .zip(is_matched)
-        .filter(|(_, is_matched)| !**is_matched)
-        .map(|(explanation, _)| explanation)
-        .collect();
-    if unmatched.is_empty() {
-        return;
+    let mut stale = Vec::new();
+    let mut duplicated = Vec::new();
+    for (explanation, matched) in explanations.iter().zip(is_matched) {
+        if *matched {
+            continue;
+        }
+        // Same production *and* same claim: a `+ X` that fell through where an
+        // unsigned `X` matched is not a second copy, it is a claim the grammar denies.
+        let accounted_for = explanations
+            .iter()
+            .zip(is_matched)
+            .find(|(other, matched)| {
+                **matched
+                    && other.production == explanation.production
+                    && other.claim == explanation.claim
+            });
+        match accounted_for {
+            Some((first, _)) => duplicated.push((explanation, first)),
+            None => stale.push(explanation),
+        }
     }
-    println!(
-        "explaining a difference that is no longer there ({}):",
-        unmatched.len()
-    );
-    for explanation in &unmatched {
-        println!("  {} `{}`", explanation.location(), explanation.production);
+
+    if !stale.is_empty() {
+        println!(
+            "explaining a difference that is no longer there ({}):",
+            stale.len()
+        );
+        for explanation in &stale {
+            println!("  {} `{}`", explanation.location(), explanation.production);
+        }
+        println!("update it to what this run prints, or drop it.");
+        println!();
     }
-    println!("update the quoted diff to what this run prints, or drop the fence.");
-    println!();
+
+    if !duplicated.is_empty() {
+        println!("explained twice ({}):", duplicated.len());
+        for (explanation, first) in &duplicated {
+            println!(
+                "  {} `{}`, already explained at {}",
+                explanation.location(),
+                explanation.production,
+                first.location()
+            );
+        }
+        println!();
+    }
 }
 
-fn print_only_in(file: &Path, names: &[&String]) {
-    if names.is_empty() {
+/// The productions only one grammar has, by name: all of such a production is the
+/// difference, and there are enough of them that printing each in full would bury the
+/// rest of the listing. `--production` prints the one it is asked about.
+fn print_only_in(file: &Path, differences: &[(&String, Vec<String>)]) {
+    if differences.is_empty() {
         return;
     }
-    println!("only in {} ({}):", file_name(file), names.len());
-    for name in names {
+    println!("only in {} ({}):", file_name(file), differences.len());
+    for (name, _) in differences {
         println!("  {name}");
     }
     println!();
@@ -428,6 +501,14 @@ mod tests {
             .find(|node| grammar[*node].name == production)
             .unwrap_or_else(|| panic!("no production named {production}"));
         Rule::from_ungrammar(&grammar[node].rule, &grammar)
+    }
+
+    /// The one explanation in a markdown snippet.
+    fn parsed_claim(text: &str) -> Explanation {
+        explained::parse(text, "test.md")
+            .expect("fence does not parse")
+            .pop()
+            .expect("snippet holds no fence")
     }
 
     fn flattened(grammar: &str, production: &str) -> String {
@@ -501,6 +582,54 @@ mod tests {
         let explanations = explained::parse(fence, "test.md").expect("fence does not parse");
         assert_eq!(explanations[0].production, "X");
         assert_eq!(explanations[0].diff, diff);
+    }
+
+    /// The whole of a one-sided production is the difference, and it is rendered as
+    /// such: a diff against a body with no elements at all.
+    #[test]
+    fn a_production_only_one_grammar_has_is_diffed_against_an_empty_body() {
+        let grammar = "
+            BinaryExpression = Lhs BinaryOperator Rhs
+            Lhs = '#identifier'
+            BinaryOperator = '+'
+            Rhs = '#identifier'
+        ";
+        let rule = rule_of(grammar, "BinaryExpression");
+        assert_eq!(
+            render_diff(&absent(), &rule),
+            ["+  Lhs", "+  BinaryOperator", "+  Rhs"]
+        );
+        assert_eq!(
+            render_diff(&rule, &absent()),
+            ["-  Lhs", "-  BinaryOperator", "-  Rhs"]
+        );
+    }
+
+    /// A claim is about the production's presence, so it stays valid while the
+    /// production it is about is reshaped -- there is no body for the grammar to move
+    /// out from under.
+    #[test]
+    fn a_claim_explains_a_one_sided_production_whatever_its_body() {
+        let explanation = &parsed_claim("```diff\n+ X\n```\n");
+        let one = render_diff(&absent(), &rule_of("X = 'a' 'b'", "X"));
+        let another = render_diff(&absent(), &rule_of("X = 'c'", "X"));
+        assert!(explains(explanation, "X", Claim::OnlyInModified, &one));
+        assert!(explains(explanation, "X", Claim::OnlyInModified, &another));
+    }
+
+    /// The sign says which grammar has the production, so the two directions -- and the
+    /// unsigned form, which is about a production both grammars have -- never stand in
+    /// for one another.
+    #[test]
+    fn an_explanation_only_accounts_for_the_claim_it_makes() {
+        let diff = render_diff(&absent(), &rule_of("X = 'a'", "X"));
+        let added = parsed_claim("```diff\n+ X\n```\n");
+        let removed = parsed_claim("```diff\n- X\n```\n");
+        let differing = parsed_claim("```diff\nX =\n+  'a'\n```\n");
+        assert!(!explains(&removed, "X", Claim::OnlyInModified, &diff));
+        assert!(!explains(&differing, "X", Claim::OnlyInModified, &diff));
+        assert!(!explains(&added, "X", Claim::OnlyInLrm, &diff));
+        assert!(!explains(&added, "Y", Claim::OnlyInModified, &diff));
     }
 
     #[test]

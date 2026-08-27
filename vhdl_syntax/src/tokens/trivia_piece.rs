@@ -35,6 +35,7 @@ impl Comment {
 
 /// Single trivia pieces that can be combined to form [Trivia](crate::tokens::Trivia) tokens.
 #[derive(Clone, Eq, PartialEq, Debug)]
+// ANCHOR: trivia-piece
 pub enum TriviaPiece {
     /// Horizontal tab '\t' characters
     HorizontalTabs(usize),
@@ -57,6 +58,7 @@ pub enum TriviaPiece {
     /// Non breaking space characters
     NonBreakingSpaces(usize),
 }
+// ANCHOR_END: trivia-piece
 
 impl TriviaPiece {
     /// Returns the length of this trivia piece.

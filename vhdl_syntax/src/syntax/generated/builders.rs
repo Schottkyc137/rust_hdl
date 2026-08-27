@@ -3611,6 +3611,7 @@ impl From<ConditionalForceAssignmentBuilder> for ConditionalForceAssignmentSynta
     }
 }
 pub struct ConditionalVariableAssignmentBuilder {
+    stmt_label: Option<StmtLabelSyntax>,
     target: TargetSyntax,
     colon_eq_token: Token,
     conditional_expressions: ConditionalExpressionsSyntax,
@@ -3622,11 +3623,16 @@ impl ConditionalVariableAssignmentBuilder {
         conditional_expressions: impl Into<ConditionalExpressionsSyntax>,
     ) -> Self {
         Self {
+            stmt_label: None,
             target: target.into(),
             colon_eq_token: TokenKind::ColonEq.canonical_token().unwrap(),
             conditional_expressions: conditional_expressions.into(),
             semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
         }
+    }
+    pub fn with_stmt_label(mut self, n: impl Into<StmtLabelSyntax>) -> Self {
+        self.stmt_label = Some(n.into());
+        self
     }
     pub fn with_target(mut self, n: impl Into<TargetSyntax>) -> Self {
         self.target = n.into();
@@ -3658,6 +3664,9 @@ impl ConditionalVariableAssignmentBuilder {
     pub fn build(self) -> ConditionalVariableAssignmentSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::ConditionalVariableAssignment);
+        if let Some(n) = self.stmt_label {
+            builder.push_node(n.raw().green().clone());
+        }
         builder.push_node(self.target.raw().green().clone());
         builder.push(self.colon_eq_token);
         builder.push_node(self.conditional_expressions.raw().green().clone());
@@ -3674,6 +3683,7 @@ impl From<ConditionalVariableAssignmentBuilder> for ConditionalVariableAssignmen
     }
 }
 pub struct ConditionalWaveformAssignmentBuilder {
+    stmt_label: Option<StmtLabelSyntax>,
     target: TargetSyntax,
     lte_token: Token,
     delay_mechanism: Option<DelayMechanismSyntax>,
@@ -3686,12 +3696,17 @@ impl ConditionalWaveformAssignmentBuilder {
         conditional_waveforms: impl Into<ConditionalWaveformsSyntax>,
     ) -> Self {
         Self {
+            stmt_label: None,
             target: target.into(),
             lte_token: TokenKind::LTE.canonical_token().unwrap(),
             delay_mechanism: None,
             conditional_waveforms: conditional_waveforms.into(),
             semi_colon_token: TokenKind::SemiColon.canonical_token().unwrap(),
         }
+    }
+    pub fn with_stmt_label(mut self, n: impl Into<StmtLabelSyntax>) -> Self {
+        self.stmt_label = Some(n.into());
+        self
     }
     pub fn with_target(mut self, n: impl Into<TargetSyntax>) -> Self {
         self.target = n.into();
@@ -3724,6 +3739,9 @@ impl ConditionalWaveformAssignmentBuilder {
     pub fn build(self) -> ConditionalWaveformAssignmentSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::ConditionalWaveformAssignment);
+        if let Some(n) = self.stmt_label {
+            builder.push_node(n.raw().green().clone());
+        }
         builder.push_node(self.target.raw().green().clone());
         builder.push(self.lte_token);
         if let Some(n) = self.delay_mechanism {

@@ -10,7 +10,7 @@
 use vhdl_syntax::{
     fmt::write::FormatToExt,
     syntax::{
-        builders::*, AstNode, LibraryUnitSyntax, NameDesignatorToken, NamePrefixSyntax,
+        builders::*, AstNode, LibraryUnitSyntax, NameDesignatorToken, PrefixSyntax,
         PrimaryUnitSyntax, SecondaryUnitSyntax,
     },
 };
@@ -39,7 +39,7 @@ fn main() {
     // Names are highly complicated in VHDL and so is building them.
     // The ergonomics of this may change in the future, but currently this is the only way to build names.
     // `NameDesignatorToken::identifier` creates a token-choice wrapper from a plain identifier.
-    let entity_name = NameBuilder::new(NamePrefixSyntax::NameDesignatorPrefix(
+    let entity_name = NameBuilder::new(PrefixSyntax::NameDesignatorPrefix(
         NameDesignatorPrefixBuilder::new(NameDesignatorToken::identifier(b"foo")).build(),
     ));
 

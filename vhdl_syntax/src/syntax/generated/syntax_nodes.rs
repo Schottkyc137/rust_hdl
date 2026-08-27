@@ -4472,6 +4472,12 @@ impl AstNode for ConditionalVariableAssignmentSyntax {
         kind: NodeKind::ConditionalVariableAssignment,
         items: &[
             LayoutItem {
+                optional: true,
+                repeated: false,
+                name: "stmt_label",
+                kind: LayoutItemKind::Node(NodeKind::StmtLabel),
+            },
+            LayoutItem {
                 optional: false,
                 repeated: false,
                 name: "target",
@@ -4508,6 +4514,9 @@ impl AstNode for ConditionalVariableAssignmentSyntax {
     }
 }
 impl ConditionalVariableAssignmentSyntax {
+    pub fn stmt_label(&self) -> Option<StmtLabelSyntax> {
+        self.0.children().filter_map(StmtLabelSyntax::cast).nth(0)
+    }
     pub fn target(&self) -> Option<TargetSyntax> {
         self.0.children().filter_map(TargetSyntax::cast).nth(0)
     }
@@ -4536,6 +4545,12 @@ impl AstNode for ConditionalWaveformAssignmentSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
         kind: NodeKind::ConditionalWaveformAssignment,
         items: &[
+            LayoutItem {
+                optional: true,
+                repeated: false,
+                name: "stmt_label",
+                kind: LayoutItemKind::Node(NodeKind::StmtLabel),
+            },
             LayoutItem {
                 optional: false,
                 repeated: false,
@@ -4582,6 +4597,9 @@ impl AstNode for ConditionalWaveformAssignmentSyntax {
     }
 }
 impl ConditionalWaveformAssignmentSyntax {
+    pub fn stmt_label(&self) -> Option<StmtLabelSyntax> {
+        self.0.children().filter_map(StmtLabelSyntax::cast).nth(0)
+    }
     pub fn target(&self) -> Option<TargetSyntax> {
         self.0.children().filter_map(TargetSyntax::cast).nth(0)
     }

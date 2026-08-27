@@ -846,10 +846,10 @@ ConditionalSignalAssignment =
   ConditionalWaveformAssignment | ConditionalForceAssignment
 
 ConditionalVariableAssignment =
-  Target ':=' ConditionalExpressions ';'
+  stmt_label:(Label ':')? Target ':=' ConditionalExpressions ';'
 
 ConditionalWaveformAssignment =
-  Target '<=' DelayMechanism? ConditionalWaveforms ';'
+  stmt_label:(Label ':')? Target '<=' DelayMechanism? ConditionalWaveforms ';'
 
 ConditionalWaveforms =
   when_waveform:(Waveform 'when' Condition)
@@ -1358,11 +1358,8 @@ RangeConstraint =
 
 RecordTypeDefinition =
   record_type_definition_preamble:'record'
-  RecordElementDeclarations
+  record_element_declarations:(ElementDeclaration ElementDeclaration*)
   record_type_definition_epilogue:('end' 'record' SimpleName?)
-
-RecordElementDeclarations =
-  ElementDeclaration ElementDeclaration*
 
 ScalarTypeDefinition =
   EnumerationTypeDefinition
