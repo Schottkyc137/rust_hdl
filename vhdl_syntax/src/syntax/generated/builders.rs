@@ -9438,20 +9438,20 @@ impl From<LoopStatementPreambleBuilder> for LoopStatementPreambleSyntax {
     }
 }
 pub struct NameBuilder {
-    name_prefix: NamePrefixSyntax,
+    prefix: PrefixSyntax,
     name_tails: Vec<NameTailSyntax>,
     range_constraint: Option<RangeConstraintSyntax>,
 }
 impl NameBuilder {
-    pub fn new(name_prefix: impl Into<NamePrefixSyntax>) -> Self {
+    pub fn new(prefix: impl Into<PrefixSyntax>) -> Self {
         Self {
-            name_prefix: name_prefix.into(),
+            prefix: prefix.into(),
             name_tails: Vec::new(),
             range_constraint: None,
         }
     }
-    pub fn with_name_prefix(mut self, n: impl Into<NamePrefixSyntax>) -> Self {
-        self.name_prefix = n.into();
+    pub fn with_prefix(mut self, n: impl Into<PrefixSyntax>) -> Self {
+        self.prefix = n.into();
         self
     }
     pub fn add_name_tails(mut self, n: impl Into<NameTailSyntax>) -> Self {
@@ -9465,7 +9465,7 @@ impl NameBuilder {
     pub fn build(self) -> NameSyntax {
         let mut builder = NodeBuilder::new();
         builder.start_node(NodeKind::Name);
-        builder.push_node(self.name_prefix.raw().green().clone());
+        builder.push_node(self.prefix.raw().green().clone());
         for n in self.name_tails {
             builder.push_node(n.raw().green().clone());
         }

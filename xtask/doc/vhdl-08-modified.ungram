@@ -770,14 +770,14 @@ NameDesignator =
   '#identifier' | '#string_literal' | '#character_literal'
 
 Name =
-  NamePrefix
+  Prefix
   NameTail*
   // `RangeConstraint` appears here so the constraint of a `subtype_indication`
   // (e.g. `integer range 1 to 10`) parses as a `Name` followed by a tail —
   // see the comment on `SubtypeIndication`.
   RangeConstraint?
 
-NamePrefix =
+Prefix =
   ExternalName | name_designator_prefix:NameDesignator
 
 Suffix =

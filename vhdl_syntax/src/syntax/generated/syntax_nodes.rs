@@ -12084,7 +12084,7 @@ impl AstNode for NameSyntax {
             LayoutItem {
                 optional: false,
                 repeated: false,
-                name: "name_prefix",
+                name: "prefix",
                 kind: LayoutItemKind::NodeChoice(&[
                     NodeKind::ExternalConstantName,
                     NodeKind::ExternalSignalName,
@@ -12118,8 +12118,8 @@ impl AstNode for NameSyntax {
     }
 }
 impl NameSyntax {
-    pub fn name_prefix(&self) -> Option<NamePrefixSyntax> {
-        self.0.children().filter_map(NamePrefixSyntax::cast).nth(0)
+    pub fn prefix(&self) -> Option<PrefixSyntax> {
+        self.0.children().filter_map(PrefixSyntax::cast).nth(0)
     }
     pub fn name_tails(&self) -> impl Iterator<Item = NameTailSyntax> + use<'_> {
         self.0.children().filter_map(NameTailSyntax::cast)
@@ -12242,41 +12242,6 @@ impl NameListSyntax {
         self.0
             .tokens()
             .filter(|token| token.kind() == TokenKind::Comma)
-    }
-}
-#[derive(Debug, Clone)]
-pub enum NamePrefixSyntax {
-    ExternalName(ExternalNameSyntax),
-    NameDesignatorPrefix(NameDesignatorPrefixSyntax),
-}
-impl AstNode for NamePrefixSyntax {
-    const META: &'static Layout = &Layout::Choice(Choice {
-        options: &[
-            NodeKind::ExternalConstantName,
-            NodeKind::ExternalSignalName,
-            NodeKind::ExternalVariableName,
-            NodeKind::NameDesignatorPrefix,
-        ],
-    });
-    fn cast_unchecked(node: SyntaxNode) -> Self {
-        if ExternalNameSyntax::can_cast(&node) {
-            return NamePrefixSyntax::ExternalName(ExternalNameSyntax::cast_unchecked(node));
-        }
-        if NameDesignatorPrefixSyntax::can_cast(&node) {
-            return NamePrefixSyntax::NameDesignatorPrefix(
-                NameDesignatorPrefixSyntax::cast_unchecked(node),
-            );
-        }
-        unreachable!(
-            "cast_unchecked called with unexpected node kind {:?}",
-            node.kind()
-        )
-    }
-    fn raw(&self) -> SyntaxNode {
-        match self {
-            NamePrefixSyntax::ExternalName(inner) => inner.raw(),
-            NamePrefixSyntax::NameDesignatorPrefix(inner) => inner.raw(),
-        }
     }
 }
 #[derive(Debug, Clone)]
@@ -14640,6 +14605,41 @@ impl PortPartSyntax {
     }
     pub fn port_map(&self) -> Option<PortMapSyntax> {
         self.0.children().filter_map(PortMapSyntax::cast).nth(0)
+    }
+}
+#[derive(Debug, Clone)]
+pub enum PrefixSyntax {
+    ExternalName(ExternalNameSyntax),
+    NameDesignatorPrefix(NameDesignatorPrefixSyntax),
+}
+impl AstNode for PrefixSyntax {
+    const META: &'static Layout = &Layout::Choice(Choice {
+        options: &[
+            NodeKind::ExternalConstantName,
+            NodeKind::ExternalSignalName,
+            NodeKind::ExternalVariableName,
+            NodeKind::NameDesignatorPrefix,
+        ],
+    });
+    fn cast_unchecked(node: SyntaxNode) -> Self {
+        if ExternalNameSyntax::can_cast(&node) {
+            return PrefixSyntax::ExternalName(ExternalNameSyntax::cast_unchecked(node));
+        }
+        if NameDesignatorPrefixSyntax::can_cast(&node) {
+            return PrefixSyntax::NameDesignatorPrefix(NameDesignatorPrefixSyntax::cast_unchecked(
+                node,
+            ));
+        }
+        unreachable!(
+            "cast_unchecked called with unexpected node kind {:?}",
+            node.kind()
+        )
+    }
+    fn raw(&self) -> SyntaxNode {
+        match self {
+            PrefixSyntax::ExternalName(inner) => inner.raw(),
+            PrefixSyntax::NameDesignatorPrefix(inner) => inner.raw(),
+        }
     }
 }
 #[derive(Debug, Clone)]
