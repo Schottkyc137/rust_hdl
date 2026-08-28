@@ -6,8 +6,8 @@
 
 use std::ops::Range;
 
-use crate::syntax::NodeKind;
 use crate::syntax::child::{Child, ChildKind};
+use crate::syntax::NodeKind;
 use crate::tokens::tokenizer::{LexErr, LexErrKind, LexErrPos, UnterminatedKind};
 use crate::tokens::{Token, TokenKind};
 

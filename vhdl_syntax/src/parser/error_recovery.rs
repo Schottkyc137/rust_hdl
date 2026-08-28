@@ -53,7 +53,6 @@ impl RecoveryState {
 }
 
 impl Parser {
-
     /// Publish diagnostics and recover when expecting one of several tokens.
     pub(crate) fn expect_tokens_recover<const N: usize>(&mut self, expected: [TokenKind; N]) {
         debug_assert!(
