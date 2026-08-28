@@ -240,7 +240,7 @@ impl Parser {
         self.recovery.push(kind);
     }
 
-    pub(crate) fn end_node(&mut self) -> Option<NodeKind> {
+    pub(crate) fn end_node(&mut self) {
         self.recovery.pop();
         self.builder.end_node()
     }

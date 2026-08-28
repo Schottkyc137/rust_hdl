@@ -6,16 +6,31 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::error::SyntaxErr;
+use crate::parser::error::SyntaxErrKind;
 use crate::parser::util::StallGuard;
 use crate::parser::Parser;
+use crate::syntax::child::Child;
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::NodeKind::BindingUseClause;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
+use crate::tokens::TokenKind;
 
 impl Parser {
     pub fn design_file(&mut self) {
         self.start_node(NodeKind::DesignFile);
+        if self.next_is(Eof) {
+            self.errors.push(SyntaxErr::new(
+                0..0,
+                SyntaxErrKind::Expected(Child::<_, Box<[TokenKind]>>::Node(Box::new([
+                    NodeKind::DesignUnit,
+                ]))),
+            ));
+            self.skip();
+            self.end_node();
+            return;
+        }
         let mut guard = StallGuard::new();
         while guard.should_continue(self) && self.peek_token() != Eof {
             self.design_unit();
@@ -115,6 +130,11 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use crate::parser::{test_utils::to_test_text, Parser};
+
+    #[test]
+    fn empty_file() {
+        assert_recovery_snapshot!("", Parser::design_file);
+    }
 
     #[test]
     fn parse_multiple_entity_declarations() {

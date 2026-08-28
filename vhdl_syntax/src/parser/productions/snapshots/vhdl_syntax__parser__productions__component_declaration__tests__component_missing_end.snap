@@ -55,6 +55,6 @@ ComponentDeclaration
     SemiColon
 
 == diagnostics ==
-5:5 Expected([Keyword(End)])
-5:5 Expected([Keyword(Component)])
-5:5 Expected([SemiColon])
+5:5 Expected(Token([Keyword(End)]))
+5:5 Expected(Token([Keyword(Component)]))
+5:5 Expected(Token([SemiColon]))

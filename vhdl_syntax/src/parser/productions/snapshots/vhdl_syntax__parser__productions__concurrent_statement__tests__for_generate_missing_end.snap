@@ -61,6 +61,6 @@ ForGenerateStatement
       SemiColon
 
 == diagnostics ==
-2:21 Expected([Keyword(End)])
-2:21 Expected([Keyword(Generate)])
-2:21 Expected([SemiColon])
+2:21 Expected(Token([Keyword(End)]))
+2:21 Expected(Token([Keyword(Generate)]))
+2:21 Expected(Token([SemiColon]))

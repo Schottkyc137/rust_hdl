@@ -41,7 +41,7 @@ impl NodeBuilder {
         self.parents.push((kind, len))
     }
 
-    pub fn end_node(&mut self) -> Option<NodeKind> {
+    pub fn end_node(&mut self) {
         let (kind, first_child) = self.parents.pop().unwrap();
         let mut data = GreenNodeData::new(kind);
         data.push_children(self.children.drain(first_child..));
@@ -50,9 +50,6 @@ impl NodeBuilder {
         // Instead, we should move to a event-based API for parser <-> builder
         if !data.is_empty() {
             self.children.push(GreenChild::Node(GreenNode::new(data)));
-            Some(kind)
-        } else {
-            None
         }
     }
 

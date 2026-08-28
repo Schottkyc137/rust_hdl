@@ -13,4 +13,4 @@ SubtypeDeclaration
   SemiColon
 
 == diagnostics ==
-1:21 Expected([Identifier, StringLiteral, CharacterLiteral])
+1:21 Expected(Token([Identifier, StringLiteral, CharacterLiteral]))

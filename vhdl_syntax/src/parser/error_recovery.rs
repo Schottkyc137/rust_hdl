@@ -6,7 +6,7 @@
 
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
-use crate::syntax::child::ChildKind;
+use crate::syntax::child::{Child, ChildKind};
 use crate::syntax::layout_of;
 use crate::syntax::meta::{Layout, LayoutItem, LayoutItemKind};
 use crate::syntax::NodeKind;
@@ -53,9 +53,6 @@ impl RecoveryState {
 }
 
 impl Parser {
-    // pub fn emit_missing_node(&mut self, node: NodeKind) {
-    //     self.errors.push(SyntaxErr::new(span, SyntaxErrKind::Unexpected(())));
-    // }
 
     /// Publish diagnostics and recover when expecting one of several tokens.
     pub(crate) fn expect_tokens_recover<const N: usize>(&mut self, expected: [TokenKind; N]) {
@@ -70,7 +67,7 @@ impl Parser {
         if self.peek_token().is_eof() {
             self.errors.push(SyntaxErr::new(
                 start..start,
-                SyntaxErrKind::Expected(expected.into()),
+                SyntaxErrKind::Expected(Child::Token(expected.into())),
             ));
             return;
         }
@@ -107,7 +104,7 @@ impl Parser {
                 if !skipped_any {
                     self.errors.push(SyntaxErr::new(
                         start..start,
-                        SyntaxErrKind::Expected(expected.into()),
+                        SyntaxErrKind::Expected(Child::Token(expected.into())),
                     ));
                 // skipped tokens: Garbage input before recovery token.
                 } else {
@@ -1310,7 +1307,7 @@ mod tests {
 
     fn assert_expected_token(diag: &SyntaxErr, expected_kinds: &[TokenKind]) {
         match diag.err() {
-            SyntaxErrKind::Expected(kinds) => {
+            SyntaxErrKind::Expected(Child::Token(kinds)) => {
                 assert_eq!(kinds.as_ref(), expected_kinds, "expected kinds mismatch");
             }
             other => panic!("expected ExpectedToken, got {:?}", other),
