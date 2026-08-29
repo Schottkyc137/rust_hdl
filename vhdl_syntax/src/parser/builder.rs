@@ -85,12 +85,6 @@ impl NodeBuilder {
         self.text_len
     }
 
-    pub(crate) fn push_node(&mut self, node: GreenNode) {
-        let node_len = node.byte_len();
-        self.children.push(GreenChild::Node(node));
-        self.text_len += node_len;
-    }
-
     pub fn current_token_index(&self) -> usize {
         self.token_index
     }

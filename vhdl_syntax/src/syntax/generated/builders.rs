@@ -5,11 +5,8 @@
 // Copyright (c) 2026, Lukas Scheller lukasscheller@icloud.com
 use super::*;
 use crate::builder::{AbstractLiteral, BitStringLiteral, CharLiteral, Identifier, StringLiteral};
-use crate::parser::builder::NodeBuilder;
-use crate::syntax::node::SyntaxNode;
-use crate::syntax::node_kind::NodeKind;
-use crate::syntax::AstNode;
-use crate::tokens::{Keyword as Kw, Token, TokenKind, Trivia, TriviaPiece};
+use crate::syntax::builder::RawNodeBuilder;
+use crate::tokens::{Keyword as Kw, Token, TokenKind, Trivia};
 pub struct AbsolutePathnameBuilder {
     dot_token: Token,
     partial_pathname: PartialPathnameSyntax,
@@ -34,14 +31,10 @@ impl AbsolutePathnameBuilder {
         self
     }
     pub fn build(self) -> AbsolutePathnameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AbsolutePathname);
-        builder.push(self.dot_token);
-        builder.push_node(self.partial_pathname.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AbsolutePathnameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.dot_token);
+        builder.push_node(self.partial_pathname);
+        builder.finish()
     }
 }
 impl From<AbsolutePathnameBuilder> for AbsolutePathnameSyntax {
@@ -73,14 +66,10 @@ impl AccessTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> AccessTypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AccessTypeDefinition);
-        builder.push(self.access_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AccessTypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.access_token);
+        builder.push_node(self.subtype_indication);
+        builder.finish()
     }
 }
 impl From<AccessTypeDefinitionBuilder> for AccessTypeDefinitionSyntax {
@@ -115,16 +104,12 @@ impl ActualPartBuilder {
         self
     }
     pub fn build(self) -> ActualPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ActualPart);
+        let mut builder = RawNodeBuilder::new();
         if let Some(t) = self.inertial_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.actual_part_body.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ActualPartSyntax::cast(node).unwrap()
+        builder.push_node(self.actual_part_body);
+        builder.finish()
     }
 }
 impl From<ActualPartBuilder> for ActualPartSyntax {
@@ -146,13 +131,9 @@ impl ActualPartExpressionBuilder {
         self
     }
     pub fn build(self) -> ActualPartExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ActualPartExpression);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ActualPartExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<ActualPartExpressionBuilder> for ActualPartExpressionSyntax {
@@ -183,13 +164,9 @@ impl ActualPartOpenBuilder {
         self
     }
     pub fn build(self) -> ActualPartOpenSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ActualPartOpen);
-        builder.push(self.open_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ActualPartOpenSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.open_token);
+        builder.finish()
     }
 }
 impl From<ActualPartOpenBuilder> for ActualPartOpenSyntax {
@@ -211,13 +188,9 @@ impl ActualPartSubtypeIndicationBuilder {
         self
     }
     pub fn build(self) -> ActualPartSubtypeIndicationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ActualPartSubtypeIndication);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ActualPartSubtypeIndicationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.subtype_indication);
+        builder.finish()
     }
 }
 impl From<ActualPartSubtypeIndicationBuilder> for ActualPartSubtypeIndicationSyntax {
@@ -249,14 +222,10 @@ impl AfterClauseBuilder {
         self
     }
     pub fn build(self) -> AfterClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AfterClause);
-        builder.push(self.after_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AfterClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.after_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<AfterClauseBuilder> for AfterClauseSyntax {
@@ -301,15 +270,11 @@ impl AggregateBuilder {
         self
     }
     pub fn build(self) -> AggregateSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Aggregate);
-        builder.push(self.left_par_token);
-        builder.push_node(self.element_association_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AggregateSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.element_association_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<AggregateBuilder> for AggregateSyntax {
@@ -331,13 +296,9 @@ impl AggregateTargetBuilder {
         self
     }
     pub fn build(self) -> AggregateTargetSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AggregateTarget);
-        builder.push_node(self.aggregate.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AggregateTargetSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.aggregate);
+        builder.finish()
     }
 }
 impl From<AggregateTargetBuilder> for AggregateTargetSyntax {
@@ -410,23 +371,19 @@ impl AliasDeclarationBuilder {
         self
     }
     pub fn build(self) -> AliasDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AliasDeclaration);
-        builder.push(self.alias_token);
-        builder.push(self.alias_designator.0);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.alias_token);
+        builder.push_token(self.alias_designator.0);
         if let Some(n) = self.alias_subtype {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.is_token);
-        builder.push_node(self.name.raw().green().clone());
+        builder.push_token(self.is_token);
+        builder.push_node(self.name);
         if let Some(n) = self.signature {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AliasDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<AliasDeclarationBuilder> for AliasDeclarationSyntax {
@@ -458,14 +415,10 @@ impl AliasSubtypeBuilder {
         self
     }
     pub fn build(self) -> AliasSubtypeSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AliasSubtype);
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AliasSubtypeSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
+        builder.finish()
     }
 }
 impl From<AliasSubtypeBuilder> for AliasSubtypeSyntax {
@@ -496,13 +449,9 @@ impl AllSensitivityListBuilder {
         self
     }
     pub fn build(self) -> AllSensitivityListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AllSensitivityList);
-        builder.push(self.all_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AllSensitivityListSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.all_token);
+        builder.finish()
     }
 }
 impl From<AllSensitivityListBuilder> for AllSensitivityListSyntax {
@@ -534,14 +483,10 @@ impl AllocatorBuilder {
         self
     }
     pub fn build(self) -> AllocatorSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Allocator);
-        builder.push(self.new_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AllocatorSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.new_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<AllocatorBuilder> for AllocatorSyntax {
@@ -597,21 +542,17 @@ impl ArchitectureBodyBuilder {
         self
     }
     pub fn build(self) -> ArchitectureBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ArchitectureBody);
-        builder.push_node(self.architecture_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.architecture_preamble);
         if let Some(n) = self.architecture_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
+        builder.push_node(self.declaration_statement_separator);
         if let Some(n) = self.architecture_statement_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.architecture_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ArchitectureBodySyntax::cast(node).unwrap()
+        builder.push_node(self.architecture_epilogue);
+        builder.finish()
     }
 }
 impl From<ArchitectureBodyBuilder> for ArchitectureBodySyntax {
@@ -638,15 +579,11 @@ impl ArchitectureDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ArchitectureDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ArchitectureDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.block_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ArchitectureDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ArchitectureDeclarativePartBuilder> for ArchitectureDeclarativePartSyntax {
@@ -712,20 +649,16 @@ impl ArchitectureEpilogueBuilder {
         self
     }
     pub fn build(self) -> ArchitectureEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ArchitectureEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.architecture_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ArchitectureEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ArchitectureEpilogueBuilder> for ArchitectureEpilogueSyntax {
@@ -790,17 +723,13 @@ impl ArchitecturePreambleBuilder {
         self
     }
     pub fn build(self) -> ArchitecturePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ArchitecturePreamble);
-        builder.push(self.architecture_token);
-        builder.push(self.identifier_token);
-        builder.push(self.of_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ArchitecturePreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.architecture_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.of_token);
+        builder.push_node(self.name);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<ArchitecturePreambleBuilder> for ArchitecturePreambleSyntax {
@@ -827,15 +756,11 @@ impl ArchitectureStatementPartBuilder {
         self
     }
     pub fn build(self) -> ArchitectureStatementPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ArchitectureStatementPart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.concurrent_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ArchitectureStatementPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ArchitectureStatementPartBuilder> for ArchitectureStatementPartSyntax {
@@ -879,20 +804,16 @@ impl AssertionBuilder {
         self
     }
     pub fn build(self) -> AssertionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Assertion);
-        builder.push(self.assert_token);
-        builder.push_node(self.condition.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.assert_token);
+        builder.push_node(self.condition);
         if let Some(n) = self.report_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.severity_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AssertionSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<AssertionBuilder> for AssertionSyntax {
@@ -930,17 +851,13 @@ impl AssertionStatementBuilder {
         self
     }
     pub fn build(self) -> AssertionStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AssertionStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.assertion.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AssertionStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.assertion);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<AssertionStatementBuilder> for AssertionStatementSyntax {
@@ -968,16 +885,12 @@ impl AssociationElementBuilder {
         self
     }
     pub fn build(self) -> AssociationElementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AssociationElement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.formal {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.actual_part.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AssociationElementSyntax::cast(node).unwrap()
+        builder.push_node(self.actual_part);
+        builder.finish()
     }
 }
 impl From<AssociationElementBuilder> for AssociationElementSyntax {
@@ -1042,17 +955,13 @@ impl AttributeDeclarationBuilder {
         self
     }
     pub fn build(self) -> AttributeDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AttributeDeclaration);
-        builder.push(self.attribute_token);
-        builder.push(self.identifier_token);
-        builder.push(self.colon_token);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AttributeDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.attribute_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.type_mark);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<AttributeDeclarationBuilder> for AttributeDeclarationSyntax {
@@ -1090,17 +999,13 @@ impl AttributeNameBuilder {
         self
     }
     pub fn build(self) -> AttributeNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AttributeName);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.signature {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.tick_token);
-        builder.push(self.attribute_designator.0);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AttributeNameSyntax::cast(node).unwrap()
+        builder.push_token(self.tick_token);
+        builder.push_token(self.attribute_designator.0);
+        builder.finish()
     }
 }
 impl From<AttributeNameBuilder> for AttributeNameSyntax {
@@ -1182,19 +1087,15 @@ impl AttributeSpecificationBuilder {
         self
     }
     pub fn build(self) -> AttributeSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AttributeSpecification);
-        builder.push(self.attribute_token);
-        builder.push(self.identifier_token);
-        builder.push(self.of_token);
-        builder.push_node(self.entity_specification.raw().green().clone());
-        builder.push(self.is_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AttributeSpecificationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.attribute_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.of_token);
+        builder.push_node(self.entity_specification);
+        builder.push_token(self.is_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<AttributeSpecificationBuilder> for AttributeSpecificationSyntax {
@@ -1232,15 +1133,11 @@ impl BinaryExpressionBuilder {
         self
     }
     pub fn build(self) -> BinaryExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BinaryExpression);
-        builder.push_node(self.lhs.raw().green().clone());
-        builder.push(self.binary_operator.0);
-        builder.push_node(self.rhs.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BinaryExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.lhs);
+        builder.push_token(self.binary_operator.0);
+        builder.push_node(self.rhs);
+        builder.finish()
     }
 }
 impl From<BinaryExpressionBuilder> for BinaryExpressionSyntax {
@@ -1277,16 +1174,12 @@ impl BindingBuilder {
         self
     }
     pub fn build(self) -> BindingSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Binding);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.binding_indication {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BindingSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<BindingBuilder> for BindingSyntax {
@@ -1325,21 +1218,17 @@ impl BindingIndicationBuilder {
         self
     }
     pub fn build(self) -> BindingIndicationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BindingIndication);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.binding_use_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.port_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BindingIndicationSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<BindingIndicationBuilder> for BindingIndicationSyntax {
@@ -1371,14 +1260,10 @@ impl BindingUseClauseBuilder {
         self
     }
     pub fn build(self) -> BindingUseClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BindingUseClause);
-        builder.push(self.use_token);
-        builder.push_node(self.entity_aspect.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BindingUseClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.use_token);
+        builder.push_node(self.entity_aspect);
+        builder.finish()
     }
 }
 impl From<BindingUseClauseBuilder> for BindingUseClauseSyntax {
@@ -1424,20 +1309,16 @@ impl BlockConfigurationBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockConfiguration);
-        builder.push_node(self.block_configuration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.block_configuration_preamble);
         for n in self.use_clauses {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         for n in self.configuration_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.block_configuration_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockConfigurationSyntax::cast(node).unwrap()
+        builder.push_node(self.block_configuration_epilogue);
+        builder.finish()
     }
 }
 impl From<BlockConfigurationBuilder> for BlockConfigurationSyntax {
@@ -1488,15 +1369,11 @@ impl BlockConfigurationEpilogueBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockConfigurationEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.for_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockConfigurationEpilogueSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.for_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<BlockConfigurationEpilogueBuilder> for BlockConfigurationEpilogueSyntax {
@@ -1518,13 +1395,9 @@ impl BlockConfigurationItemBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationItemSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockConfigurationItem);
-        builder.push_node(self.block_configuration.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockConfigurationItemSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.block_configuration);
+        builder.finish()
     }
 }
 impl From<BlockConfigurationItemBuilder> for BlockConfigurationItemSyntax {
@@ -1556,14 +1429,10 @@ impl BlockConfigurationPreambleBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockConfigurationPreamble);
-        builder.push(self.for_token);
-        builder.push_node(self.block_specification.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockConfigurationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.for_token);
+        builder.push_node(self.block_specification);
+        builder.finish()
     }
 }
 impl From<BlockConfigurationPreambleBuilder> for BlockConfigurationPreambleSyntax {
@@ -1590,15 +1459,11 @@ impl BlockDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> BlockDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.block_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<BlockDeclarativePartBuilder> for BlockDeclarativePartSyntax {
@@ -1661,18 +1526,14 @@ impl BlockEpilogueBuilder {
         self
     }
     pub fn build(self) -> BlockEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.block_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.block_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<BlockEpilogueBuilder> for BlockEpilogueSyntax {
@@ -1705,18 +1566,14 @@ impl BlockHeaderBuilder {
         self
     }
     pub fn build(self) -> BlockHeaderSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockHeader);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.generic_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.port_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockHeaderSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<BlockHeaderBuilder> for BlockHeaderSyntax {
@@ -1769,19 +1626,15 @@ impl BlockPreambleBuilder {
         self
     }
     pub fn build(self) -> BlockPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockPreamble);
-        builder.push(self.block_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.block_token);
         if let Some(n) = self.parenthesized_condition {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.is_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockPreambleSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<BlockPreambleBuilder> for BlockPreambleSyntax {
@@ -1843,25 +1696,21 @@ impl BlockStatementBuilder {
         self
     }
     pub fn build(self) -> BlockStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockStatement);
-        builder.push_node(self.stmt_label.raw().green().clone());
-        builder.push_node(self.block_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.stmt_label);
+        builder.push_node(self.block_preamble);
         if let Some(n) = self.block_header {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.block_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
+        builder.push_node(self.declaration_statement_separator);
         if let Some(n) = self.block_statement_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.block_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.block_epilogue);
+        builder.finish()
     }
 }
 impl From<BlockStatementBuilder> for BlockStatementSyntax {
@@ -1888,15 +1737,11 @@ impl BlockStatementPartBuilder {
         self
     }
     pub fn build(self) -> BlockStatementPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::BlockStatementPart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.concurrent_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        BlockStatementPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<BlockStatementPartBuilder> for BlockStatementPartSyntax {
@@ -1953,21 +1798,17 @@ impl CaseGenerateAlternativeBuilder {
         self
     }
     pub fn build(self) -> CaseGenerateAlternativeSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseGenerateAlternative);
-        builder.push(self.when_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.when_token);
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.choices.raw().green().clone());
-        builder.push(self.right_arrow_token);
+        builder.push_node(self.choices);
+        builder.push_token(self.right_arrow_token);
         if let Some(n) = self.generate_statement_body {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseGenerateAlternativeSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<CaseGenerateAlternativeBuilder> for CaseGenerateAlternativeSyntax {
@@ -2009,15 +1850,11 @@ impl CaseGeneratePreambleBuilder {
         self
     }
     pub fn build(self) -> CaseGeneratePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseGeneratePreamble);
-        builder.push(self.case_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.generate_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseGeneratePreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.case_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.generate_token);
+        builder.finish()
     }
 }
 impl From<CaseGeneratePreambleBuilder> for CaseGeneratePreambleSyntax {
@@ -2064,18 +1901,14 @@ impl CaseGenerateStatementBuilder {
         self
     }
     pub fn build(self) -> CaseGenerateStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseGenerateStatement);
-        builder.push_node(self.stmt_label.raw().green().clone());
-        builder.push_node(self.case_generate_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.stmt_label);
+        builder.push_node(self.case_generate_preamble);
         for n in self.case_generate_alternatives {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.generate_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseGenerateStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.generate_epilogue);
+        builder.finish()
     }
 }
 impl From<CaseGenerateStatementBuilder> for CaseGenerateStatementSyntax {
@@ -2121,17 +1954,13 @@ impl CaseStatementBuilder {
         self
     }
     pub fn build(self) -> CaseStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseStatement);
-        builder.push_node(self.case_statement_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.case_statement_preamble);
         for n in self.case_statement_alternatives {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.case_statement_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.case_statement_epilogue);
+        builder.finish()
     }
 }
 impl From<CaseStatementBuilder> for CaseStatementSyntax {
@@ -2164,21 +1993,12 @@ impl CaseStatementAlternativeBuilder {
         self
     }
     pub fn build(self) -> CaseStatementAlternativeSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseStatementAlternative);
-        builder.push_node(
-            self.case_statement_alternative_preamble
-                .raw()
-                .green()
-                .clone(),
-        );
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.case_statement_alternative_preamble);
         if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseStatementAlternativeSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<CaseStatementAlternativeBuilder> for CaseStatementAlternativeSyntax {
@@ -2220,15 +2040,11 @@ impl CaseStatementAlternativePreambleBuilder {
         self
     }
     pub fn build(self) -> CaseStatementAlternativePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseStatementAlternativePreamble);
-        builder.push(self.when_token);
-        builder.push_node(self.choices.raw().green().clone());
-        builder.push(self.right_arrow_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseStatementAlternativePreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.when_token);
+        builder.push_node(self.choices);
+        builder.push_token(self.right_arrow_token);
+        builder.finish()
     }
 }
 impl From<CaseStatementAlternativePreambleBuilder> for CaseStatementAlternativePreambleSyntax {
@@ -2304,21 +2120,17 @@ impl CaseStatementEpilogueBuilder {
         self
     }
     pub fn build(self) -> CaseStatementEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseStatementEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.case_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.case_token);
         if let Some(t) = self.que_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseStatementEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<CaseStatementEpilogueBuilder> for CaseStatementEpilogueSyntax {
@@ -2379,21 +2191,17 @@ impl CaseStatementPreambleBuilder {
         self
     }
     pub fn build(self) -> CaseStatementPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CaseStatementPreamble);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.case_token);
+        builder.push_token(self.case_token);
         if let Some(t) = self.que_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CaseStatementPreambleSyntax::cast(node).unwrap()
+        builder.push_node(self.expression);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<CaseStatementPreambleBuilder> for CaseStatementPreambleSyntax {
@@ -2451,23 +2259,19 @@ impl ComponentConfigurationBuilder {
         self
     }
     pub fn build(self) -> ComponentConfigurationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentConfiguration);
-        builder.push_node(self.component_configuration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.component_configuration_preamble);
         if let Some(n) = self.binding {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         for n in self.verification_unit_bindings {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.block_configuration {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.component_configuration_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentConfigurationSyntax::cast(node).unwrap()
+        builder.push_node(self.component_configuration_epilogue);
+        builder.finish()
     }
 }
 impl From<ComponentConfigurationBuilder> for ComponentConfigurationSyntax {
@@ -2518,15 +2322,11 @@ impl ComponentConfigurationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ComponentConfigurationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentConfigurationEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.for_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentConfigurationEpilogueSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.for_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ComponentConfigurationEpilogueBuilder> for ComponentConfigurationEpilogueSyntax {
@@ -2561,14 +2361,10 @@ impl ComponentConfigurationPreambleBuilder {
         self
     }
     pub fn build(self) -> ComponentConfigurationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentConfigurationPreamble);
-        builder.push(self.for_token);
-        builder.push_node(self.component_specification.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentConfigurationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.for_token);
+        builder.push_node(self.component_specification);
+        builder.finish()
     }
 }
 impl From<ComponentConfigurationPreambleBuilder> for ComponentConfigurationPreambleSyntax {
@@ -2616,20 +2412,16 @@ impl ComponentDeclarationBuilder {
         self
     }
     pub fn build(self) -> ComponentDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentDeclaration);
-        builder.push_node(self.component_declaration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.component_declaration_preamble);
         if let Some(n) = self.generic_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.port_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.component_declaration_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentDeclarationSyntax::cast(node).unwrap()
+        builder.push_node(self.component_declaration_epilogue);
+        builder.finish()
     }
 }
 impl From<ComponentDeclarationBuilder> for ComponentDeclarationSyntax {
@@ -2692,18 +2484,14 @@ impl ComponentDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ComponentDeclarationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentDeclarationEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.component_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.component_token);
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentDeclarationEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ComponentDeclarationEpilogueBuilder> for ComponentDeclarationEpilogueSyntax {
@@ -2752,17 +2540,13 @@ impl ComponentDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> ComponentDeclarationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentDeclarationPreamble);
-        builder.push(self.component_token);
-        builder.push(self.identifier_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.component_token);
+        builder.push_token(self.identifier_token);
         if let Some(t) = self.is_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentDeclarationPreambleSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ComponentDeclarationPreambleBuilder> for ComponentDeclarationPreambleSyntax {
@@ -2815,21 +2599,17 @@ impl ComponentInstantiationStatementBuilder {
         self
     }
     pub fn build(self) -> ComponentInstantiationStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentInstantiationStatement);
-        builder.push_node(self.stmt_label.raw().green().clone());
-        builder.push_node(self.instantiated_unit.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.stmt_label);
+        builder.push_node(self.instantiated_unit);
         if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.port_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentInstantiationStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ComponentInstantiationStatementBuilder> for ComponentInstantiationStatementSyntax {
@@ -2870,15 +2650,11 @@ impl ComponentSpecificationBuilder {
         self
     }
     pub fn build(self) -> ComponentSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ComponentSpecification);
-        builder.push_node(self.instantiation_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ComponentSpecificationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.instantiation_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<ComponentSpecificationBuilder> for ComponentSpecificationSyntax {
@@ -2941,21 +2717,17 @@ impl CompoundConfigurationSpecificationBuilder {
         self
     }
     pub fn build(self) -> CompoundConfigurationSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::CompoundConfigurationSpecification);
-        builder.push_node(self.component_configuration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.component_configuration_preamble);
         if let Some(n) = self.binding_indication {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
+        builder.push_token(self.semi_colon_token);
         for n in self.verification_unit_bindings {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.component_configuration_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        CompoundConfigurationSpecificationSyntax::cast(node).unwrap()
+        builder.push_node(self.component_configuration_epilogue);
+        builder.finish()
     }
 }
 impl From<CompoundConfigurationSpecificationBuilder> for CompoundConfigurationSpecificationSyntax {
@@ -3006,20 +2778,16 @@ impl ConcurrentAssertionStatementBuilder {
         self
     }
     pub fn build(self) -> ConcurrentAssertionStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConcurrentAssertionStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.assertion.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConcurrentAssertionStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.assertion);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConcurrentAssertionStatementBuilder> for ConcurrentAssertionStatementSyntax {
@@ -3108,28 +2876,24 @@ impl ConcurrentConditionalSignalAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConcurrentConditionalSignalAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConcurrentConditionalSignalAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
         if let Some(t) = self.guarded_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(n) = self.delay_mechanism {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.conditional_waveforms.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConcurrentConditionalSignalAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.conditional_waveforms);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConcurrentConditionalSignalAssignmentBuilder>
@@ -3182,20 +2946,16 @@ impl ConcurrentProcedureCallOrComponentInstantiationStatementBuilder {
         self
     }
     pub fn build(self) -> ConcurrentProcedureCallOrComponentInstantiationStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.name.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConcurrentProcedureCallOrComponentInstantiationStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.name);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConcurrentProcedureCallOrComponentInstantiationStatementBuilder>
@@ -3296,29 +3056,25 @@ impl ConcurrentSelectedSignalAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConcurrentSelectedSignalAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConcurrentSelectedSignalAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.selected_assignment_preamble.raw().green().clone());
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
+        builder.push_node(self.selected_assignment_preamble);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
         if let Some(t) = self.guarded_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(n) = self.delay_mechanism {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.selected_waveforms.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConcurrentSelectedSignalAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.selected_waveforms);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConcurrentSelectedSignalAssignmentBuilder> for ConcurrentSelectedSignalAssignmentSyntax {
@@ -3404,28 +3160,24 @@ impl ConcurrentSimpleSignalAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConcurrentSimpleSignalAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConcurrentSimpleSignalAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
         if let Some(t) = self.guarded_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(n) = self.delay_mechanism {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.waveform.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConcurrentSimpleSignalAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.waveform);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConcurrentSimpleSignalAssignmentBuilder> for ConcurrentSimpleSignalAssignmentSyntax {
@@ -3457,14 +3209,10 @@ impl ConditionClauseBuilder {
         self
     }
     pub fn build(self) -> ConditionClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConditionClause);
-        builder.push(self.until_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConditionClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.until_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<ConditionClauseBuilder> for ConditionClauseSyntax {
@@ -3498,19 +3246,15 @@ impl ConditionalExpressionsBuilder {
         self
     }
     pub fn build(self) -> ConditionalExpressionsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConditionalExpressions);
-        builder.push_node(self.when_expression.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.when_expression);
         for n in self.else_when_expressions {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.else_expression {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConditionalExpressionsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ConditionalExpressionsBuilder> for ConditionalExpressionsSyntax {
@@ -3586,23 +3330,19 @@ impl ConditionalForceAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConditionalForceAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConditionalForceAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
-        builder.push(self.force_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
+        builder.push_token(self.force_token);
         if let Some(n) = self.force_mode {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push_node(self.conditional_expressions.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConditionalForceAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.conditional_expressions);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConditionalForceAssignmentBuilder> for ConditionalForceAssignmentSyntax {
@@ -3662,19 +3402,15 @@ impl ConditionalVariableAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConditionalVariableAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConditionalVariableAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.colon_eq_token);
-        builder.push_node(self.conditional_expressions.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConditionalVariableAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.target);
+        builder.push_token(self.colon_eq_token);
+        builder.push_node(self.conditional_expressions);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConditionalVariableAssignmentBuilder> for ConditionalVariableAssignmentSyntax {
@@ -3737,22 +3473,18 @@ impl ConditionalWaveformAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConditionalWaveformAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConditionalWaveformAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
         if let Some(n) = self.delay_mechanism {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.conditional_waveforms.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConditionalWaveformAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.conditional_waveforms);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConditionalWaveformAssignmentBuilder> for ConditionalWaveformAssignmentSyntax {
@@ -3786,19 +3518,15 @@ impl ConditionalWaveformsBuilder {
         self
     }
     pub fn build(self) -> ConditionalWaveformsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConditionalWaveforms);
-        builder.push_node(self.when_waveform.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.when_waveform);
         for n in self.else_when_waveforms {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.else_waveform {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConditionalWaveformsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ConditionalWaveformsBuilder> for ConditionalWaveformsSyntax {
@@ -3860,31 +3588,17 @@ impl ConfigurationDeclarationBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConfigurationDeclaration);
-        builder.push_node(
-            self.configuration_declaration_preamble
-                .raw()
-                .green()
-                .clone(),
-        );
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.configuration_declaration_preamble);
         if let Some(n) = self.configuration_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         for n in self.verification_unit_bindings {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.block_configuration.raw().green().clone());
-        builder.push_node(
-            self.configuration_declaration_epilogue
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConfigurationDeclarationSyntax::cast(node).unwrap()
+        builder.push_node(self.block_configuration);
+        builder.push_node(self.configuration_declaration_epilogue);
+        builder.finish()
     }
 }
 impl From<ConfigurationDeclarationBuilder> for ConfigurationDeclarationSyntax {
@@ -3950,20 +3664,16 @@ impl ConfigurationDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConfigurationDeclarationEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.configuration_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConfigurationDeclarationEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConfigurationDeclarationEpilogueBuilder> for ConfigurationDeclarationEpilogueSyntax {
@@ -4028,17 +3738,13 @@ impl ConfigurationDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConfigurationDeclarationPreamble);
-        builder.push(self.configuration_token);
-        builder.push(self.identifier_token);
-        builder.push(self.of_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConfigurationDeclarationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.configuration_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.of_token);
+        builder.push_node(self.name);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<ConfigurationDeclarationPreambleBuilder> for ConfigurationDeclarationPreambleSyntax {
@@ -4068,15 +3774,11 @@ impl ConfigurationDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConfigurationDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.configuration_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConfigurationDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ConfigurationDeclarativePartBuilder> for ConfigurationDeclarativePartSyntax {
@@ -4143,20 +3845,16 @@ impl ConstantDeclarationBuilder {
         self
     }
     pub fn build(self) -> ConstantDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConstantDeclaration);
-        builder.push(self.constant_token);
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.constant_token);
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
         if let Some(n) = self.initial_value {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConstantDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ConstantDeclarationBuilder> for ConstantDeclarationSyntax {
@@ -4207,16 +3905,12 @@ impl ConstrainedArrayDefinitionBuilder {
         self
     }
     pub fn build(self) -> ConstrainedArrayDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ConstrainedArrayDefinition);
-        builder.push(self.array_token);
-        builder.push_node(self.index_constraint.raw().green().clone());
-        builder.push(self.of_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ConstrainedArrayDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.array_token);
+        builder.push_node(self.index_constraint);
+        builder.push_token(self.of_token);
+        builder.push_node(self.subtype_indication);
+        builder.finish()
     }
 }
 impl From<ConstrainedArrayDefinitionBuilder> for ConstrainedArrayDefinitionSyntax {
@@ -4243,15 +3937,11 @@ impl ContextClauseBuilder {
         self
     }
     pub fn build(self) -> ContextClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ContextClause);
+        let mut builder = RawNodeBuilder::new();
         for n in self.context_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ContextClauseSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ContextClauseBuilder> for ContextClauseSyntax {
@@ -4291,17 +3981,13 @@ impl ContextDeclarationBuilder {
         self
     }
     pub fn build(self) -> ContextDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ContextDeclaration);
-        builder.push_node(self.context_declaration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.context_declaration_preamble);
         if let Some(n) = self.context_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.context_declaration_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ContextDeclarationSyntax::cast(node).unwrap()
+        builder.push_node(self.context_declaration_epilogue);
+        builder.finish()
     }
 }
 impl From<ContextDeclarationBuilder> for ContextDeclarationSyntax {
@@ -4367,20 +4053,16 @@ impl ContextDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ContextDeclarationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ContextDeclarationEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.context_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ContextDeclarationEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ContextDeclarationEpilogueBuilder> for ContextDeclarationEpilogueSyntax {
@@ -4426,15 +4108,11 @@ impl ContextDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> ContextDeclarationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ContextDeclarationPreamble);
-        builder.push(self.context_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ContextDeclarationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.context_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<ContextDeclarationPreambleBuilder> for ContextDeclarationPreambleSyntax {
@@ -4476,15 +4154,11 @@ impl ContextReferenceBuilder {
         self
     }
     pub fn build(self) -> ContextReferenceSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ContextReference);
-        builder.push(self.context_token);
-        builder.push_node(self.name_list.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ContextReferenceSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.context_token);
+        builder.push_node(self.name_list);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ContextReferenceBuilder> for ContextReferenceSyntax {
@@ -4515,13 +4189,9 @@ impl DeclarationStatementSeparatorBuilder {
         self
     }
     pub fn build(self) -> DeclarationStatementSeparatorSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::DeclarationStatementSeparator);
-        builder.push(self.begin_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        DeclarationStatementSeparatorSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.begin_token);
+        builder.finish()
     }
 }
 impl From<DeclarationStatementSeparatorBuilder> for DeclarationStatementSeparatorSyntax {
@@ -4553,16 +4223,12 @@ impl DesignFileBuilder {
         self
     }
     pub fn build(self) -> DesignFileSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::DesignFile);
+        let mut builder = RawNodeBuilder::new();
         for n in self.design_units {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.eof_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        DesignFileSyntax::cast(node).unwrap()
+        builder.push_token(self.eof_token);
+        builder.finish()
     }
 }
 impl From<DesignFileBuilder> for DesignFileSyntax {
@@ -4590,16 +4256,12 @@ impl DesignUnitBuilder {
         self
     }
     pub fn build(self) -> DesignUnitSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::DesignUnit);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.context_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.library_unit.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        DesignUnitSyntax::cast(node).unwrap()
+        builder.push_node(self.library_unit);
+        builder.finish()
     }
 }
 impl From<DesignUnitBuilder> for DesignUnitSyntax {
@@ -4663,17 +4325,13 @@ impl DisconnectionSpecificationBuilder {
         self
     }
     pub fn build(self) -> DisconnectionSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::DisconnectionSpecification);
-        builder.push(self.disconnect_token);
-        builder.push_node(self.guarded_signal_specification.raw().green().clone());
-        builder.push(self.after_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        DisconnectionSpecificationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.disconnect_token);
+        builder.push_node(self.guarded_signal_specification);
+        builder.push_token(self.after_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<DisconnectionSpecificationBuilder> for DisconnectionSpecificationSyntax {
@@ -4701,16 +4359,12 @@ impl ElementAssociationBuilder {
         self
     }
     pub fn build(self) -> ElementAssociationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElementAssociation);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.element_choices {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElementAssociationSyntax::cast(node).unwrap()
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<ElementAssociationBuilder> for ElementAssociationSyntax {
@@ -4742,14 +4396,10 @@ impl ElementChoicesBuilder {
         self
     }
     pub fn build(self) -> ElementChoicesSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElementChoices);
-        builder.push_node(self.choices.raw().green().clone());
-        builder.push(self.right_arrow_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElementChoicesSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.choices);
+        builder.push_token(self.right_arrow_token);
+        builder.finish()
     }
 }
 impl From<ElementChoicesBuilder> for ElementChoicesSyntax {
@@ -4803,16 +4453,12 @@ impl ElementDeclarationBuilder {
         self
     }
     pub fn build(self) -> ElementDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElementDeclaration);
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.element_subtype_definition.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElementDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.element_subtype_definition);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ElementDeclarationBuilder> for ElementDeclarationSyntax {
@@ -4834,13 +4480,9 @@ impl ElementResolutionResolutionIndicationBuilder {
         self
     }
     pub fn build(self) -> ElementResolutionResolutionIndicationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElementResolutionResolutionIndication);
-        builder.push_node(self.element_resolution.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElementResolutionResolutionIndicationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.element_resolution);
+        builder.finish()
     }
 }
 impl From<ElementResolutionResolutionIndicationBuilder>
@@ -4874,14 +4516,10 @@ impl ElseExpressionBuilder {
         self
     }
     pub fn build(self) -> ElseExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElseExpression);
-        builder.push(self.else_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElseExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.else_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<ElseExpressionBuilder> for ElseExpressionSyntax {
@@ -4913,14 +4551,10 @@ impl ElseWaveformBuilder {
         self
     }
     pub fn build(self) -> ElseWaveformSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElseWaveform);
-        builder.push(self.else_token);
-        builder.push_node(self.waveform.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElseWaveformSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.else_token);
+        builder.push_node(self.waveform);
+        builder.finish()
     }
 }
 impl From<ElseWaveformBuilder> for ElseWaveformSyntax {
@@ -4971,16 +4605,12 @@ impl ElseWhenExpressionBuilder {
         self
     }
     pub fn build(self) -> ElseWhenExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElseWhenExpression);
-        builder.push(self.else_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.when_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElseWhenExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.else_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.when_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<ElseWhenExpressionBuilder> for ElseWhenExpressionSyntax {
@@ -5031,16 +4661,12 @@ impl ElseWhenWaveformBuilder {
         self
     }
     pub fn build(self) -> ElseWhenWaveformSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElseWhenWaveform);
-        builder.push(self.else_token);
-        builder.push_node(self.waveform.raw().green().clone());
-        builder.push(self.when_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElseWhenWaveformSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.else_token);
+        builder.push_node(self.waveform);
+        builder.push_token(self.when_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<ElseWhenWaveformBuilder> for ElseWhenWaveformSyntax {
@@ -5081,14 +4707,10 @@ impl EndPackageBodyBuilder {
         self
     }
     pub fn build(self) -> EndPackageBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EndPackageBody);
-        builder.push(self.package_token);
-        builder.push(self.body_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EndPackageBodySyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.package_token);
+        builder.push_token(self.body_token);
+        builder.finish()
     }
 }
 impl From<EndPackageBodyBuilder> for EndPackageBodySyntax {
@@ -5123,16 +4745,12 @@ impl EntityClassEntryBuilder {
         self
     }
     pub fn build(self) -> EntityClassEntrySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityClassEntry);
-        builder.push(self.entity_class.0);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.entity_class.0);
         if let Some(t) = self.box_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityClassEntrySyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityClassEntryBuilder> for EntityClassEntrySyntax {
@@ -5164,14 +4782,10 @@ impl EntityConfigurationAspectBuilder {
         self
     }
     pub fn build(self) -> EntityConfigurationAspectSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityConfigurationAspect);
-        builder.push(self.configuration_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityConfigurationAspectSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.configuration_token);
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<EntityConfigurationAspectBuilder> for EntityConfigurationAspectSyntax {
@@ -5226,23 +4840,19 @@ impl EntityDeclarationBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityDeclaration);
-        builder.push_node(self.entity_declaration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.entity_declaration_preamble);
         if let Some(n) = self.entity_header {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.entity_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.entity_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.entity_declaration_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityDeclarationSyntax::cast(node).unwrap()
+        builder.push_node(self.entity_declaration_epilogue);
+        builder.finish()
     }
 }
 impl From<EntityDeclarationBuilder> for EntityDeclarationSyntax {
@@ -5308,20 +4918,16 @@ impl EntityDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityDeclarationEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.entity_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityDeclarationEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<EntityDeclarationEpilogueBuilder> for EntityDeclarationEpilogueSyntax {
@@ -5367,15 +4973,11 @@ impl EntityDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityDeclarationPreamble);
-        builder.push(self.entity_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityDeclarationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.entity_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<EntityDeclarationPreambleBuilder> for EntityDeclarationPreambleSyntax {
@@ -5405,15 +5007,11 @@ impl EntityDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.entity_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityDeclarativePartBuilder> for EntityDeclarativePartSyntax {
@@ -5441,16 +5039,12 @@ impl EntityDesignatorBuilder {
         self
     }
     pub fn build(self) -> EntityDesignatorSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityDesignator);
-        builder.push(self.entity_tag.0);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.entity_tag.0);
         if let Some(n) = self.signature {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityDesignatorSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityDesignatorBuilder> for EntityDesignatorSyntax {
@@ -5482,14 +5076,10 @@ impl EntityEntityAspectBuilder {
         self
     }
     pub fn build(self) -> EntityEntityAspectSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityEntityAspect);
-        builder.push(self.entity_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityEntityAspectSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.entity_token);
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<EntityEntityAspectBuilder> for EntityEntityAspectSyntax {
@@ -5522,18 +5112,14 @@ impl EntityHeaderBuilder {
         self
     }
     pub fn build(self) -> EntityHeaderSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityHeader);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.generic_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.port_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityHeaderSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityHeaderBuilder> for EntityHeaderSyntax {
@@ -5564,13 +5150,9 @@ impl EntityNameListAllBuilder {
         self
     }
     pub fn build(self) -> EntityNameListAllSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityNameListAll);
-        builder.push(self.all_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityNameListAllSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.all_token);
+        builder.finish()
     }
 }
 impl From<EntityNameListAllBuilder> for EntityNameListAllSyntax {
@@ -5601,13 +5183,9 @@ impl EntityNameListOthersBuilder {
         self
     }
     pub fn build(self) -> EntityNameListOthersSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityNameListOthers);
-        builder.push(self.others_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityNameListOthersSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.others_token);
+        builder.finish()
     }
 }
 impl From<EntityNameListOthersBuilder> for EntityNameListOthersSyntax {
@@ -5638,13 +5216,9 @@ impl EntityOpenAspectBuilder {
         self
     }
     pub fn build(self) -> EntityOpenAspectSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityOpenAspect);
-        builder.push(self.open_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityOpenAspectSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.open_token);
+        builder.finish()
     }
 }
 impl From<EntityOpenAspectBuilder> for EntityOpenAspectSyntax {
@@ -5685,15 +5259,11 @@ impl EntitySpecificationBuilder {
         self
     }
     pub fn build(self) -> EntitySpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntitySpecification);
-        builder.push_node(self.entity_name_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push(self.entity_class.0);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntitySpecificationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.entity_name_list);
+        builder.push_token(self.colon_token);
+        builder.push_token(self.entity_class.0);
+        builder.finish()
     }
 }
 impl From<EntitySpecificationBuilder> for EntitySpecificationSyntax {
@@ -5720,15 +5290,11 @@ impl EntityStatementPartBuilder {
         self
     }
     pub fn build(self) -> EntityStatementPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityStatementPart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.entity_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityStatementPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityStatementPartBuilder> for EntityStatementPartSyntax {
@@ -5765,16 +5331,12 @@ impl EntityStatementsBuilder {
         self
     }
     pub fn build(self) -> EntityStatementsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityStatements);
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.declaration_statement_separator);
         if let Some(n) = self.entity_statement_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityStatementsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityStatementsBuilder> for EntityStatementsSyntax {
@@ -5816,15 +5378,11 @@ impl EnumerationTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> EnumerationTypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EnumerationTypeDefinition);
-        builder.push(self.left_par_token);
-        builder.push_node(self.enumeration_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EnumerationTypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.enumeration_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<EnumerationTypeDefinitionBuilder> for EnumerationTypeDefinitionSyntax {
@@ -5889,23 +5447,19 @@ impl ExitStatementBuilder {
         self
     }
     pub fn build(self) -> ExitStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ExitStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.exit_token);
+        builder.push_token(self.exit_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(n) = self.when_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ExitStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ExitStatementBuilder> for ExitStatementSyntax {
@@ -5927,13 +5481,9 @@ impl ExpressionChoiceBuilder {
         self
     }
     pub fn build(self) -> ExpressionChoiceSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ExpressionChoice);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ExpressionChoiceSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<ExpressionChoiceBuilder> for ExpressionChoiceSyntax {
@@ -6004,18 +5554,14 @@ impl ExternalConstantNameBuilder {
         self
     }
     pub fn build(self) -> ExternalConstantNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ExternalConstantName);
-        builder.push(self.lt_lt_token);
-        builder.push(self.constant_token);
-        builder.push_node(self.external_pathname.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.push(self.gt_gt_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ExternalConstantNameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.lt_lt_token);
+        builder.push_token(self.constant_token);
+        builder.push_node(self.external_pathname);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
+        builder.push_token(self.gt_gt_token);
+        builder.finish()
     }
 }
 impl From<ExternalConstantNameBuilder> for ExternalConstantNameSyntax {
@@ -6086,18 +5632,14 @@ impl ExternalSignalNameBuilder {
         self
     }
     pub fn build(self) -> ExternalSignalNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ExternalSignalName);
-        builder.push(self.lt_lt_token);
-        builder.push(self.signal_token);
-        builder.push_node(self.external_pathname.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.push(self.gt_gt_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ExternalSignalNameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.lt_lt_token);
+        builder.push_token(self.signal_token);
+        builder.push_node(self.external_pathname);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
+        builder.push_token(self.gt_gt_token);
+        builder.finish()
     }
 }
 impl From<ExternalSignalNameBuilder> for ExternalSignalNameSyntax {
@@ -6168,18 +5710,14 @@ impl ExternalVariableNameBuilder {
         self
     }
     pub fn build(self) -> ExternalVariableNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ExternalVariableName);
-        builder.push(self.lt_lt_token);
-        builder.push(self.variable_token);
-        builder.push_node(self.external_pathname.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.push(self.gt_gt_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ExternalVariableNameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.lt_lt_token);
+        builder.push_token(self.variable_token);
+        builder.push_node(self.external_pathname);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
+        builder.push_token(self.gt_gt_token);
+        builder.finish()
     }
 }
 impl From<ExternalVariableNameBuilder> for ExternalVariableNameSyntax {
@@ -6246,20 +5784,16 @@ impl FileDeclarationBuilder {
         self
     }
     pub fn build(self) -> FileDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::FileDeclaration);
-        builder.push(self.file_token);
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.file_token);
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
         if let Some(n) = self.file_open_information {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FileDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<FileDeclarationBuilder> for FileDeclarationSyntax {
@@ -6297,17 +5831,13 @@ impl FileOpenInformationBuilder {
         self
     }
     pub fn build(self) -> FileOpenInformationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::FileOpenInformation);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.file_open_kind {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.is_token);
-        builder.push_node(self.file_logical_name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FileOpenInformationSyntax::cast(node).unwrap()
+        builder.push_token(self.is_token);
+        builder.push_node(self.file_logical_name);
+        builder.finish()
     }
 }
 impl From<FileOpenInformationBuilder> for FileOpenInformationSyntax {
@@ -6339,14 +5869,10 @@ impl FileOpenKindBuilder {
         self
     }
     pub fn build(self) -> FileOpenKindSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::FileOpenKind);
-        builder.push(self.open_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FileOpenKindSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.open_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<FileOpenKindBuilder> for FileOpenKindSyntax {
@@ -6388,15 +5914,11 @@ impl FileTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> FileTypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::FileTypeDefinition);
-        builder.push(self.file_token);
-        builder.push(self.of_token);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FileTypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.file_token);
+        builder.push_token(self.of_token);
+        builder.push_node(self.type_mark);
+        builder.finish()
     }
 }
 impl From<FileTypeDefinitionBuilder> for FileTypeDefinitionSyntax {
@@ -6441,15 +5963,11 @@ impl ForGeneratePreambleBuilder {
         self
     }
     pub fn build(self) -> ForGeneratePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ForGeneratePreamble);
-        builder.push(self.for_token);
-        builder.push_node(self.parameter_specification.raw().green().clone());
-        builder.push(self.generate_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ForGeneratePreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.for_token);
+        builder.push_node(self.parameter_specification);
+        builder.push_token(self.generate_token);
+        builder.finish()
     }
 }
 impl From<ForGeneratePreambleBuilder> for ForGeneratePreambleSyntax {
@@ -6495,18 +6013,14 @@ impl ForGenerateStatementBuilder {
         self
     }
     pub fn build(self) -> ForGenerateStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ForGenerateStatement);
-        builder.push_node(self.stmt_label.raw().green().clone());
-        builder.push_node(self.for_generate_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.stmt_label);
+        builder.push_node(self.for_generate_preamble);
         if let Some(n) = self.generate_statement_body {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.generate_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ForGenerateStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.generate_epilogue);
+        builder.finish()
     }
 }
 impl From<ForGenerateStatementBuilder> for ForGenerateStatementSyntax {
@@ -6541,14 +6055,10 @@ impl ForSchemeBuilder {
         self
     }
     pub fn build(self) -> ForSchemeSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ForScheme);
-        builder.push(self.for_token);
-        builder.push_node(self.parameter_specification.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ForSchemeSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.for_token);
+        builder.push_node(self.parameter_specification);
+        builder.finish()
     }
 }
 impl From<ForSchemeBuilder> for ForSchemeSyntax {
@@ -6580,14 +6090,10 @@ impl FormalBuilder {
         self
     }
     pub fn build(self) -> FormalSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Formal);
-        builder.push_node(self.formal_part.raw().green().clone());
-        builder.push(self.right_arrow_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FormalSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.formal_part);
+        builder.push_token(self.right_arrow_token);
+        builder.finish()
     }
 }
 impl From<FormalBuilder> for FormalSyntax {
@@ -6652,17 +6158,13 @@ impl FullTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> FullTypeDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::FullTypeDeclaration);
-        builder.push(self.type_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.push_node(self.type_definition.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FullTypeDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.type_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.push_node(self.type_definition);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<FullTypeDeclarationBuilder> for FullTypeDeclarationSyntax {
@@ -6728,25 +6230,21 @@ impl FunctionSpecificationBuilder {
         self
     }
     pub fn build(self) -> FunctionSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::FunctionSpecification);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.purity {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push(self.function_token);
-        builder.push(self.designator.0);
+        builder.push_token(self.function_token);
+        builder.push_token(self.designator.0);
         if let Some(n) = self.subprogram_header {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.parameter_list {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.return_token);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        FunctionSpecificationSyntax::cast(node).unwrap()
+        builder.push_token(self.return_token);
+        builder.push_node(self.type_mark);
+        builder.finish()
     }
 }
 impl From<FunctionSpecificationBuilder> for FunctionSpecificationSyntax {
@@ -6783,16 +6281,12 @@ impl GenerateBodyDeclarationsBuilder {
         self
     }
     pub fn build(self) -> GenerateBodyDeclarationsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenerateBodyDeclarations);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.block_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenerateBodyDeclarationsSyntax::cast(node).unwrap()
+        builder.push_node(self.declaration_statement_separator);
+        builder.finish()
     }
 }
 impl From<GenerateBodyDeclarationsBuilder> for GenerateBodyDeclarationsSyntax {
@@ -6845,17 +6339,13 @@ impl GenerateBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> GenerateBodyEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenerateBodyEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenerateBodyEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<GenerateBodyEpilogueBuilder> for GenerateBodyEpilogueSyntax {
@@ -6918,18 +6408,14 @@ impl GenerateEpilogueBuilder {
         self
     }
     pub fn build(self) -> GenerateEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenerateEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.generate_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.generate_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenerateEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<GenerateEpilogueBuilder> for GenerateEpilogueSyntax {
@@ -6971,21 +6457,17 @@ impl GenerateStatementBodyBuilder {
         self
     }
     pub fn build(self) -> GenerateStatementBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenerateStatementBody);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.generate_body_declarations {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         for n in self.concurrent_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.generate_body_epilogue {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenerateStatementBodySyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<GenerateStatementBodyBuilder> for GenerateStatementBodySyntax {
@@ -7047,17 +6529,13 @@ impl GenericClauseBuilder {
         self
     }
     pub fn build(self) -> GenericClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenericClause);
-        builder.push(self.generic_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.generic_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenericClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.generic_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.generic_list);
+        builder.push_token(self.right_par_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<GenericClauseBuilder> for GenericClauseSyntax {
@@ -7089,14 +6567,10 @@ impl GenericMapBuilder {
         self
     }
     pub fn build(self) -> GenericMapSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenericMap);
-        builder.push_node(self.generic_map_aspect.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenericMapSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.generic_map_aspect);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<GenericMapBuilder> for GenericMapSyntax {
@@ -7158,17 +6632,13 @@ impl GenericMapAspectBuilder {
         self
     }
     pub fn build(self) -> GenericMapAspectSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenericMapAspect);
-        builder.push(self.generic_token);
-        builder.push(self.map_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.association_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenericMapAspectSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.generic_token);
+        builder.push_token(self.map_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.association_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<GenericMapAspectBuilder> for GenericMapAspectSyntax {
@@ -7196,16 +6666,12 @@ impl GenericPartBuilder {
         self
     }
     pub fn build(self) -> GenericPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GenericPart);
-        builder.push_node(self.generic_clause.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.generic_clause);
         if let Some(n) = self.generic_map {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GenericPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<GenericPartBuilder> for GenericPartSyntax {
@@ -7270,17 +6736,13 @@ impl GroupDeclarationBuilder {
         self
     }
     pub fn build(self) -> GroupDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GroupDeclaration);
-        builder.push(self.group_token);
-        builder.push(self.identifier_token);
-        builder.push(self.colon_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GroupDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.group_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.name);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<GroupDeclarationBuilder> for GroupDeclarationSyntax {
@@ -7368,19 +6830,15 @@ impl GroupTemplateDeclarationBuilder {
         self
     }
     pub fn build(self) -> GroupTemplateDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GroupTemplateDeclaration);
-        builder.push(self.group_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.entity_class_entry_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GroupTemplateDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.group_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.entity_class_entry_list);
+        builder.push_token(self.right_par_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<GroupTemplateDeclarationBuilder> for GroupTemplateDeclarationSyntax {
@@ -7418,15 +6876,11 @@ impl GuardedSignalSpecificationBuilder {
         self
     }
     pub fn build(self) -> GuardedSignalSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::GuardedSignalSpecification);
-        builder.push_node(self.signal_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        GuardedSignalSpecificationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.signal_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.type_mark);
+        builder.finish()
     }
 }
 impl From<GuardedSignalSpecificationBuilder> for GuardedSignalSpecificationSyntax {
@@ -7482,20 +6936,16 @@ impl IfGenerateElseBuilder {
         self
     }
     pub fn build(self) -> IfGenerateElseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfGenerateElse);
-        builder.push(self.else_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.else_token);
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.generate_token);
+        builder.push_token(self.generate_token);
         if let Some(n) = self.generate_statement_body {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfGenerateElseSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IfGenerateElseBuilder> for IfGenerateElseSyntax {
@@ -7552,21 +7002,17 @@ impl IfGenerateElsifBuilder {
         self
     }
     pub fn build(self) -> IfGenerateElsifSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfGenerateElsif);
-        builder.push(self.elsif_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.elsif_token);
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.condition.raw().green().clone());
-        builder.push(self.generate_token);
+        builder.push_node(self.condition);
+        builder.push_token(self.generate_token);
         if let Some(n) = self.generate_statement_body {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfGenerateElsifSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IfGenerateElsifBuilder> for IfGenerateElsifSyntax {
@@ -7623,21 +7069,17 @@ impl IfGenerateIfBuilder {
         self
     }
     pub fn build(self) -> IfGenerateIfSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfGenerateIf);
-        builder.push(self.if_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.if_token);
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.condition.raw().green().clone());
-        builder.push(self.generate_token);
+        builder.push_node(self.condition);
+        builder.push_token(self.generate_token);
         if let Some(n) = self.generate_statement_body {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfGenerateIfSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IfGenerateIfBuilder> for IfGenerateIfSyntax {
@@ -7686,21 +7128,17 @@ impl IfGenerateStatementBuilder {
         self
     }
     pub fn build(self) -> IfGenerateStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfGenerateStatement);
-        builder.push_node(self.stmt_label.raw().green().clone());
-        builder.push_node(self.if_generate_if.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.stmt_label);
+        builder.push_node(self.if_generate_if);
         for n in self.if_generate_elsifs {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.if_generate_else {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.generate_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfGenerateStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.generate_epilogue);
+        builder.finish()
     }
 }
 impl From<IfGenerateStatementBuilder> for IfGenerateStatementSyntax {
@@ -7746,23 +7184,19 @@ impl IfStatementBuilder {
         self
     }
     pub fn build(self) -> IfStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfStatement);
-        builder.push_node(self.if_statement_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.if_statement_preamble);
         if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         for n in self.if_statement_elsifs {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.if_statement_else {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.if_statement_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.if_statement_epilogue);
+        builder.finish()
     }
 }
 impl From<IfStatementBuilder> for IfStatementSyntax {
@@ -7799,16 +7233,12 @@ impl IfStatementElseBuilder {
         self
     }
     pub fn build(self) -> IfStatementElseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfStatementElse);
-        builder.push(self.else_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.else_token);
         if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfStatementElseSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IfStatementElseBuilder> for IfStatementElseSyntax {
@@ -7856,18 +7286,14 @@ impl IfStatementElsifBuilder {
         self
     }
     pub fn build(self) -> IfStatementElsifSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfStatementElsif);
-        builder.push(self.elsif_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.push(self.then_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.elsif_token);
+        builder.push_node(self.condition);
+        builder.push_token(self.then_token);
         if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfStatementElsifSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IfStatementElsifBuilder> for IfStatementElsifSyntax {
@@ -7930,18 +7356,14 @@ impl IfStatementEpilogueBuilder {
         self
     }
     pub fn build(self) -> IfStatementEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfStatementEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.if_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.if_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfStatementEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<IfStatementEpilogueBuilder> for IfStatementEpilogueSyntax {
@@ -7989,18 +7411,14 @@ impl IfStatementPreambleBuilder {
         self
     }
     pub fn build(self) -> IfStatementPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IfStatementPreamble);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.if_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.push(self.then_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IfStatementPreambleSyntax::cast(node).unwrap()
+        builder.push_token(self.if_token);
+        builder.push_node(self.condition);
+        builder.push_token(self.then_token);
+        builder.finish()
     }
 }
 impl From<IfStatementPreambleBuilder> for IfStatementPreambleSyntax {
@@ -8046,15 +7464,11 @@ impl IncompleteTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> IncompleteTypeDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IncompleteTypeDeclaration);
-        builder.push(self.type_token);
-        builder.push(self.identifier_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IncompleteTypeDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.type_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<IncompleteTypeDeclarationBuilder> for IncompleteTypeDeclarationSyntax {
@@ -8096,15 +7510,11 @@ impl IndexConstraintBuilder {
         self
     }
     pub fn build(self) -> IndexConstraintSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IndexConstraint);
-        builder.push(self.left_par_token);
-        builder.push_node(self.expression_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IndexConstraintSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.expression_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<IndexConstraintBuilder> for IndexConstraintSyntax {
@@ -8146,15 +7556,11 @@ impl IndexSubtypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> IndexSubtypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IndexSubtypeDefinition);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.push(self.range_token);
-        builder.push(self.box_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IndexSubtypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.type_mark);
+        builder.push_token(self.range_token);
+        builder.push_token(self.box_token);
+        builder.finish()
     }
 }
 impl From<IndexSubtypeDefinitionBuilder> for IndexSubtypeDefinitionSyntax {
@@ -8191,16 +7597,12 @@ impl InertialDelayMechanismBuilder {
         self
     }
     pub fn build(self) -> InertialDelayMechanismSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InertialDelayMechanism);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.reject_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.inertial_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InertialDelayMechanismSyntax::cast(node).unwrap()
+        builder.push_token(self.inertial_token);
+        builder.finish()
     }
 }
 impl From<InertialDelayMechanismBuilder> for InertialDelayMechanismSyntax {
@@ -8232,14 +7634,10 @@ impl InitialValueBuilder {
         self
     }
     pub fn build(self) -> InitialValueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InitialValue);
-        builder.push(self.colon_eq_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InitialValueSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.colon_eq_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<InitialValueBuilder> for InitialValueSyntax {
@@ -8274,16 +7672,12 @@ impl InstantiatedComponentBuilder {
         self
     }
     pub fn build(self) -> InstantiatedComponentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InstantiatedComponent);
+        let mut builder = RawNodeBuilder::new();
         if let Some(t) = self.component_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InstantiatedComponentSyntax::cast(node).unwrap()
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<InstantiatedComponentBuilder> for InstantiatedComponentSyntax {
@@ -8315,14 +7709,10 @@ impl InstantiatedConfigurationBuilder {
         self
     }
     pub fn build(self) -> InstantiatedConfigurationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InstantiatedConfiguration);
-        builder.push(self.configuration_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InstantiatedConfigurationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.configuration_token);
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<InstantiatedConfigurationBuilder> for InstantiatedConfigurationSyntax {
@@ -8354,14 +7744,10 @@ impl InstantiatedEntityBuilder {
         self
     }
     pub fn build(self) -> InstantiatedEntitySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InstantiatedEntity);
-        builder.push(self.entity_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InstantiatedEntitySyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.entity_token);
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<InstantiatedEntityBuilder> for InstantiatedEntitySyntax {
@@ -8392,13 +7778,9 @@ impl InstantiationListAllBuilder {
         self
     }
     pub fn build(self) -> InstantiationListAllSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InstantiationListAll);
-        builder.push(self.all_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InstantiationListAllSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.all_token);
+        builder.finish()
     }
 }
 impl From<InstantiationListAllBuilder> for InstantiationListAllSyntax {
@@ -8429,13 +7811,9 @@ impl InstantiationListOthersBuilder {
         self
     }
     pub fn build(self) -> InstantiationListOthersSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InstantiationListOthers);
-        builder.push(self.others_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InstantiationListOthersSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.others_token);
+        builder.finish()
     }
 }
 impl From<InstantiationListOthersBuilder> for InstantiationListOthersSyntax {
@@ -8486,16 +7864,12 @@ impl InterfaceFileDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceFileDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceFileDeclaration);
-        builder.push(self.file_token);
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceFileDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.file_token);
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
+        builder.finish()
     }
 }
 impl From<InterfaceFileDeclarationBuilder> for InterfaceFileDeclarationSyntax {
@@ -8555,22 +7929,18 @@ impl InterfaceFunctionSpecificationBuilder {
         self
     }
     pub fn build(self) -> InterfaceFunctionSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceFunctionSpecification);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.purity {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push(self.function_token);
-        builder.push(self.designator.0);
+        builder.push_token(self.function_token);
+        builder.push_token(self.designator.0);
         if let Some(n) = self.parameter_list {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.return_token);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceFunctionSpecificationSyntax::cast(node).unwrap()
+        builder.push_token(self.return_token);
+        builder.push_node(self.type_mark);
+        builder.finish()
     }
 }
 impl From<InterfaceFunctionSpecificationBuilder> for InterfaceFunctionSpecificationSyntax {
@@ -8606,14 +7976,10 @@ impl InterfaceIncompleteTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceIncompleteTypeDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceIncompleteTypeDeclaration);
-        builder.push(self.type_token);
-        builder.push(self.identifier_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceIncompleteTypeDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.type_token);
+        builder.push_token(self.identifier_token);
+        builder.finish()
     }
 }
 impl From<InterfaceIncompleteTypeDeclarationBuilder> for InterfaceIncompleteTypeDeclarationSyntax {
@@ -8685,27 +8051,23 @@ impl InterfaceObjectDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceObjectDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceObjectDeclaration);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.interface_object_class {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
         if let Some(n) = self.mode {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push_node(self.subtype_indication.raw().green().clone());
+        builder.push_node(self.subtype_indication);
         if let Some(t) = self.bus_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(n) = self.initial_value {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceObjectDeclarationSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<InterfaceObjectDeclarationBuilder> for InterfaceObjectDeclarationSyntax {
@@ -8759,26 +8121,12 @@ impl InterfacePackageDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfacePackageDeclaration);
-        builder.push_node(
-            self.interface_package_declaration_preamble
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.push(self.new_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.push_node(
-            self.interface_package_generic_map_aspect
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfacePackageDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.interface_package_declaration_preamble);
+        builder.push_token(self.new_token);
+        builder.push_node(self.name);
+        builder.push_node(self.interface_package_generic_map_aspect);
+        builder.finish()
     }
 }
 impl From<InterfacePackageDeclarationBuilder> for InterfacePackageDeclarationSyntax {
@@ -8824,15 +8172,11 @@ impl InterfacePackageDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageDeclarationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfacePackageDeclarationPreamble);
-        builder.push(self.package_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfacePackageDeclarationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.package_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<InterfacePackageDeclarationPreambleBuilder>
@@ -8904,22 +8248,13 @@ impl InterfacePackageGenericMapAspectBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfacePackageGenericMapAspect);
-        builder.push(self.generic_token);
-        builder.push(self.map_token);
-        builder.push(self.left_par_token);
-        builder.push_node(
-            self.interface_package_generic_map_aspect_inner
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfacePackageGenericMapAspectSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.generic_token);
+        builder.push_token(self.map_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.interface_package_generic_map_aspect_inner);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectBuilder> for InterfacePackageGenericMapAspectSyntax {
@@ -8941,13 +8276,9 @@ impl InterfacePackageGenericMapAspectAssociationsBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectAssociationsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfacePackageGenericMapAspectAssociations);
-        builder.push_node(self.association_list.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfacePackageGenericMapAspectAssociationsSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.association_list);
+        builder.finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectAssociationsBuilder>
@@ -8980,13 +8311,9 @@ impl InterfacePackageGenericMapAspectBoxBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectBoxSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfacePackageGenericMapAspectBox);
-        builder.push(self.box_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfacePackageGenericMapAspectBoxSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.box_token);
+        builder.finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectBoxBuilder>
@@ -9019,13 +8346,9 @@ impl InterfacePackageGenericMapAspectDefaultBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectDefaultSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfacePackageGenericMapAspectDefault);
-        builder.push(self.default_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfacePackageGenericMapAspectDefaultSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.default_token);
+        builder.finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectDefaultBuilder>
@@ -9065,17 +8388,13 @@ impl InterfaceProcedureSpecificationBuilder {
         self
     }
     pub fn build(self) -> InterfaceProcedureSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceProcedureSpecification);
-        builder.push(self.procedure_token);
-        builder.push(self.designator.0);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.procedure_token);
+        builder.push_token(self.designator.0);
         if let Some(n) = self.parameter_list {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceProcedureSpecificationSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<InterfaceProcedureSpecificationBuilder> for InterfaceProcedureSpecificationSyntax {
@@ -9108,21 +8427,12 @@ impl InterfaceSubprogramDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceSubprogramDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceSubprogramDeclaration);
-        builder.push_node(
-            self.interface_subprogram_specification
-                .raw()
-                .green()
-                .clone(),
-        );
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.interface_subprogram_specification);
         if let Some(n) = self.subprogram_default {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceSubprogramDeclarationSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<InterfaceSubprogramDeclarationBuilder> for InterfaceSubprogramDeclarationSyntax {
@@ -9153,13 +8463,9 @@ impl InterfaceSubprogramDefaultBoxBuilder {
         self
     }
     pub fn build(self) -> InterfaceSubprogramDefaultBoxSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceSubprogramDefaultBox);
-        builder.push(self.box_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceSubprogramDefaultBoxSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.box_token);
+        builder.finish()
     }
 }
 impl From<InterfaceSubprogramDefaultBoxBuilder> for InterfaceSubprogramDefaultBoxSyntax {
@@ -9179,13 +8485,9 @@ impl InterfaceSubprogramDefaultNameBuilder {
         self
     }
     pub fn build(self) -> InterfaceSubprogramDefaultNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceSubprogramDefaultName);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceSubprogramDefaultNameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<InterfaceSubprogramDefaultNameBuilder> for InterfaceSubprogramDefaultNameSyntax {
@@ -9227,15 +8529,11 @@ impl LibraryClauseBuilder {
         self
     }
     pub fn build(self) -> LibraryClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::LibraryClause);
-        builder.push(self.library_token);
-        builder.push_node(self.logical_name_list.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        LibraryClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.library_token);
+        builder.push_node(self.logical_name_list);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<LibraryClauseBuilder> for LibraryClauseSyntax {
@@ -9257,13 +8555,9 @@ impl LiteralExpressionBuilder {
         self
     }
     pub fn build(self) -> LiteralExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::LiteralExpression);
-        builder.push(self.literal.0);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        LiteralExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.literal.0);
+        builder.finish()
     }
 }
 impl From<LiteralExpressionBuilder> for LiteralExpressionSyntax {
@@ -9308,17 +8602,13 @@ impl LoopStatementBuilder {
         self
     }
     pub fn build(self) -> LoopStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::LoopStatement);
-        builder.push_node(self.loop_statement_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.loop_statement_preamble);
         if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.loop_statement_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        LoopStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.loop_statement_epilogue);
+        builder.finish()
     }
 }
 impl From<LoopStatementBuilder> for LoopStatementSyntax {
@@ -9381,18 +8671,14 @@ impl LoopStatementEpilogueBuilder {
         self
     }
     pub fn build(self) -> LoopStatementEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::LoopStatementEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.loop_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.loop_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        LoopStatementEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<LoopStatementEpilogueBuilder> for LoopStatementEpilogueSyntax {
@@ -9435,19 +8721,15 @@ impl LoopStatementPreambleBuilder {
         self
     }
     pub fn build(self) -> LoopStatementPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::LoopStatementPreamble);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.iteration_scheme {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.loop_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        LoopStatementPreambleSyntax::cast(node).unwrap()
+        builder.push_token(self.loop_token);
+        builder.finish()
     }
 }
 impl From<LoopStatementPreambleBuilder> for LoopStatementPreambleSyntax {
@@ -9481,19 +8763,15 @@ impl NameBuilder {
         self
     }
     pub fn build(self) -> NameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Name);
-        builder.push_node(self.prefix.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.prefix);
         for n in self.name_tails {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.range_constraint {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NameSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<NameBuilder> for NameSyntax {
@@ -9515,13 +8793,9 @@ impl NameDesignatorPrefixBuilder {
         self
     }
     pub fn build(self) -> NameDesignatorPrefixSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NameDesignatorPrefix);
-        builder.push(self.name_designator.0);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NameDesignatorPrefixSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.name_designator.0);
+        builder.finish()
     }
 }
 impl From<NameDesignatorPrefixBuilder> for NameDesignatorPrefixSyntax {
@@ -9541,13 +8815,9 @@ impl NameExpressionBuilder {
         self
     }
     pub fn build(self) -> NameExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NameExpression);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NameExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<NameExpressionBuilder> for NameExpressionSyntax {
@@ -9567,13 +8837,9 @@ impl NameResolutionIndicationBuilder {
         self
     }
     pub fn build(self) -> NameResolutionIndicationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NameResolutionIndication);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NameResolutionIndicationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<NameResolutionIndicationBuilder> for NameResolutionIndicationSyntax {
@@ -9593,13 +8859,9 @@ impl NameTargetBuilder {
         self
     }
     pub fn build(self) -> NameTargetSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NameTarget);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NameTargetSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<NameTargetBuilder> for NameTargetSyntax {
@@ -9664,23 +8926,19 @@ impl NextStatementBuilder {
         self
     }
     pub fn build(self) -> NextStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NextStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.next_token);
+        builder.push_token(self.next_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(n) = self.when_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NextStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<NextStatementBuilder> for NextStatementSyntax {
@@ -9727,17 +8985,13 @@ impl NullStatementBuilder {
         self
     }
     pub fn build(self) -> NullStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NullStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.null_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NullStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.null_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<NullStatementBuilder> for NullStatementSyntax {
@@ -9759,13 +9013,9 @@ impl NumericTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> NumericTypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NumericTypeDefinition);
-        builder.push_node(self.range_constraint.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NumericTypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.range_constraint);
+        builder.finish()
     }
 }
 impl From<NumericTypeDefinitionBuilder> for NumericTypeDefinitionSyntax {
@@ -9796,13 +9046,9 @@ impl OthersChoiceBuilder {
         self
     }
     pub fn build(self) -> OthersChoiceSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::OthersChoice);
-        builder.push(self.others_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        OthersChoiceSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.others_token);
+        builder.finish()
     }
 }
 impl From<OthersChoiceBuilder> for OthersChoiceSyntax {
@@ -9839,17 +9085,13 @@ impl PackageBodyBuilder {
         self
     }
     pub fn build(self) -> PackageBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageBody);
-        builder.push_node(self.package_body_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_body_preamble);
         if let Some(n) = self.package_body_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.package_body_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageBodySyntax::cast(node).unwrap()
+        builder.push_node(self.package_body_epilogue);
+        builder.finish()
     }
 }
 impl From<PackageBodyBuilder> for PackageBodySyntax {
@@ -9871,13 +9113,9 @@ impl PackageBodyDeclarationBuilder {
         self
     }
     pub fn build(self) -> PackageBodyDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageBodyDeclaration);
-        builder.push_node(self.package_body.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageBodyDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_body);
+        builder.finish()
     }
 }
 impl From<PackageBodyDeclarationBuilder> for PackageBodyDeclarationSyntax {
@@ -9907,15 +9145,11 @@ impl PackageBodyDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> PackageBodyDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageBodyDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.package_body_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageBodyDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PackageBodyDeclarativePartBuilder> for PackageBodyDeclarativePartSyntax {
@@ -9974,20 +9208,16 @@ impl PackageBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> PackageBodyEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageBodyEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(n) = self.end_package_body {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageBodyEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<PackageBodyEpilogueBuilder> for PackageBodyEpilogueSyntax {
@@ -10043,16 +9273,12 @@ impl PackageBodyPreambleBuilder {
         self
     }
     pub fn build(self) -> PackageBodyPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageBodyPreamble);
-        builder.push(self.package_token);
-        builder.push(self.body_token);
-        builder.push(self.simple_name);
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageBodyPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.package_token);
+        builder.push_token(self.body_token);
+        builder.push_token(self.simple_name);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<PackageBodyPreambleBuilder> for PackageBodyPreambleSyntax {
@@ -10095,20 +9321,16 @@ impl PackageDeclarationBuilder {
         self
     }
     pub fn build(self) -> PackageDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageDeclaration);
-        builder.push_node(self.package_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_preamble);
         if let Some(n) = self.package_header {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.package_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.package_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageDeclarationSyntax::cast(node).unwrap()
+        builder.push_node(self.package_epilogue);
+        builder.finish()
     }
 }
 impl From<PackageDeclarationBuilder> for PackageDeclarationSyntax {
@@ -10130,13 +9352,9 @@ impl PackageDeclarationItemBuilder {
         self
     }
     pub fn build(self) -> PackageDeclarationItemSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageDeclarationItem);
-        builder.push_node(self.package_declaration.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageDeclarationItemSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_declaration);
+        builder.finish()
     }
 }
 impl From<PackageDeclarationItemBuilder> for PackageDeclarationItemSyntax {
@@ -10166,15 +9384,11 @@ impl PackageDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> PackageDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.package_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PackageDeclarativePartBuilder> for PackageDeclarativePartSyntax {
@@ -10240,20 +9454,16 @@ impl PackageEpilogueBuilder {
         self
     }
     pub fn build(self) -> PackageEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.package_token {
-            builder.push(t);
+            builder.push_token(t);
         }
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<PackageEpilogueBuilder> for PackageEpilogueSyntax {
@@ -10281,16 +9491,12 @@ impl PackageHeaderBuilder {
         self
     }
     pub fn build(self) -> PackageHeaderSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageHeader);
-        builder.push_node(self.generic_clause.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.generic_clause);
         if let Some(n) = self.generic_map {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageHeaderSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PackageHeaderBuilder> for PackageHeaderSyntax {
@@ -10333,17 +9539,13 @@ impl PackageInstantiationDeclarationBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageInstantiationDeclaration);
-        builder.push_node(self.package_instantiation_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_instantiation_preamble);
         if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageInstantiationDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<PackageInstantiationDeclarationBuilder> for PackageInstantiationDeclarationSyntax {
@@ -10370,13 +9572,9 @@ impl PackageInstantiationDeclarationItemBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationDeclarationItemSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageInstantiationDeclarationItem);
-        builder.push_node(self.package_instantiation_declaration.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageInstantiationDeclarationItemSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_instantiation_declaration);
+        builder.finish()
     }
 }
 impl From<PackageInstantiationDeclarationItemBuilder>
@@ -10405,13 +9603,9 @@ impl PackageInstantiationDeclarationPrimaryUnitBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationDeclarationPrimaryUnitSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageInstantiationDeclarationPrimaryUnit);
-        builder.push_node(self.package_instantiation_declaration.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageInstantiationDeclarationPrimaryUnitSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_instantiation_declaration);
+        builder.finish()
     }
 }
 impl From<PackageInstantiationDeclarationPrimaryUnitBuilder>
@@ -10478,17 +9672,13 @@ impl PackageInstantiationPreambleBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackageInstantiationPreamble);
-        builder.push(self.package_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.push(self.new_token);
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackageInstantiationPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.package_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.push_token(self.new_token);
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<PackageInstantiationPreambleBuilder> for PackageInstantiationPreambleSyntax {
@@ -10520,14 +9710,10 @@ impl PackagePathnameBuilder {
         self
     }
     pub fn build(self) -> PackagePathnameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackagePathname);
-        builder.push(self.comm_at_token);
-        builder.push_node(self.package_path.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackagePathnameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.comm_at_token);
+        builder.push_node(self.package_path);
+        builder.finish()
     }
 }
 impl From<PackagePathnameBuilder> for PackagePathnameSyntax {
@@ -10573,15 +9759,11 @@ impl PackagePreambleBuilder {
         self
     }
     pub fn build(self) -> PackagePreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackagePreamble);
-        builder.push(self.package_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackagePreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.package_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<PackagePreambleBuilder> for PackagePreambleSyntax {
@@ -10619,16 +9801,12 @@ impl ParameterListBuilder {
         self
     }
     pub fn build(self) -> ParameterListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParameterList);
+        let mut builder = RawNodeBuilder::new();
         if let Some(t) = self.parameter_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.parenthesized_interface_list.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParameterListSyntax::cast(node).unwrap()
+        builder.push_node(self.parenthesized_interface_list);
+        builder.finish()
     }
 }
 impl From<ParameterListBuilder> for ParameterListSyntax {
@@ -10673,15 +9851,11 @@ impl ParameterSpecificationBuilder {
         self
     }
     pub fn build(self) -> ParameterSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParameterSpecification);
-        builder.push(self.identifier_token);
-        builder.push(self.in_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParameterSpecificationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.in_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<ParameterSpecificationBuilder> for ParameterSpecificationSyntax {
@@ -10723,15 +9897,11 @@ impl ParenthesizedConditionBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedConditionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedCondition);
-        builder.push(self.left_par_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedConditionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.condition);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedConditionBuilder> for ParenthesizedConditionSyntax {
@@ -10779,20 +9949,11 @@ impl ParenthesizedElementResolutionBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedElementResolutionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedElementResolution);
-        builder.push(self.left_par_token);
-        builder.push_node(
-            self.element_resolution_resolution_indication
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedElementResolutionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.element_resolution_resolution_indication);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedElementResolutionBuilder> for ParenthesizedElementResolutionSyntax {
@@ -10834,15 +9995,11 @@ impl ParenthesizedExpressionBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedExpression);
-        builder.push(self.left_par_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedExpressionBuilder> for ParenthesizedExpressionSyntax {
@@ -10887,15 +10044,11 @@ impl ParenthesizedExpressionOrAggregateBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedExpressionOrAggregateSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedExpressionOrAggregate);
-        builder.push(self.left_par_token);
-        builder.push_node(self.element_association_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedExpressionOrAggregateSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.element_association_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedExpressionOrAggregateBuilder> for ParenthesizedExpressionOrAggregateSyntax {
@@ -10937,15 +10090,11 @@ impl ParenthesizedInterfaceListBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedInterfaceListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedInterfaceList);
-        builder.push(self.left_par_token);
-        builder.push_node(self.formal_parameter_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedInterfaceListSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.formal_parameter_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedInterfaceListBuilder> for ParenthesizedInterfaceListSyntax {
@@ -10987,15 +10136,11 @@ impl ParenthesizedNameBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedName);
-        builder.push(self.left_par_token);
-        builder.push_node(self.association_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedNameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.association_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedNameBuilder> for ParenthesizedNameSyntax {
@@ -11040,15 +10185,11 @@ impl ParenthesizedProcessSensitivityListBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedProcessSensitivityListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ParenthesizedProcessSensitivityList);
-        builder.push(self.left_par_token);
-        builder.push_node(self.process_sensitivity_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ParenthesizedProcessSensitivityListSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.process_sensitivity_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<ParenthesizedProcessSensitivityListBuilder>
@@ -11085,16 +10226,12 @@ impl PathnameElementBuilder {
         self
     }
     pub fn build(self) -> PathnameElementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PathnameElement);
-        builder.push(self.identifier_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.identifier_token);
         if let Some(n) = self.parenthesized_expression {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PathnameElementSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PathnameElementBuilder> for PathnameElementSyntax {
@@ -11131,16 +10268,12 @@ impl PhysicalLiteralBuilder {
         self
     }
     pub fn build(self) -> PhysicalLiteralSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PhysicalLiteral);
+        let mut builder = RawNodeBuilder::new();
         if let Some(t) = self.abstract_literal_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push_node(self.name.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PhysicalLiteralSyntax::cast(node).unwrap()
+        builder.push_node(self.name);
+        builder.finish()
     }
 }
 impl From<PhysicalLiteralBuilder> for PhysicalLiteralSyntax {
@@ -11162,13 +10295,9 @@ impl PhysicalLiteralExpressionBuilder {
         self
     }
     pub fn build(self) -> PhysicalLiteralExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PhysicalLiteralExpression);
-        builder.push_node(self.physical_literal.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PhysicalLiteralExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.physical_literal);
+        builder.finish()
     }
 }
 impl From<PhysicalLiteralExpressionBuilder> for PhysicalLiteralExpressionSyntax {
@@ -11209,15 +10338,11 @@ impl PhysicalTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> PhysicalTypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PhysicalTypeDefinition);
-        builder.push_node(self.range_constraint.raw().green().clone());
-        builder.push_node(self.unit_declarations.raw().green().clone());
-        builder.push_node(self.physical_type_definition_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PhysicalTypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.range_constraint);
+        builder.push_node(self.unit_declarations);
+        builder.push_node(self.physical_type_definition_epilogue);
+        builder.finish()
     }
 }
 impl From<PhysicalTypeDefinitionBuilder> for PhysicalTypeDefinitionSyntax {
@@ -11270,17 +10395,13 @@ impl PhysicalTypeDefinitionEpilogueBuilder {
         self
     }
     pub fn build(self) -> PhysicalTypeDefinitionEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PhysicalTypeDefinitionEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.units_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.units_token);
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PhysicalTypeDefinitionEpilogueSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PhysicalTypeDefinitionEpilogueBuilder> for PhysicalTypeDefinitionEpilogueSyntax {
@@ -11342,17 +10463,13 @@ impl PortClauseBuilder {
         self
     }
     pub fn build(self) -> PortClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PortClause);
-        builder.push(self.port_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.port_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PortClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.port_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.port_list);
+        builder.push_token(self.right_par_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<PortClauseBuilder> for PortClauseSyntax {
@@ -11384,14 +10501,10 @@ impl PortMapBuilder {
         self
     }
     pub fn build(self) -> PortMapSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PortMap);
-        builder.push_node(self.port_map_aspect.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PortMapSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.port_map_aspect);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<PortMapBuilder> for PortMapSyntax {
@@ -11453,17 +10566,13 @@ impl PortMapAspectBuilder {
         self
     }
     pub fn build(self) -> PortMapAspectSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PortMapAspect);
-        builder.push(self.port_token);
-        builder.push(self.map_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.association_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PortMapAspectSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.port_token);
+        builder.push_token(self.map_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.association_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<PortMapAspectBuilder> for PortMapAspectSyntax {
@@ -11491,16 +10600,12 @@ impl PortPartBuilder {
         self
     }
     pub fn build(self) -> PortPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PortPart);
-        builder.push_node(self.port_clause.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.port_clause);
         if let Some(n) = self.port_map {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PortPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PortPartBuilder> for PortPartSyntax {
@@ -11536,14 +10641,10 @@ impl PrimaryUnitDeclarationBuilder {
         self
     }
     pub fn build(self) -> PrimaryUnitDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PrimaryUnitDeclaration);
-        builder.push(self.identifier_token);
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PrimaryUnitDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<PrimaryUnitDeclarationBuilder> for PrimaryUnitDeclarationSyntax {
@@ -11565,13 +10666,9 @@ impl PrimaryUnitPackageDeclarationBuilder {
         self
     }
     pub fn build(self) -> PrimaryUnitPackageDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PrimaryUnitPackageDeclaration);
-        builder.push_node(self.package_declaration.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PrimaryUnitPackageDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_declaration);
+        builder.finish()
     }
 }
 impl From<PrimaryUnitPackageDeclarationBuilder> for PrimaryUnitPackageDeclarationSyntax {
@@ -11609,17 +10706,13 @@ impl ProcedureCallStatementBuilder {
         self
     }
     pub fn build(self) -> ProcedureCallStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcedureCallStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.procedure_call.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcedureCallStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.procedure_call);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ProcedureCallStatementBuilder> for ProcedureCallStatementSyntax {
@@ -11663,20 +10756,16 @@ impl ProcedureSpecificationBuilder {
         self
     }
     pub fn build(self) -> ProcedureSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcedureSpecification);
-        builder.push(self.procedure_token);
-        builder.push(self.designator.0);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.procedure_token);
+        builder.push_token(self.designator.0);
         if let Some(n) = self.subprogram_header {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.parameter_list {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcedureSpecificationSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProcedureSpecificationBuilder> for ProcedureSpecificationSyntax {
@@ -11706,15 +10795,11 @@ impl ProcessDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ProcessDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcessDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.process_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcessDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProcessDeclarativePartBuilder> for ProcessDeclarativePartSyntax {
@@ -11790,21 +10875,17 @@ impl ProcessEpilogueBuilder {
         self
     }
     pub fn build(self) -> ProcessEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcessEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.process_token);
+        builder.push_token(self.process_token);
         if let Some(t) = self.label {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcessEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ProcessEpilogueBuilder> for ProcessEpilogueSyntax {
@@ -11870,22 +10951,18 @@ impl ProcessPreambleBuilder {
         self
     }
     pub fn build(self) -> ProcessPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcessPreamble);
+        let mut builder = RawNodeBuilder::new();
         if let Some(t) = self.postponed_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.process_token);
+        builder.push_token(self.process_token);
         if let Some(n) = self.parenthesized_process_sensitivity_list {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(t) = self.is_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcessPreambleSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProcessPreambleBuilder> for ProcessPreambleSyntax {
@@ -11949,24 +11026,20 @@ impl ProcessStatementBuilder {
         self
     }
     pub fn build(self) -> ProcessStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcessStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.process_preamble.raw().green().clone());
+        builder.push_node(self.process_preamble);
         if let Some(n) = self.process_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
+        builder.push_node(self.declaration_statement_separator);
         if let Some(n) = self.process_statement_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.process_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcessStatementSyntax::cast(node).unwrap()
+        builder.push_node(self.process_epilogue);
+        builder.finish()
     }
 }
 impl From<ProcessStatementBuilder> for ProcessStatementSyntax {
@@ -11993,15 +11066,11 @@ impl ProcessStatementPartBuilder {
         self
     }
     pub fn build(self) -> ProcessStatementPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProcessStatementPart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.sequential_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProcessStatementPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProcessStatementPartBuilder> for ProcessStatementPartSyntax {
@@ -12032,13 +11101,9 @@ impl ProtectedPreambleBuilder {
         self
     }
     pub fn build(self) -> ProtectedPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedPreamble);
-        builder.push(self.protected_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.protected_token);
+        builder.finish()
     }
 }
 impl From<ProtectedPreambleBuilder> for ProtectedPreambleSyntax {
@@ -12086,17 +11151,13 @@ impl ProtectedTypeBodyBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeBody);
-        builder.push_node(self.protected_type_body_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.protected_type_body_preamble);
         if let Some(n) = self.protected_type_body_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.protected_type_body_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeBodySyntax::cast(node).unwrap()
+        builder.push_node(self.protected_type_body_epilogue);
+        builder.finish()
     }
 }
 impl From<ProtectedTypeBodyBuilder> for ProtectedTypeBodySyntax {
@@ -12126,15 +11187,11 @@ impl ProtectedTypeBodyDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodyDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeBodyDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.protected_type_body_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeBodyDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProtectedTypeBodyDeclarativePartBuilder> for ProtectedTypeBodyDeclarativePartSyntax {
@@ -12197,18 +11254,14 @@ impl ProtectedTypeBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodyEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeBodyEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.protected_token);
-        builder.push(self.body_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.protected_token);
+        builder.push_token(self.body_token);
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeBodyEpilogueSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProtectedTypeBodyEpilogueBuilder> for ProtectedTypeBodyEpilogueSyntax {
@@ -12249,14 +11302,10 @@ impl ProtectedTypeBodyPreambleBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodyPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeBodyPreamble);
-        builder.push(self.protected_token);
-        builder.push(self.body_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeBodyPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.protected_token);
+        builder.push_token(self.body_token);
+        builder.finish()
     }
 }
 impl From<ProtectedTypeBodyPreambleBuilder> for ProtectedTypeBodyPreambleSyntax {
@@ -12302,22 +11351,13 @@ impl ProtectedTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeDeclaration);
-        builder.push_node(self.protected_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.protected_preamble);
         if let Some(n) = self.protected_type_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(
-            self.protected_type_declaration_epilogue
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeDeclarationSyntax::cast(node).unwrap()
+        builder.push_node(self.protected_type_declaration_epilogue);
+        builder.finish()
     }
 }
 impl From<ProtectedTypeDeclarationBuilder> for ProtectedTypeDeclarationSyntax {
@@ -12370,17 +11410,13 @@ impl ProtectedTypeDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeDeclarationEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeDeclarationEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.protected_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.protected_token);
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeDeclarationEpilogueSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProtectedTypeDeclarationEpilogueBuilder> for ProtectedTypeDeclarationEpilogueSyntax {
@@ -12410,15 +11446,11 @@ impl ProtectedTypeDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ProtectedTypeDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.protected_type_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ProtectedTypeDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ProtectedTypeDeclarativePartBuilder> for ProtectedTypeDeclarativePartSyntax {
@@ -12462,20 +11494,11 @@ impl QualifiedExpressionBuilder {
         self
     }
     pub fn build(self) -> QualifiedExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::QualifiedExpression);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.push(self.tick_token);
-        builder.push_node(
-            self.parenthesized_expression_or_aggregate
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        QualifiedExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.type_mark);
+        builder.push_token(self.tick_token);
+        builder.push_node(self.parenthesized_expression_or_aggregate);
+        builder.finish()
     }
 }
 impl From<QualifiedExpressionBuilder> for QualifiedExpressionSyntax {
@@ -12507,14 +11530,10 @@ impl RangeConstraintBuilder {
         self
     }
     pub fn build(self) -> RangeConstraintSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RangeConstraint);
-        builder.push(self.range_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RangeConstraintSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.range_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<RangeConstraintBuilder> for RangeConstraintSyntax {
@@ -12536,15 +11555,11 @@ impl RecordElementDeclarationsBuilder {
         self
     }
     pub fn build(self) -> RecordElementDeclarationsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordElementDeclarations);
+        let mut builder = RawNodeBuilder::new();
         for n in self.element_declarations {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordElementDeclarationsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<RecordElementDeclarationsBuilder> for RecordElementDeclarationsSyntax {
@@ -12579,14 +11594,10 @@ impl RecordElementResolutionBuilder {
         self
     }
     pub fn build(self) -> RecordElementResolutionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordElementResolution);
-        builder.push(self.simple_name);
-        builder.push_node(self.resolution_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordElementResolutionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.simple_name);
+        builder.push_node(self.resolution_indication);
+        builder.finish()
     }
 }
 impl From<RecordElementResolutionBuilder> for RecordElementResolutionSyntax {
@@ -12608,13 +11619,9 @@ impl RecordResolutionElementResolutionBuilder {
         self
     }
     pub fn build(self) -> RecordResolutionElementResolutionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordResolutionElementResolution);
-        builder.push_node(self.record_resolution.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordResolutionElementResolutionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.record_resolution);
+        builder.finish()
     }
 }
 impl From<RecordResolutionElementResolutionBuilder> for RecordResolutionElementResolutionSyntax {
@@ -12657,15 +11664,11 @@ impl RecordTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> RecordTypeDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordTypeDefinition);
-        builder.push_node(self.record_type_definition_preamble.raw().green().clone());
-        builder.push_node(self.record_element_declarations.raw().green().clone());
-        builder.push_node(self.record_type_definition_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordTypeDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.record_type_definition_preamble);
+        builder.push_node(self.record_element_declarations);
+        builder.push_node(self.record_type_definition_epilogue);
+        builder.finish()
     }
 }
 impl From<RecordTypeDefinitionBuilder> for RecordTypeDefinitionSyntax {
@@ -12718,17 +11721,13 @@ impl RecordTypeDefinitionEpilogueBuilder {
         self
     }
     pub fn build(self) -> RecordTypeDefinitionEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordTypeDefinitionEpilogue);
-        builder.push(self.end_token);
-        builder.push(self.record_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
+        builder.push_token(self.record_token);
         if let Some(t) = self.simple_name {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordTypeDefinitionEpilogueSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<RecordTypeDefinitionEpilogueBuilder> for RecordTypeDefinitionEpilogueSyntax {
@@ -12759,13 +11758,9 @@ impl RecordTypeDefinitionPreambleBuilder {
         self
     }
     pub fn build(self) -> RecordTypeDefinitionPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordTypeDefinitionPreamble);
-        builder.push(self.record_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordTypeDefinitionPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.record_token);
+        builder.finish()
     }
 }
 impl From<RecordTypeDefinitionPreambleBuilder> for RecordTypeDefinitionPreambleSyntax {
@@ -12797,14 +11792,10 @@ impl RejectClauseBuilder {
         self
     }
     pub fn build(self) -> RejectClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RejectClause);
-        builder.push(self.reject_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RejectClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.reject_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<RejectClauseBuilder> for RejectClauseSyntax {
@@ -12832,16 +11823,12 @@ impl RelativePathnameBuilder {
         self
     }
     pub fn build(self) -> RelativePathnameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RelativePathname);
+        let mut builder = RawNodeBuilder::new();
         for n in self.up_levels {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.partial_pathname.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RelativePathnameSyntax::cast(node).unwrap()
+        builder.push_node(self.partial_pathname);
+        builder.finish()
     }
 }
 impl From<RelativePathnameBuilder> for RelativePathnameSyntax {
@@ -12873,14 +11860,10 @@ impl ReportClauseBuilder {
         self
     }
     pub fn build(self) -> ReportClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ReportClause);
-        builder.push(self.report_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ReportClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.report_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<ReportClauseBuilder> for ReportClauseSyntax {
@@ -12934,21 +11917,17 @@ impl ReportStatementBuilder {
         self
     }
     pub fn build(self) -> ReportStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ReportStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.report_token);
-        builder.push_node(self.expression.raw().green().clone());
+        builder.push_token(self.report_token);
+        builder.push_node(self.expression);
         if let Some(n) = self.severity_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ReportStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ReportStatementBuilder> for ReportStatementSyntax {
@@ -13001,20 +11980,16 @@ impl ReturnStatementBuilder {
         self
     }
     pub fn build(self) -> ReturnStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ReturnStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.return_token);
+        builder.push_token(self.return_token);
         if let Some(n) = self.expression {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ReturnStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<ReturnStatementBuilder> for ReturnStatementSyntax {
@@ -13046,14 +12021,10 @@ impl ReturnTypeBuilder {
         self
     }
     pub fn build(self) -> ReturnTypeSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ReturnType);
-        builder.push(self.return_token);
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ReturnTypeSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.return_token);
+        builder.push_node(self.type_mark);
+        builder.finish()
     }
 }
 impl From<ReturnTypeBuilder> for ReturnTypeSyntax {
@@ -13108,16 +12079,12 @@ impl SecondaryUnitDeclarationBuilder {
         self
     }
     pub fn build(self) -> SecondaryUnitDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SecondaryUnitDeclaration);
-        builder.push(self.identifier_token);
-        builder.push(self.eq_token);
-        builder.push_node(self.physical_literal.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SecondaryUnitDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.eq_token);
+        builder.push_node(self.physical_literal);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SecondaryUnitDeclarationBuilder> for SecondaryUnitDeclarationSyntax {
@@ -13139,13 +12106,9 @@ impl SecondaryUnitPackageBodyBuilder {
         self
     }
     pub fn build(self) -> SecondaryUnitPackageBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SecondaryUnitPackageBody);
-        builder.push_node(self.package_body.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SecondaryUnitPackageBodySyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.package_body);
+        builder.finish()
     }
 }
 impl From<SecondaryUnitPackageBodyBuilder> for SecondaryUnitPackageBodySyntax {
@@ -13200,18 +12163,14 @@ impl SelectedAssignmentPreambleBuilder {
         self
     }
     pub fn build(self) -> SelectedAssignmentPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedAssignmentPreamble);
-        builder.push(self.with_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.select_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.with_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.select_token);
         if let Some(t) = self.que_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedAssignmentPreambleSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SelectedAssignmentPreambleBuilder> for SelectedAssignmentPreambleSyntax {
@@ -13249,15 +12208,11 @@ impl SelectedExpressionItemBuilder {
         self
     }
     pub fn build(self) -> SelectedExpressionItemSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedExpressionItem);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.when_token);
-        builder.push_node(self.choices.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedExpressionItemSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.expression);
+        builder.push_token(self.when_token);
+        builder.push_node(self.choices);
+        builder.finish()
     }
 }
 impl From<SelectedExpressionItemBuilder> for SelectedExpressionItemSyntax {
@@ -13340,24 +12295,20 @@ impl SelectedForceAssignmentBuilder {
         self
     }
     pub fn build(self) -> SelectedForceAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedForceAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.selected_assignment_preamble.raw().green().clone());
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
-        builder.push(self.force_token);
+        builder.push_node(self.selected_assignment_preamble);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
+        builder.push_token(self.force_token);
         if let Some(n) = self.force_mode {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push_node(self.selected_expressions.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedForceAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.selected_expressions);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SelectedForceAssignmentBuilder> for SelectedForceAssignmentSyntax {
@@ -13389,14 +12340,10 @@ impl SelectedNameBuilder {
         self
     }
     pub fn build(self) -> SelectedNameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedName);
-        builder.push(self.dot_token);
-        builder.push(self.suffix.0);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedNameSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.dot_token);
+        builder.push_token(self.suffix.0);
+        builder.finish()
     }
 }
 impl From<SelectedNameBuilder> for SelectedNameSyntax {
@@ -13463,20 +12410,16 @@ impl SelectedVariableAssignmentBuilder {
         self
     }
     pub fn build(self) -> SelectedVariableAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedVariableAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.selected_assignment_preamble.raw().green().clone());
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.colon_eq_token);
-        builder.push_node(self.selected_expressions.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedVariableAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.selected_assignment_preamble);
+        builder.push_node(self.target);
+        builder.push_token(self.colon_eq_token);
+        builder.push_node(self.selected_expressions);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SelectedVariableAssignmentBuilder> for SelectedVariableAssignmentSyntax {
@@ -13549,23 +12492,19 @@ impl SelectedWaveformAssignmentBuilder {
         self
     }
     pub fn build(self) -> SelectedWaveformAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedWaveformAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.selected_assignment_preamble.raw().green().clone());
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
+        builder.push_node(self.selected_assignment_preamble);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
         if let Some(n) = self.delay_mechanism {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.selected_waveforms.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedWaveformAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.selected_waveforms);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SelectedWaveformAssignmentBuilder> for SelectedWaveformAssignmentSyntax {
@@ -13603,15 +12542,11 @@ impl SelectedWaveformItemBuilder {
         self
     }
     pub fn build(self) -> SelectedWaveformItemSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedWaveformItem);
-        builder.push_node(self.waveform.raw().green().clone());
-        builder.push(self.when_token);
-        builder.push_node(self.choices.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedWaveformItemSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.waveform);
+        builder.push_token(self.when_token);
+        builder.push_node(self.choices);
+        builder.finish()
     }
 }
 impl From<SelectedWaveformItemBuilder> for SelectedWaveformItemSyntax {
@@ -13643,14 +12578,10 @@ impl SensitivityClauseBuilder {
         self
     }
     pub fn build(self) -> SensitivityClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SensitivityClause);
-        builder.push(self.on_token);
-        builder.push_node(self.sensitivity_list.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SensitivityClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.on_token);
+        builder.push_node(self.sensitivity_list);
+        builder.finish()
     }
 }
 impl From<SensitivityClauseBuilder> for SensitivityClauseSyntax {
@@ -13677,15 +12608,11 @@ impl SequenceOfStatementsBuilder {
         self
     }
     pub fn build(self) -> SequenceOfStatementsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SequenceOfStatements);
+        let mut builder = RawNodeBuilder::new();
         for n in self.sequential_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SequenceOfStatementsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SequenceOfStatementsBuilder> for SequenceOfStatementsSyntax {
@@ -13717,14 +12644,10 @@ impl SeverityClauseBuilder {
         self
     }
     pub fn build(self) -> SeverityClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SeverityClause);
-        builder.push(self.severity_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SeverityClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.severity_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<SeverityClauseBuilder> for SeverityClauseSyntax {
@@ -13797,23 +12720,19 @@ impl SignalDeclarationBuilder {
         self
     }
     pub fn build(self) -> SignalDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SignalDeclaration);
-        builder.push(self.signal_token);
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.signal_token);
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
         if let Some(n) = self.signal_kind {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
         if let Some(n) = self.initial_value {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SignalDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SignalDeclarationBuilder> for SignalDeclarationSyntax {
@@ -13844,13 +12763,9 @@ impl SignalListAllBuilder {
         self
     }
     pub fn build(self) -> SignalListAllSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SignalListAll);
-        builder.push(self.all_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SignalListAllSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.all_token);
+        builder.finish()
     }
 }
 impl From<SignalListAllBuilder> for SignalListAllSyntax {
@@ -13881,13 +12796,9 @@ impl SignalListOthersBuilder {
         self
     }
     pub fn build(self) -> SignalListOthersSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SignalListOthers);
-        builder.push(self.others_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SignalListOthersSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.others_token);
+        builder.finish()
     }
 }
 impl From<SignalListOthersBuilder> for SignalListOthersSyntax {
@@ -13940,20 +12851,16 @@ impl SignatureBuilder {
         self
     }
     pub fn build(self) -> SignatureSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Signature);
-        builder.push(self.left_square_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.left_square_token);
         if let Some(n) = self.type_mark_list {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.return_type {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.right_square_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SignatureSyntax::cast(node).unwrap()
+        builder.push_token(self.right_square_token);
+        builder.finish()
     }
 }
 impl From<SignatureBuilder> for SignatureSyntax {
@@ -14005,20 +12912,16 @@ impl SimpleConfigurationSpecificationBuilder {
         self
     }
     pub fn build(self) -> SimpleConfigurationSpecificationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SimpleConfigurationSpecification);
-        builder.push_node(self.component_configuration_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.component_configuration_preamble);
         if let Some(n) = self.binding_indication {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
+        builder.push_token(self.semi_colon_token);
         if let Some(n) = self.component_configuration_epilogue {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SimpleConfigurationSpecificationSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SimpleConfigurationSpecificationBuilder> for SimpleConfigurationSpecificationSyntax {
@@ -14088,23 +12991,19 @@ impl SimpleForceAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleForceAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SimpleForceAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
-        builder.push(self.force_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
+        builder.push_token(self.force_token);
         if let Some(n) = self.force_mode {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SimpleForceAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.expression);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SimpleForceAssignmentBuilder> for SimpleForceAssignmentSyntax {
@@ -14168,22 +13067,18 @@ impl SimpleReleaseAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleReleaseAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SimpleReleaseAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
-        builder.push(self.release_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
+        builder.push_token(self.release_token);
         if let Some(n) = self.force_mode {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SimpleReleaseAssignmentSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SimpleReleaseAssignmentBuilder> for SimpleReleaseAssignmentSyntax {
@@ -14237,19 +13132,15 @@ impl SimpleVariableAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleVariableAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SimpleVariableAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.colon_eq_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SimpleVariableAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.target);
+        builder.push_token(self.colon_eq_token);
+        builder.push_node(self.expression);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SimpleVariableAssignmentBuilder> for SimpleVariableAssignmentSyntax {
@@ -14309,22 +13200,18 @@ impl SimpleWaveformAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleWaveformAssignmentSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SimpleWaveformAssignment);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.target.raw().green().clone());
-        builder.push(self.lte_token);
+        builder.push_node(self.target);
+        builder.push_token(self.lte_token);
         if let Some(n) = self.delay_mechanism {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.waveform.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SimpleWaveformAssignmentSyntax::cast(node).unwrap()
+        builder.push_node(self.waveform);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SimpleWaveformAssignmentBuilder> for SimpleWaveformAssignmentSyntax {
@@ -14360,14 +13247,10 @@ impl StmtLabelBuilder {
         self
     }
     pub fn build(self) -> StmtLabelSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::StmtLabel);
-        builder.push(self.label);
-        builder.push(self.colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        StmtLabelSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.label);
+        builder.push_token(self.colon_token);
+        builder.finish()
     }
 }
 impl From<StmtLabelBuilder> for StmtLabelSyntax {
@@ -14429,21 +13312,17 @@ impl SubprogramBodyBuilder {
         self
     }
     pub fn build(self) -> SubprogramBodySyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramBody);
-        builder.push_node(self.subprogram_body_preamble.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.subprogram_body_preamble);
         if let Some(n) = self.subprogram_declarative_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.declaration_statement_separator.raw().green().clone());
+        builder.push_node(self.declaration_statement_separator);
         if let Some(n) = self.subprogram_statement_part {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.subprogram_body_epilogue.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramBodySyntax::cast(node).unwrap()
+        builder.push_node(self.subprogram_body_epilogue);
+        builder.finish()
     }
 }
 impl From<SubprogramBodyBuilder> for SubprogramBodySyntax {
@@ -14496,20 +13375,16 @@ impl SubprogramBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> SubprogramBodyEpilogueSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramBodyEpilogue);
-        builder.push(self.end_token);
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.end_token);
         if let Some(n) = self.subprogram_kind {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
         if let Some(n) = self.designator {
-            builder.push(n.0);
+            builder.push_token(n.0);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramBodyEpilogueSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SubprogramBodyEpilogueBuilder> for SubprogramBodyEpilogueSyntax {
@@ -14544,14 +13419,10 @@ impl SubprogramBodyPreambleBuilder {
         self
     }
     pub fn build(self) -> SubprogramBodyPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramBodyPreamble);
-        builder.push_node(self.subprogram_specification.raw().green().clone());
-        builder.push(self.is_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramBodyPreambleSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.subprogram_specification);
+        builder.push_token(self.is_token);
+        builder.finish()
     }
 }
 impl From<SubprogramBodyPreambleBuilder> for SubprogramBodyPreambleSyntax {
@@ -14586,14 +13457,10 @@ impl SubprogramDeclarationBuilder {
         self
     }
     pub fn build(self) -> SubprogramDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramDeclaration);
-        builder.push_node(self.subprogram_specification.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.subprogram_specification);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SubprogramDeclarationBuilder> for SubprogramDeclarationSyntax {
@@ -14623,15 +13490,11 @@ impl SubprogramDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> SubprogramDeclarativePartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramDeclarativePart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.subprogram_declarative_items {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramDeclarativePartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SubprogramDeclarativePartBuilder> for SubprogramDeclarativePartSyntax {
@@ -14666,14 +13529,10 @@ impl SubprogramDefaultBuilder {
         self
     }
     pub fn build(self) -> SubprogramDefaultSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramDefault);
-        builder.push(self.is_token);
-        builder.push_node(self.interface_subprogram_default.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramDefaultSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.is_token);
+        builder.push_node(self.interface_subprogram_default);
+        builder.finish()
     }
 }
 impl From<SubprogramDefaultBuilder> for SubprogramDefaultSyntax {
@@ -14706,16 +13565,12 @@ impl SubprogramHeaderBuilder {
         self
     }
     pub fn build(self) -> SubprogramHeaderSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramHeader);
-        builder.push_node(self.subprogram_header_generic_clause.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.subprogram_header_generic_clause);
         if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramHeaderSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SubprogramHeaderBuilder> for SubprogramHeaderSyntax {
@@ -14767,16 +13622,12 @@ impl SubprogramHeaderGenericClauseBuilder {
         self
     }
     pub fn build(self) -> SubprogramHeaderGenericClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramHeaderGenericClause);
-        builder.push(self.generic_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.generic_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramHeaderGenericClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.generic_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.generic_list);
+        builder.push_token(self.right_par_token);
+        builder.finish()
     }
 }
 impl From<SubprogramHeaderGenericClauseBuilder> for SubprogramHeaderGenericClauseSyntax {
@@ -14822,22 +13673,13 @@ impl SubprogramInstantiationDeclarationBuilder {
         self
     }
     pub fn build(self) -> SubprogramInstantiationDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramInstantiationDeclaration);
-        builder.push_node(
-            self.subprogram_instantiation_declaration_preamble
-                .raw()
-                .green()
-                .clone(),
-        );
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.subprogram_instantiation_declaration_preamble);
         if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramInstantiationDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SubprogramInstantiationDeclarationBuilder> for SubprogramInstantiationDeclarationSyntax {
@@ -14905,20 +13747,16 @@ impl SubprogramInstantiationDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> SubprogramInstantiationDeclarationPreambleSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramInstantiationDeclarationPreamble);
-        builder.push(self.subprogram_kind.0);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.push(self.new_token);
-        builder.push_node(self.name.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.subprogram_kind.0);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.push_token(self.new_token);
+        builder.push_node(self.name);
         if let Some(n) = self.signature {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramInstantiationDeclarationPreambleSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SubprogramInstantiationDeclarationPreambleBuilder>
@@ -14947,15 +13785,11 @@ impl SubprogramStatementPartBuilder {
         self
     }
     pub fn build(self) -> SubprogramStatementPartSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubprogramStatementPart);
+        let mut builder = RawNodeBuilder::new();
         for n in self.sequential_statements {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubprogramStatementPartSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SubprogramStatementPartBuilder> for SubprogramStatementPartSyntax {
@@ -15020,17 +13854,13 @@ impl SubtypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> SubtypeDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubtypeDeclaration);
-        builder.push(self.subtype_token);
-        builder.push(self.identifier_token);
-        builder.push(self.is_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubtypeDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.subtype_token);
+        builder.push_token(self.identifier_token);
+        builder.push_token(self.is_token);
+        builder.push_node(self.subtype_indication);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<SubtypeDeclarationBuilder> for SubtypeDeclarationSyntax {
@@ -15058,16 +13888,12 @@ impl SubtypeIndicationBuilder {
         self
     }
     pub fn build(self) -> SubtypeIndicationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SubtypeIndication);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.resolution_indication {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push_node(self.type_mark.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SubtypeIndicationSyntax::cast(node).unwrap()
+        builder.push_node(self.type_mark);
+        builder.finish()
     }
 }
 impl From<SubtypeIndicationBuilder> for SubtypeIndicationSyntax {
@@ -15099,14 +13925,10 @@ impl TimeoutClauseBuilder {
         self
     }
     pub fn build(self) -> TimeoutClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::TimeoutClause);
-        builder.push(self.for_token);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        TimeoutClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.for_token);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<TimeoutClauseBuilder> for TimeoutClauseSyntax {
@@ -15137,13 +13959,9 @@ impl TransportDelayMechanismBuilder {
         self
     }
     pub fn build(self) -> TransportDelayMechanismSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::TransportDelayMechanism);
-        builder.push(self.transport_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        TransportDelayMechanismSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.transport_token);
+        builder.finish()
     }
 }
 impl From<TransportDelayMechanismBuilder> for TransportDelayMechanismSyntax {
@@ -15174,13 +13992,9 @@ impl UnaffectedWaveformBuilder {
         self
     }
     pub fn build(self) -> UnaffectedWaveformSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UnaffectedWaveform);
-        builder.push(self.unaffected_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UnaffectedWaveformSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.unaffected_token);
+        builder.finish()
     }
 }
 impl From<UnaffectedWaveformBuilder> for UnaffectedWaveformSyntax {
@@ -15211,14 +14025,10 @@ impl UnaryExpressionBuilder {
         self
     }
     pub fn build(self) -> UnaryExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UnaryExpression);
-        builder.push(self.unary_operator.0);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UnaryExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.unary_operator.0);
+        builder.push_node(self.expression);
+        builder.finish()
     }
 }
 impl From<UnaryExpressionBuilder> for UnaryExpressionSyntax {
@@ -15292,18 +14102,14 @@ impl UnboundedArrayDefinitionBuilder {
         self
     }
     pub fn build(self) -> UnboundedArrayDefinitionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UnboundedArrayDefinition);
-        builder.push(self.array_token);
-        builder.push(self.left_par_token);
-        builder.push_node(self.index_subtype_definition_list.raw().green().clone());
-        builder.push(self.right_par_token);
-        builder.push(self.of_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UnboundedArrayDefinitionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.array_token);
+        builder.push_token(self.left_par_token);
+        builder.push_node(self.index_subtype_definition_list);
+        builder.push_token(self.right_par_token);
+        builder.push_token(self.of_token);
+        builder.push_node(self.subtype_indication);
+        builder.finish()
     }
 }
 impl From<UnboundedArrayDefinitionBuilder> for UnboundedArrayDefinitionSyntax {
@@ -15347,17 +14153,13 @@ impl UnitDeclarationsBuilder {
         self
     }
     pub fn build(self) -> UnitDeclarationsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UnitDeclarations);
-        builder.push(self.units_token);
-        builder.push_node(self.primary_unit_declaration.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.units_token);
+        builder.push_node(self.primary_unit_declaration);
         for n in self.secondary_unit_declarations {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UnitDeclarationsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<UnitDeclarationsBuilder> for UnitDeclarationsSyntax {
@@ -15398,14 +14200,10 @@ impl UpLevelBuilder {
         self
     }
     pub fn build(self) -> UpLevelSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UpLevel);
-        builder.push(self.circ_token);
-        builder.push(self.dot_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UpLevelSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.circ_token);
+        builder.push_token(self.dot_token);
+        builder.finish()
     }
 }
 impl From<UpLevelBuilder> for UpLevelSyntax {
@@ -15447,15 +14245,11 @@ impl UseClauseBuilder {
         self
     }
     pub fn build(self) -> UseClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UseClause);
-        builder.push(self.use_token);
-        builder.push_node(self.name_list.raw().green().clone());
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UseClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.use_token);
+        builder.push_node(self.name_list);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<UseClauseBuilder> for UseClauseSyntax {
@@ -15477,13 +14271,9 @@ impl UseClauseContextItemBuilder {
         self
     }
     pub fn build(self) -> UseClauseContextItemSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UseClauseContextItem);
-        builder.push_node(self.use_clause.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UseClauseContextItemSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.use_clause);
+        builder.finish()
     }
 }
 impl From<UseClauseContextItemBuilder> for UseClauseContextItemSyntax {
@@ -15505,13 +14295,9 @@ impl UseClauseDeclarationBuilder {
         self
     }
     pub fn build(self) -> UseClauseDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::UseClauseDeclaration);
-        builder.push_node(self.use_clause.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        UseClauseDeclarationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.use_clause);
+        builder.finish()
     }
 }
 impl From<UseClauseDeclarationBuilder> for UseClauseDeclarationSyntax {
@@ -15591,23 +14377,19 @@ impl VariableDeclarationBuilder {
         self
     }
     pub fn build(self) -> VariableDeclarationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::VariableDeclaration);
+        let mut builder = RawNodeBuilder::new();
         if let Some(t) = self.shared_token {
-            builder.push(t);
+            builder.push_token(t);
         }
-        builder.push(self.variable_token);
-        builder.push_node(self.identifier_list.raw().green().clone());
-        builder.push(self.colon_token);
-        builder.push_node(self.subtype_indication.raw().green().clone());
+        builder.push_token(self.variable_token);
+        builder.push_node(self.identifier_list);
+        builder.push_token(self.colon_token);
+        builder.push_node(self.subtype_indication);
         if let Some(n) = self.initial_value {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        VariableDeclarationSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<VariableDeclarationBuilder> for VariableDeclarationSyntax {
@@ -15644,19 +14426,10 @@ impl VerificationUnitBindingBuilder {
         self
     }
     pub fn build(self) -> VerificationUnitBindingSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::VerificationUnitBinding);
-        builder.push_node(
-            self.verification_unit_binding_indication
-                .raw()
-                .green()
-                .clone(),
-        );
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        VerificationUnitBindingSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.verification_unit_binding_indication);
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<VerificationUnitBindingBuilder> for VerificationUnitBindingSyntax {
@@ -15698,15 +14471,11 @@ impl VerificationUnitBindingIndicationBuilder {
         self
     }
     pub fn build(self) -> VerificationUnitBindingIndicationSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::VerificationUnitBindingIndication);
-        builder.push(self.use_token);
-        builder.push(self.vunit_token);
-        builder.push_node(self.verification_unit_list.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        VerificationUnitBindingIndicationSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.use_token);
+        builder.push_token(self.vunit_token);
+        builder.push_node(self.verification_unit_list);
+        builder.finish()
     }
 }
 impl From<VerificationUnitBindingIndicationBuilder> for VerificationUnitBindingIndicationSyntax {
@@ -15771,26 +14540,22 @@ impl WaitStatementBuilder {
         self
     }
     pub fn build(self) -> WaitStatementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WaitStatement);
+        let mut builder = RawNodeBuilder::new();
         if let Some(n) = self.stmt_label {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.wait_token);
+        builder.push_token(self.wait_token);
         if let Some(n) = self.sensitivity_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.condition_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
         if let Some(n) = self.timeout_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.push(self.semi_colon_token);
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WaitStatementSyntax::cast(node).unwrap()
+        builder.push_token(self.semi_colon_token);
+        builder.finish()
     }
 }
 impl From<WaitStatementBuilder> for WaitStatementSyntax {
@@ -15818,16 +14583,12 @@ impl WaveformElementBuilder {
         self
     }
     pub fn build(self) -> WaveformElementSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WaveformElement);
-        builder.push_node(self.expression.raw().green().clone());
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.expression);
         if let Some(n) = self.after_clause {
-            builder.push_node(n.raw().green().clone());
+            builder.push_node(n);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WaveformElementSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<WaveformElementBuilder> for WaveformElementSyntax {
@@ -15859,14 +14620,10 @@ impl WhenClauseBuilder {
         self
     }
     pub fn build(self) -> WhenClauseSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WhenClause);
-        builder.push(self.when_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WhenClauseSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.when_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<WhenClauseBuilder> for WhenClauseSyntax {
@@ -15907,15 +14664,11 @@ impl WhenExpressionBuilder {
         self
     }
     pub fn build(self) -> WhenExpressionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WhenExpression);
-        builder.push_node(self.expression.raw().green().clone());
-        builder.push(self.when_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WhenExpressionSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.expression);
+        builder.push_token(self.when_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<WhenExpressionBuilder> for WhenExpressionSyntax {
@@ -15956,15 +14709,11 @@ impl WhenWaveformBuilder {
         self
     }
     pub fn build(self) -> WhenWaveformSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WhenWaveform);
-        builder.push_node(self.waveform.raw().green().clone());
-        builder.push(self.when_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WhenWaveformSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_node(self.waveform);
+        builder.push_token(self.when_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<WhenWaveformBuilder> for WhenWaveformSyntax {
@@ -15996,14 +14745,10 @@ impl WhileSchemeBuilder {
         self
     }
     pub fn build(self) -> WhileSchemeSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WhileScheme);
-        builder.push(self.while_token);
-        builder.push_node(self.condition.raw().green().clone());
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WhileSchemeSyntax::cast(node).unwrap()
+        let mut builder = RawNodeBuilder::new();
+        builder.push_token(self.while_token);
+        builder.push_node(self.condition);
+        builder.finish()
     }
 }
 impl From<WhileSchemeBuilder> for WhileSchemeSyntax {
@@ -16032,22 +14777,18 @@ impl AssociationListBuilder {
         self
     }
     pub fn build(self) -> AssociationListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::AssociationList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        AssociationListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<AssociationListBuilder> for AssociationListSyntax {
@@ -16073,22 +14814,18 @@ impl ChoicesBuilder {
         self
     }
     pub fn build(self) -> ChoicesSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::Choices);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Bar.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ChoicesSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ChoicesBuilder> for ChoicesSyntax {
@@ -16117,22 +14854,18 @@ impl ElementAssociationListBuilder {
         self
     }
     pub fn build(self) -> ElementAssociationListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ElementAssociationList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ElementAssociationListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ElementAssociationListBuilder> for ElementAssociationListSyntax {
@@ -16161,22 +14894,18 @@ impl EntityClassEntryListBuilder {
         self
     }
     pub fn build(self) -> EntityClassEntryListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityClassEntryList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityClassEntryListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityClassEntryListBuilder> for EntityClassEntryListSyntax {
@@ -16205,22 +14934,18 @@ impl EntityDesignatorListBuilder {
         self
     }
     pub fn build(self) -> EntityDesignatorListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EntityDesignatorList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EntityDesignatorListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EntityDesignatorListBuilder> for EntityDesignatorListSyntax {
@@ -16249,22 +14974,18 @@ impl EnumerationListBuilder {
         self
     }
     pub fn build(self) -> EnumerationListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::EnumerationList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push(element.0);
+            builder.push_token(element.0);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        EnumerationListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<EnumerationListBuilder> for EnumerationListSyntax {
@@ -16293,22 +15014,18 @@ impl ExpressionListBuilder {
         self
     }
     pub fn build(self) -> ExpressionListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::ExpressionList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        ExpressionListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<ExpressionListBuilder> for ExpressionListSyntax {
@@ -16337,22 +15054,18 @@ impl IdentifierListBuilder {
         self
     }
     pub fn build(self) -> IdentifierListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IdentifierList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push(element.into());
+            builder.push_token(element.into());
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IdentifierListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IdentifierListBuilder> for IdentifierListSyntax {
@@ -16381,22 +15094,18 @@ impl IndexSubtypeDefinitionListBuilder {
         self
     }
     pub fn build(self) -> IndexSubtypeDefinitionListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::IndexSubtypeDefinitionList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        IndexSubtypeDefinitionListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<IndexSubtypeDefinitionListBuilder> for IndexSubtypeDefinitionListSyntax {
@@ -16425,22 +15134,18 @@ impl InstantiationListListBuilder {
         self
     }
     pub fn build(self) -> InstantiationListListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InstantiationListList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push(element.into());
+            builder.push_token(element.into());
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InstantiationListListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<InstantiationListListBuilder> for InstantiationListListSyntax {
@@ -16469,22 +15174,18 @@ impl InterfaceListBuilder {
         self
     }
     pub fn build(self) -> InterfaceListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::InterfaceList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::SemiColon.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        InterfaceListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<InterfaceListBuilder> for InterfaceListSyntax {
@@ -16513,22 +15214,18 @@ impl LogicalNameListBuilder {
         self
     }
     pub fn build(self) -> LogicalNameListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::LogicalNameList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push(element.into());
+            builder.push_token(element.into());
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        LogicalNameListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<LogicalNameListBuilder> for LogicalNameListSyntax {
@@ -16554,22 +15251,18 @@ impl NameListBuilder {
         self
     }
     pub fn build(self) -> NameListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::NameList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        NameListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<NameListBuilder> for NameListSyntax {
@@ -16598,22 +15291,18 @@ impl PackagePathBuilder {
         self
     }
     pub fn build(self) -> PackagePathSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PackagePath);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Dot.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push(element.into());
+            builder.push_token(element.into());
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PackagePathSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PackagePathBuilder> for PackagePathSyntax {
@@ -16642,22 +15331,18 @@ impl PartialPathnameBuilder {
         self
     }
     pub fn build(self) -> PartialPathnameSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::PartialPathname);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Dot.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        PartialPathnameSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<PartialPathnameBuilder> for PartialPathnameSyntax {
@@ -16686,22 +15371,18 @@ impl RecordResolutionBuilder {
         self
     }
     pub fn build(self) -> RecordResolutionSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::RecordResolution);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        RecordResolutionSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<RecordResolutionBuilder> for RecordResolutionSyntax {
@@ -16730,22 +15411,18 @@ impl SelectedExpressionsBuilder {
         self
     }
     pub fn build(self) -> SelectedExpressionsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedExpressions);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedExpressionsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SelectedExpressionsBuilder> for SelectedExpressionsSyntax {
@@ -16774,22 +15451,18 @@ impl SelectedWaveformsBuilder {
         self
     }
     pub fn build(self) -> SelectedWaveformsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SelectedWaveforms);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SelectedWaveformsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SelectedWaveformsBuilder> for SelectedWaveformsSyntax {
@@ -16815,22 +15488,18 @@ impl SensitivityListBuilder {
         self
     }
     pub fn build(self) -> SensitivityListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SensitivityList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SensitivityListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SensitivityListBuilder> for SensitivityListSyntax {
@@ -16856,22 +15525,18 @@ impl SignalListListBuilder {
         self
     }
     pub fn build(self) -> SignalListListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::SignalListList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        SignalListListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<SignalListListBuilder> for SignalListListSyntax {
@@ -16897,22 +15562,18 @@ impl TypeMarkListBuilder {
         self
     }
     pub fn build(self) -> TypeMarkListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::TypeMarkList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        TypeMarkListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<TypeMarkListBuilder> for TypeMarkListSyntax {
@@ -16938,22 +15599,18 @@ impl VerificationUnitListBuilder {
         self
     }
     pub fn build(self) -> VerificationUnitListSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::VerificationUnitList);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        VerificationUnitListSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<VerificationUnitListBuilder> for VerificationUnitListSyntax {
@@ -16982,22 +15639,18 @@ impl WaveformElementsBuilder {
         self
     }
     pub fn build(self) -> WaveformElementsSyntax {
-        let mut builder = NodeBuilder::new();
-        builder.start_node(NodeKind::WaveformElements);
+        let mut builder = RawNodeBuilder::new();
         let mut first = true;
         for element in self.elements {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push(separator);
+                builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element.raw().green().clone());
+            builder.push_node(element);
         }
-        builder.end_node();
-        let green = builder.end();
-        let node = SyntaxNode::new_root(green);
-        WaveformElementsSyntax::cast(node).unwrap()
+        builder.finish()
     }
 }
 impl From<WaveformElementsBuilder> for WaveformElementsSyntax {
