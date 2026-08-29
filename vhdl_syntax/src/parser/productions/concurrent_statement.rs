@@ -306,6 +306,7 @@ impl Parser {
         self.start_node(CaseGenerateStatement);
         self.label();
         self.case_generate_preamble();
+        self.case_generate_alternative();
         while self.next_is(Keyword(Kw::When)) {
             self.case_generate_alternative();
         }
@@ -914,6 +915,16 @@ else alt3: generate
 end alt3;
 end generate;",
         ))
+    }
+
+    #[test]
+    fn empty_case_generate() {
+        assert_recovery_snapshot!(
+            "\
+gen: case expr(0) + 2 generate
+end generate;",
+            Parser::case_generate_statement
+        );
     }
 
     #[test]

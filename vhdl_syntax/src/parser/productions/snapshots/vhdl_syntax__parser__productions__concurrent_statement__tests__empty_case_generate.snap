@@ -1,0 +1,42 @@
+---
+source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+gen: case expr(0) + 2 generate
+end generate;
+
+== tree ==
+CaseGenerateStatement
+  StmtLabel
+    Identifier 'gen'
+    Colon
+  CaseGeneratePreamble
+    Keyword(Case)
+    BinaryExpression
+      NameExpression
+        Name
+          NameDesignatorPrefix
+            Identifier 'expr'
+          ParenthesizedName
+            LeftPar
+            AssociationList
+              AssociationElement
+                ActualPart
+                  ActualPartExpression
+                    LiteralExpression
+                      AbstractLiteral '0'
+            RightPar
+      Plus
+      LiteralExpression
+        AbstractLiteral '2'
+    Keyword(Generate)
+  GenerateEpilogue
+    Keyword(End)
+    Keyword(Generate)
+    SemiColon
+
+== diagnostics ==
+1:31 Expected(Token([Keyword(When)]))
+1:31 Expected(Token([Identifier, LtLt, BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Null), AbstractLiteral, LeftPar, Keyword(New)]))
+1:31 Expected(Token([RightArrow]))

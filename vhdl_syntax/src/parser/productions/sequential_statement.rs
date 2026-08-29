@@ -154,6 +154,7 @@ impl Parser {
     pub fn case_statement(&mut self) {
         self.start_node(CaseStatement);
         self.case_statement_preamble();
+        self.case_statement_alternative();
         while self.next_is(Keyword(Kw::When)) {
             self.case_statement_alternative();
         }
@@ -987,6 +988,16 @@ end if;",
 if cond then
   x := 1;",
             Parser::if_statement
+        );
+    }
+
+    #[test]
+    fn empty_case_statement() {
+        assert_recovery_snapshot!(
+            "\
+case sel is
+end case;",
+            Parser::case_statement
         );
     }
 

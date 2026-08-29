@@ -40,8 +40,8 @@ fn map_grammar(grammar: &ungrammar::Grammar) -> Model {
 
     model.fixup_nth_by_resolved_kind();
     model.fixup_empty_capable_optional_markers();
-    model.do_checks();
     model.do_postprocessing();
+    model.do_checks();
 
     model
 }

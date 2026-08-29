@@ -195,7 +195,7 @@ impl Field {
         self.cardinality.is_repeated()
     }
 
-    /// Whether the field may be absent from the green tree — i.e. everything but `Required`.
+    /// Whether the field may be absent from the green tree
     pub fn may_be_absent(&self) -> bool {
         self.cardinality.may_be_absent()
     }
