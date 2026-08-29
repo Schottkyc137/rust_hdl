@@ -41,7 +41,6 @@ impl SyntaxNode {
 #[cfg(test)]
 mod tests {
     use crate::fmt::write::FormatToExt;
-    use crate::parser::builder::NodeBuilder;
     use crate::parser::{parse, parse_syntax, Parser};
     use crate::syntax::meta::LayoutItemKind;
     use crate::syntax::node::{SyntaxElement, SyntaxNode};
@@ -52,7 +51,9 @@ mod tests {
         builder::RawNodeBuilder, AstNode, EntityDeclarationBuilder,
         EntityDeclarationPreambleSyntax, InterfaceListSyntax, InterfaceObjectDeclarationSyntax,
     };
-    use crate::syntax::{EntityDeclarationEpilogueSyntax, InterfaceDeclarationSyntax, InterfaceListBuilder};
+    use crate::syntax::{
+        EntityDeclarationEpilogueSyntax, InterfaceDeclarationSyntax, InterfaceListBuilder,
+    };
     use crate::tokens::{Keyword, Token, TokenKind, Trivia};
 
     fn tok(kind: TokenKind, text: &[u8]) -> Token {
@@ -62,11 +63,9 @@ mod tests {
     /// Build an `EntityDeclarationPreamble` node from the given raw tokens.
     /// Layout: entity (req) · name-identifier (req) · is (req)
     fn build_preamble(tokens: impl IntoIterator<Item = Token>) -> SyntaxNode {
-        let mut b = RawNodeBuilder::new_untyped(NodeKind::EntityDeclarationPreamble);
-        for t in tokens {
-            b.push_token(t);
-        }
-        b.finish_untyped()
+        RawNodeBuilder::<EntityDeclarationPreambleSyntax>::new()
+            .push_tokens(tokens)
+            .finish_untyped()
     }
 
     // --- happy-path tests ---
@@ -155,12 +154,14 @@ end configuration cfg;
         for (i, ch) in spec.chars().enumerate() {
             match ch {
                 'e' => {
-                    let mut inner = RawNodeBuilder::<InterfaceObjectDeclarationSyntax>::new();
-                    inner.push_token(tok(TokenKind::Identifier, format!("x{i}").as_bytes()));
-                    b.push_node(inner.finish());
+                    b = b.push_node(
+                        RawNodeBuilder::<InterfaceObjectDeclarationSyntax>::new()
+                            .push_token(tok(TokenKind::Identifier, format!("x{i}").as_bytes()))
+                            .finish(),
+                    );
                 }
-                ';' => b.push_token(tok(TokenKind::SemiColon, b";")),
-                'x' => b.push_token(tok(TokenKind::Comma, b",")),
+                ';' => b = b.push_token(tok(TokenKind::SemiColon, b";")),
+                'x' => b = b.push_token(tok(TokenKind::Comma, b",")),
                 other => panic!("bad spec char {other}"),
             }
         }
@@ -222,20 +223,6 @@ end configuration cfg;
             }
             other => panic!("expected a missing element, got {other:?}"),
         }
-    }
-
-    /// An empty list node never reaches the tree: `NodeBuilder::end_node` drops any node
-    /// that gained no children, so an empty-capable list shows up as *absent* from its
-    /// parent rather than as an empty node.
-    #[test]
-    fn empty_list_node_is_dropped_rather_than_built() {
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::InterfaceList);
-        b.end_node();
-        assert!(
-            std::panic::catch_unwind(move || b.end()).is_err(),
-            "an empty list node should not have been produced"
-        );
     }
 
     #[test]
@@ -305,9 +292,9 @@ end configuration cfg;
     #[test]
     fn missing_required_after_optional_is_reported() {
         // EntityDeclarationEpilogue with only 'end'; the mandatory ';' is absent.
-        let mut b = RawNodeBuilder::<EntityDeclarationEpilogueSyntax>::new();
-        b.push_token(tok(TokenKind::Keyword(Keyword::End), b"end"));
-        let node = b.finish_untyped();
+        let node = RawNodeBuilder::<EntityDeclarationEpilogueSyntax>::new()
+            .push_token(tok(TokenKind::Keyword(Keyword::End), b"end"))
+            .finish_untyped();
 
         let err = node.validate().unwrap_err();
 

@@ -31,10 +31,10 @@ impl AbsolutePathnameBuilder {
         self
     }
     pub fn build(self) -> AbsolutePathnameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.dot_token);
-        builder.push_node(self.partial_pathname);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.dot_token)
+            .push_node(self.partial_pathname)
+            .finish()
     }
 }
 impl From<AbsolutePathnameBuilder> for AbsolutePathnameSyntax {
@@ -66,10 +66,10 @@ impl AccessTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> AccessTypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.access_token);
-        builder.push_node(self.subtype_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.access_token)
+            .push_node(self.subtype_indication)
+            .finish()
     }
 }
 impl From<AccessTypeDefinitionBuilder> for AccessTypeDefinitionSyntax {
@@ -104,12 +104,10 @@ impl ActualPartBuilder {
         self
     }
     pub fn build(self) -> ActualPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(t) = self.inertial_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.actual_part_body);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.inertial_token)
+            .push_node(self.actual_part_body)
+            .finish()
     }
 }
 impl From<ActualPartBuilder> for ActualPartSyntax {
@@ -131,9 +129,7 @@ impl ActualPartExpressionBuilder {
         self
     }
     pub fn build(self) -> ActualPartExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.expression).finish()
     }
 }
 impl From<ActualPartExpressionBuilder> for ActualPartExpressionSyntax {
@@ -164,9 +160,7 @@ impl ActualPartOpenBuilder {
         self
     }
     pub fn build(self) -> ActualPartOpenSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.open_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.open_token).finish()
     }
 }
 impl From<ActualPartOpenBuilder> for ActualPartOpenSyntax {
@@ -188,9 +182,9 @@ impl ActualPartSubtypeIndicationBuilder {
         self
     }
     pub fn build(self) -> ActualPartSubtypeIndicationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.subtype_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.subtype_indication)
+            .finish()
     }
 }
 impl From<ActualPartSubtypeIndicationBuilder> for ActualPartSubtypeIndicationSyntax {
@@ -222,10 +216,10 @@ impl AfterClauseBuilder {
         self
     }
     pub fn build(self) -> AfterClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.after_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.after_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<AfterClauseBuilder> for AfterClauseSyntax {
@@ -270,11 +264,11 @@ impl AggregateBuilder {
         self
     }
     pub fn build(self) -> AggregateSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.element_association_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.element_association_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<AggregateBuilder> for AggregateSyntax {
@@ -296,9 +290,7 @@ impl AggregateTargetBuilder {
         self
     }
     pub fn build(self) -> AggregateTargetSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.aggregate);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.aggregate).finish()
     }
 }
 impl From<AggregateTargetBuilder> for AggregateTargetSyntax {
@@ -371,19 +363,15 @@ impl AliasDeclarationBuilder {
         self
     }
     pub fn build(self) -> AliasDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.alias_token);
-        builder.push_token(self.alias_designator.0);
-        if let Some(n) = self.alias_subtype {
-            builder.push_node(n);
-        }
-        builder.push_token(self.is_token);
-        builder.push_node(self.name);
-        if let Some(n) = self.signature {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.alias_token)
+            .push_token(self.alias_designator.0)
+            .push_opt_node(self.alias_subtype)
+            .push_token(self.is_token)
+            .push_node(self.name)
+            .push_opt_node(self.signature)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<AliasDeclarationBuilder> for AliasDeclarationSyntax {
@@ -415,10 +403,10 @@ impl AliasSubtypeBuilder {
         self
     }
     pub fn build(self) -> AliasSubtypeSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .finish()
     }
 }
 impl From<AliasSubtypeBuilder> for AliasSubtypeSyntax {
@@ -449,9 +437,7 @@ impl AllSensitivityListBuilder {
         self
     }
     pub fn build(self) -> AllSensitivityListSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.all_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.all_token).finish()
     }
 }
 impl From<AllSensitivityListBuilder> for AllSensitivityListSyntax {
@@ -483,10 +469,10 @@ impl AllocatorBuilder {
         self
     }
     pub fn build(self) -> AllocatorSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.new_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.new_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<AllocatorBuilder> for AllocatorSyntax {
@@ -542,17 +528,13 @@ impl ArchitectureBodyBuilder {
         self
     }
     pub fn build(self) -> ArchitectureBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.architecture_preamble);
-        if let Some(n) = self.architecture_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.declaration_statement_separator);
-        if let Some(n) = self.architecture_statement_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.architecture_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.architecture_preamble)
+            .push_opt_node(self.architecture_declarative_part)
+            .push_node(self.declaration_statement_separator)
+            .push_opt_node(self.architecture_statement_part)
+            .push_node(self.architecture_epilogue)
+            .finish()
     }
 }
 impl From<ArchitectureBodyBuilder> for ArchitectureBodySyntax {
@@ -579,11 +561,9 @@ impl ArchitectureDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ArchitectureDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.block_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.block_declarative_items)
+            .finish()
     }
 }
 impl From<ArchitectureDeclarativePartBuilder> for ArchitectureDeclarativePartSyntax {
@@ -649,16 +629,12 @@ impl ArchitectureEpilogueBuilder {
         self
     }
     pub fn build(self) -> ArchitectureEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.architecture_token {
-            builder.push_token(t);
-        }
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.architecture_token)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ArchitectureEpilogueBuilder> for ArchitectureEpilogueSyntax {
@@ -723,13 +699,13 @@ impl ArchitecturePreambleBuilder {
         self
     }
     pub fn build(self) -> ArchitecturePreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.architecture_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.of_token);
-        builder.push_node(self.name);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.architecture_token)
+            .push_token(self.identifier_token)
+            .push_token(self.of_token)
+            .push_node(self.name)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<ArchitecturePreambleBuilder> for ArchitecturePreambleSyntax {
@@ -756,11 +732,9 @@ impl ArchitectureStatementPartBuilder {
         self
     }
     pub fn build(self) -> ArchitectureStatementPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.concurrent_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.concurrent_statements)
+            .finish()
     }
 }
 impl From<ArchitectureStatementPartBuilder> for ArchitectureStatementPartSyntax {
@@ -804,16 +778,12 @@ impl AssertionBuilder {
         self
     }
     pub fn build(self) -> AssertionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.assert_token);
-        builder.push_node(self.condition);
-        if let Some(n) = self.report_clause {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.severity_clause {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.assert_token)
+            .push_node(self.condition)
+            .push_opt_node(self.report_clause)
+            .push_opt_node(self.severity_clause)
+            .finish()
     }
 }
 impl From<AssertionBuilder> for AssertionSyntax {
@@ -851,13 +821,11 @@ impl AssertionStatementBuilder {
         self
     }
     pub fn build(self) -> AssertionStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.assertion);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.assertion)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<AssertionStatementBuilder> for AssertionStatementSyntax {
@@ -885,12 +853,10 @@ impl AssociationElementBuilder {
         self
     }
     pub fn build(self) -> AssociationElementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.formal {
-            builder.push_node(n);
-        }
-        builder.push_node(self.actual_part);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.formal)
+            .push_node(self.actual_part)
+            .finish()
     }
 }
 impl From<AssociationElementBuilder> for AssociationElementSyntax {
@@ -955,13 +921,13 @@ impl AttributeDeclarationBuilder {
         self
     }
     pub fn build(self) -> AttributeDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.attribute_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.type_mark);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.attribute_token)
+            .push_token(self.identifier_token)
+            .push_token(self.colon_token)
+            .push_node(self.type_mark)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<AttributeDeclarationBuilder> for AttributeDeclarationSyntax {
@@ -999,13 +965,11 @@ impl AttributeNameBuilder {
         self
     }
     pub fn build(self) -> AttributeNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.signature {
-            builder.push_node(n);
-        }
-        builder.push_token(self.tick_token);
-        builder.push_token(self.attribute_designator.0);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.signature)
+            .push_token(self.tick_token)
+            .push_token(self.attribute_designator.0)
+            .finish()
     }
 }
 impl From<AttributeNameBuilder> for AttributeNameSyntax {
@@ -1087,15 +1051,15 @@ impl AttributeSpecificationBuilder {
         self
     }
     pub fn build(self) -> AttributeSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.attribute_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.of_token);
-        builder.push_node(self.entity_specification);
-        builder.push_token(self.is_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.attribute_token)
+            .push_token(self.identifier_token)
+            .push_token(self.of_token)
+            .push_node(self.entity_specification)
+            .push_token(self.is_token)
+            .push_node(self.expression)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<AttributeSpecificationBuilder> for AttributeSpecificationSyntax {
@@ -1133,11 +1097,11 @@ impl BinaryExpressionBuilder {
         self
     }
     pub fn build(self) -> BinaryExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.lhs);
-        builder.push_token(self.binary_operator.0);
-        builder.push_node(self.rhs);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.lhs)
+            .push_token(self.binary_operator.0)
+            .push_node(self.rhs)
+            .finish()
     }
 }
 impl From<BinaryExpressionBuilder> for BinaryExpressionSyntax {
@@ -1174,12 +1138,10 @@ impl BindingBuilder {
         self
     }
     pub fn build(self) -> BindingSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.binding_indication {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.binding_indication)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<BindingBuilder> for BindingSyntax {
@@ -1218,17 +1180,11 @@ impl BindingIndicationBuilder {
         self
     }
     pub fn build(self) -> BindingIndicationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.binding_use_clause {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.port_map_aspect {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.binding_use_clause)
+            .push_opt_node(self.generic_map_aspect)
+            .push_opt_node(self.port_map_aspect)
+            .finish()
     }
 }
 impl From<BindingIndicationBuilder> for BindingIndicationSyntax {
@@ -1260,10 +1216,10 @@ impl BindingUseClauseBuilder {
         self
     }
     pub fn build(self) -> BindingUseClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.use_token);
-        builder.push_node(self.entity_aspect);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.use_token)
+            .push_node(self.entity_aspect)
+            .finish()
     }
 }
 impl From<BindingUseClauseBuilder> for BindingUseClauseSyntax {
@@ -1309,16 +1265,12 @@ impl BlockConfigurationBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.block_configuration_preamble);
-        for n in self.use_clauses {
-            builder.push_node(n);
-        }
-        for n in self.configuration_items {
-            builder.push_node(n);
-        }
-        builder.push_node(self.block_configuration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.block_configuration_preamble)
+            .push_nodes(self.use_clauses)
+            .push_nodes(self.configuration_items)
+            .push_node(self.block_configuration_epilogue)
+            .finish()
     }
 }
 impl From<BlockConfigurationBuilder> for BlockConfigurationSyntax {
@@ -1369,11 +1321,11 @@ impl BlockConfigurationEpilogueBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.for_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.for_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<BlockConfigurationEpilogueBuilder> for BlockConfigurationEpilogueSyntax {
@@ -1395,9 +1347,9 @@ impl BlockConfigurationItemBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationItemSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.block_configuration);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.block_configuration)
+            .finish()
     }
 }
 impl From<BlockConfigurationItemBuilder> for BlockConfigurationItemSyntax {
@@ -1429,10 +1381,10 @@ impl BlockConfigurationPreambleBuilder {
         self
     }
     pub fn build(self) -> BlockConfigurationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.for_token);
-        builder.push_node(self.block_specification);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.for_token)
+            .push_node(self.block_specification)
+            .finish()
     }
 }
 impl From<BlockConfigurationPreambleBuilder> for BlockConfigurationPreambleSyntax {
@@ -1459,11 +1411,9 @@ impl BlockDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> BlockDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.block_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.block_declarative_items)
+            .finish()
     }
 }
 impl From<BlockDeclarativePartBuilder> for BlockDeclarativePartSyntax {
@@ -1526,14 +1476,12 @@ impl BlockEpilogueBuilder {
         self
     }
     pub fn build(self) -> BlockEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.block_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.block_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<BlockEpilogueBuilder> for BlockEpilogueSyntax {
@@ -1566,14 +1514,10 @@ impl BlockHeaderBuilder {
         self
     }
     pub fn build(self) -> BlockHeaderSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.generic_part {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.port_part {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.generic_part)
+            .push_opt_node(self.port_part)
+            .finish()
     }
 }
 impl From<BlockHeaderBuilder> for BlockHeaderSyntax {
@@ -1626,15 +1570,11 @@ impl BlockPreambleBuilder {
         self
     }
     pub fn build(self) -> BlockPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.block_token);
-        if let Some(n) = self.parenthesized_condition {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.is_token {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.block_token)
+            .push_opt_node(self.parenthesized_condition)
+            .push_opt_token(self.is_token)
+            .finish()
     }
 }
 impl From<BlockPreambleBuilder> for BlockPreambleSyntax {
@@ -1696,21 +1636,15 @@ impl BlockStatementBuilder {
         self
     }
     pub fn build(self) -> BlockStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.stmt_label);
-        builder.push_node(self.block_preamble);
-        if let Some(n) = self.block_header {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.block_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.declaration_statement_separator);
-        if let Some(n) = self.block_statement_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.block_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.stmt_label)
+            .push_node(self.block_preamble)
+            .push_opt_node(self.block_header)
+            .push_opt_node(self.block_declarative_part)
+            .push_node(self.declaration_statement_separator)
+            .push_opt_node(self.block_statement_part)
+            .push_node(self.block_epilogue)
+            .finish()
     }
 }
 impl From<BlockStatementBuilder> for BlockStatementSyntax {
@@ -1737,11 +1671,9 @@ impl BlockStatementPartBuilder {
         self
     }
     pub fn build(self) -> BlockStatementPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.concurrent_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.concurrent_statements)
+            .finish()
     }
 }
 impl From<BlockStatementPartBuilder> for BlockStatementPartSyntax {
@@ -1798,17 +1730,13 @@ impl CaseGenerateAlternativeBuilder {
         self
     }
     pub fn build(self) -> CaseGenerateAlternativeSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.when_token);
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.choices);
-        builder.push_token(self.right_arrow_token);
-        if let Some(n) = self.generate_statement_body {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.when_token)
+            .push_opt_node(self.stmt_label)
+            .push_node(self.choices)
+            .push_token(self.right_arrow_token)
+            .push_opt_node(self.generate_statement_body)
+            .finish()
     }
 }
 impl From<CaseGenerateAlternativeBuilder> for CaseGenerateAlternativeSyntax {
@@ -1850,11 +1778,11 @@ impl CaseGeneratePreambleBuilder {
         self
     }
     pub fn build(self) -> CaseGeneratePreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.case_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.generate_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.case_token)
+            .push_node(self.expression)
+            .push_token(self.generate_token)
+            .finish()
     }
 }
 impl From<CaseGeneratePreambleBuilder> for CaseGeneratePreambleSyntax {
@@ -1901,14 +1829,12 @@ impl CaseGenerateStatementBuilder {
         self
     }
     pub fn build(self) -> CaseGenerateStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.stmt_label);
-        builder.push_node(self.case_generate_preamble);
-        for n in self.case_generate_alternatives {
-            builder.push_node(n);
-        }
-        builder.push_node(self.generate_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.stmt_label)
+            .push_node(self.case_generate_preamble)
+            .push_nodes(self.case_generate_alternatives)
+            .push_node(self.generate_epilogue)
+            .finish()
     }
 }
 impl From<CaseGenerateStatementBuilder> for CaseGenerateStatementSyntax {
@@ -1954,13 +1880,11 @@ impl CaseStatementBuilder {
         self
     }
     pub fn build(self) -> CaseStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.case_statement_preamble);
-        for n in self.case_statement_alternatives {
-            builder.push_node(n);
-        }
-        builder.push_node(self.case_statement_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.case_statement_preamble)
+            .push_nodes(self.case_statement_alternatives)
+            .push_node(self.case_statement_epilogue)
+            .finish()
     }
 }
 impl From<CaseStatementBuilder> for CaseStatementSyntax {
@@ -1993,12 +1917,10 @@ impl CaseStatementAlternativeBuilder {
         self
     }
     pub fn build(self) -> CaseStatementAlternativeSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.case_statement_alternative_preamble);
-        if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.case_statement_alternative_preamble)
+            .push_opt_node(self.sequence_of_statements)
+            .finish()
     }
 }
 impl From<CaseStatementAlternativeBuilder> for CaseStatementAlternativeSyntax {
@@ -2040,11 +1962,11 @@ impl CaseStatementAlternativePreambleBuilder {
         self
     }
     pub fn build(self) -> CaseStatementAlternativePreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.when_token);
-        builder.push_node(self.choices);
-        builder.push_token(self.right_arrow_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.when_token)
+            .push_node(self.choices)
+            .push_token(self.right_arrow_token)
+            .finish()
     }
 }
 impl From<CaseStatementAlternativePreambleBuilder> for CaseStatementAlternativePreambleSyntax {
@@ -2120,17 +2042,13 @@ impl CaseStatementEpilogueBuilder {
         self
     }
     pub fn build(self) -> CaseStatementEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.case_token);
-        if let Some(t) = self.que_token {
-            builder.push_token(t);
-        }
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.case_token)
+            .push_opt_token(self.que_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<CaseStatementEpilogueBuilder> for CaseStatementEpilogueSyntax {
@@ -2191,17 +2109,13 @@ impl CaseStatementPreambleBuilder {
         self
     }
     pub fn build(self) -> CaseStatementPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.case_token);
-        if let Some(t) = self.que_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.expression);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.case_token)
+            .push_opt_token(self.que_token)
+            .push_node(self.expression)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<CaseStatementPreambleBuilder> for CaseStatementPreambleSyntax {
@@ -2259,19 +2173,13 @@ impl ComponentConfigurationBuilder {
         self
     }
     pub fn build(self) -> ComponentConfigurationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.component_configuration_preamble);
-        if let Some(n) = self.binding {
-            builder.push_node(n);
-        }
-        for n in self.verification_unit_bindings {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.block_configuration {
-            builder.push_node(n);
-        }
-        builder.push_node(self.component_configuration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.component_configuration_preamble)
+            .push_opt_node(self.binding)
+            .push_nodes(self.verification_unit_bindings)
+            .push_opt_node(self.block_configuration)
+            .push_node(self.component_configuration_epilogue)
+            .finish()
     }
 }
 impl From<ComponentConfigurationBuilder> for ComponentConfigurationSyntax {
@@ -2322,11 +2230,11 @@ impl ComponentConfigurationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ComponentConfigurationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.for_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.for_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ComponentConfigurationEpilogueBuilder> for ComponentConfigurationEpilogueSyntax {
@@ -2361,10 +2269,10 @@ impl ComponentConfigurationPreambleBuilder {
         self
     }
     pub fn build(self) -> ComponentConfigurationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.for_token);
-        builder.push_node(self.component_specification);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.for_token)
+            .push_node(self.component_specification)
+            .finish()
     }
 }
 impl From<ComponentConfigurationPreambleBuilder> for ComponentConfigurationPreambleSyntax {
@@ -2412,16 +2320,12 @@ impl ComponentDeclarationBuilder {
         self
     }
     pub fn build(self) -> ComponentDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.component_declaration_preamble);
-        if let Some(n) = self.generic_clause {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.port_clause {
-            builder.push_node(n);
-        }
-        builder.push_node(self.component_declaration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.component_declaration_preamble)
+            .push_opt_node(self.generic_clause)
+            .push_opt_node(self.port_clause)
+            .push_node(self.component_declaration_epilogue)
+            .finish()
     }
 }
 impl From<ComponentDeclarationBuilder> for ComponentDeclarationSyntax {
@@ -2484,14 +2388,12 @@ impl ComponentDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ComponentDeclarationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.component_token);
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.component_token)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ComponentDeclarationEpilogueBuilder> for ComponentDeclarationEpilogueSyntax {
@@ -2540,13 +2442,11 @@ impl ComponentDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> ComponentDeclarationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.component_token);
-        builder.push_token(self.identifier_token);
-        if let Some(t) = self.is_token {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.component_token)
+            .push_token(self.identifier_token)
+            .push_opt_token(self.is_token)
+            .finish()
     }
 }
 impl From<ComponentDeclarationPreambleBuilder> for ComponentDeclarationPreambleSyntax {
@@ -2599,17 +2499,13 @@ impl ComponentInstantiationStatementBuilder {
         self
     }
     pub fn build(self) -> ComponentInstantiationStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.stmt_label);
-        builder.push_node(self.instantiated_unit);
-        if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.port_map_aspect {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.stmt_label)
+            .push_node(self.instantiated_unit)
+            .push_opt_node(self.generic_map_aspect)
+            .push_opt_node(self.port_map_aspect)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ComponentInstantiationStatementBuilder> for ComponentInstantiationStatementSyntax {
@@ -2650,11 +2546,11 @@ impl ComponentSpecificationBuilder {
         self
     }
     pub fn build(self) -> ComponentSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.instantiation_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.instantiation_list)
+            .push_token(self.colon_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<ComponentSpecificationBuilder> for ComponentSpecificationSyntax {
@@ -2717,17 +2613,13 @@ impl CompoundConfigurationSpecificationBuilder {
         self
     }
     pub fn build(self) -> CompoundConfigurationSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.component_configuration_preamble);
-        if let Some(n) = self.binding_indication {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        for n in self.verification_unit_bindings {
-            builder.push_node(n);
-        }
-        builder.push_node(self.component_configuration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.component_configuration_preamble)
+            .push_opt_node(self.binding_indication)
+            .push_token(self.semi_colon_token)
+            .push_nodes(self.verification_unit_bindings)
+            .push_node(self.component_configuration_epilogue)
+            .finish()
     }
 }
 impl From<CompoundConfigurationSpecificationBuilder> for CompoundConfigurationSpecificationSyntax {
@@ -2778,16 +2670,12 @@ impl ConcurrentAssertionStatementBuilder {
         self
     }
     pub fn build(self) -> ConcurrentAssertionStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.assertion);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_opt_token(self.postponed_token)
+            .push_node(self.assertion)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConcurrentAssertionStatementBuilder> for ConcurrentAssertionStatementSyntax {
@@ -2876,24 +2764,16 @@ impl ConcurrentConditionalSignalAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConcurrentConditionalSignalAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        if let Some(t) = self.guarded_token {
-            builder.push_token(t);
-        }
-        if let Some(n) = self.delay_mechanism {
-            builder.push_node(n);
-        }
-        builder.push_node(self.conditional_waveforms);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_opt_token(self.postponed_token)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_opt_token(self.guarded_token)
+            .push_opt_node(self.delay_mechanism)
+            .push_node(self.conditional_waveforms)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConcurrentConditionalSignalAssignmentBuilder>
@@ -2946,16 +2826,12 @@ impl ConcurrentProcedureCallOrComponentInstantiationStatementBuilder {
         self
     }
     pub fn build(self) -> ConcurrentProcedureCallOrComponentInstantiationStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.name);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_opt_token(self.postponed_token)
+            .push_node(self.name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConcurrentProcedureCallOrComponentInstantiationStatementBuilder>
@@ -3056,25 +2932,17 @@ impl ConcurrentSelectedSignalAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConcurrentSelectedSignalAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.selected_assignment_preamble);
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        if let Some(t) = self.guarded_token {
-            builder.push_token(t);
-        }
-        if let Some(n) = self.delay_mechanism {
-            builder.push_node(n);
-        }
-        builder.push_node(self.selected_waveforms);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_opt_token(self.postponed_token)
+            .push_node(self.selected_assignment_preamble)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_opt_token(self.guarded_token)
+            .push_opt_node(self.delay_mechanism)
+            .push_node(self.selected_waveforms)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConcurrentSelectedSignalAssignmentBuilder> for ConcurrentSelectedSignalAssignmentSyntax {
@@ -3160,24 +3028,16 @@ impl ConcurrentSimpleSignalAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConcurrentSimpleSignalAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        if let Some(t) = self.guarded_token {
-            builder.push_token(t);
-        }
-        if let Some(n) = self.delay_mechanism {
-            builder.push_node(n);
-        }
-        builder.push_node(self.waveform);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_opt_token(self.postponed_token)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_opt_token(self.guarded_token)
+            .push_opt_node(self.delay_mechanism)
+            .push_node(self.waveform)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConcurrentSimpleSignalAssignmentBuilder> for ConcurrentSimpleSignalAssignmentSyntax {
@@ -3209,10 +3069,10 @@ impl ConditionClauseBuilder {
         self
     }
     pub fn build(self) -> ConditionClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.until_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.until_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<ConditionClauseBuilder> for ConditionClauseSyntax {
@@ -3246,15 +3106,11 @@ impl ConditionalExpressionsBuilder {
         self
     }
     pub fn build(self) -> ConditionalExpressionsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.when_expression);
-        for n in self.else_when_expressions {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.else_expression {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.when_expression)
+            .push_nodes(self.else_when_expressions)
+            .push_opt_node(self.else_expression)
+            .finish()
     }
 }
 impl From<ConditionalExpressionsBuilder> for ConditionalExpressionsSyntax {
@@ -3330,19 +3186,15 @@ impl ConditionalForceAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConditionalForceAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        builder.push_token(self.force_token);
-        if let Some(n) = self.force_mode {
-            builder.push_token(n.0);
-        }
-        builder.push_node(self.conditional_expressions);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_token(self.force_token)
+            .push_opt_token(self.force_mode.map(|t| t.0))
+            .push_node(self.conditional_expressions)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConditionalForceAssignmentBuilder> for ConditionalForceAssignmentSyntax {
@@ -3402,15 +3254,13 @@ impl ConditionalVariableAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConditionalVariableAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.colon_eq_token);
-        builder.push_node(self.conditional_expressions);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.colon_eq_token)
+            .push_node(self.conditional_expressions)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConditionalVariableAssignmentBuilder> for ConditionalVariableAssignmentSyntax {
@@ -3473,18 +3323,14 @@ impl ConditionalWaveformAssignmentBuilder {
         self
     }
     pub fn build(self) -> ConditionalWaveformAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        if let Some(n) = self.delay_mechanism {
-            builder.push_node(n);
-        }
-        builder.push_node(self.conditional_waveforms);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_opt_node(self.delay_mechanism)
+            .push_node(self.conditional_waveforms)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConditionalWaveformAssignmentBuilder> for ConditionalWaveformAssignmentSyntax {
@@ -3518,15 +3364,11 @@ impl ConditionalWaveformsBuilder {
         self
     }
     pub fn build(self) -> ConditionalWaveformsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.when_waveform);
-        for n in self.else_when_waveforms {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.else_waveform {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.when_waveform)
+            .push_nodes(self.else_when_waveforms)
+            .push_opt_node(self.else_waveform)
+            .finish()
     }
 }
 impl From<ConditionalWaveformsBuilder> for ConditionalWaveformsSyntax {
@@ -3588,17 +3430,13 @@ impl ConfigurationDeclarationBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.configuration_declaration_preamble);
-        if let Some(n) = self.configuration_declarative_part {
-            builder.push_node(n);
-        }
-        for n in self.verification_unit_bindings {
-            builder.push_node(n);
-        }
-        builder.push_node(self.block_configuration);
-        builder.push_node(self.configuration_declaration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.configuration_declaration_preamble)
+            .push_opt_node(self.configuration_declarative_part)
+            .push_nodes(self.verification_unit_bindings)
+            .push_node(self.block_configuration)
+            .push_node(self.configuration_declaration_epilogue)
+            .finish()
     }
 }
 impl From<ConfigurationDeclarationBuilder> for ConfigurationDeclarationSyntax {
@@ -3664,16 +3502,12 @@ impl ConfigurationDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.configuration_token {
-            builder.push_token(t);
-        }
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.configuration_token)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConfigurationDeclarationEpilogueBuilder> for ConfigurationDeclarationEpilogueSyntax {
@@ -3738,13 +3572,13 @@ impl ConfigurationDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.configuration_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.of_token);
-        builder.push_node(self.name);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.configuration_token)
+            .push_token(self.identifier_token)
+            .push_token(self.of_token)
+            .push_node(self.name)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<ConfigurationDeclarationPreambleBuilder> for ConfigurationDeclarationPreambleSyntax {
@@ -3774,11 +3608,9 @@ impl ConfigurationDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ConfigurationDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.configuration_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.configuration_declarative_items)
+            .finish()
     }
 }
 impl From<ConfigurationDeclarativePartBuilder> for ConfigurationDeclarativePartSyntax {
@@ -3845,16 +3677,14 @@ impl ConstantDeclarationBuilder {
         self
     }
     pub fn build(self) -> ConstantDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.constant_token);
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        if let Some(n) = self.initial_value {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.constant_token)
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_opt_node(self.initial_value)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ConstantDeclarationBuilder> for ConstantDeclarationSyntax {
@@ -3905,12 +3735,12 @@ impl ConstrainedArrayDefinitionBuilder {
         self
     }
     pub fn build(self) -> ConstrainedArrayDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.array_token);
-        builder.push_node(self.index_constraint);
-        builder.push_token(self.of_token);
-        builder.push_node(self.subtype_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.array_token)
+            .push_node(self.index_constraint)
+            .push_token(self.of_token)
+            .push_node(self.subtype_indication)
+            .finish()
     }
 }
 impl From<ConstrainedArrayDefinitionBuilder> for ConstrainedArrayDefinitionSyntax {
@@ -3937,11 +3767,9 @@ impl ContextClauseBuilder {
         self
     }
     pub fn build(self) -> ContextClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.context_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.context_items)
+            .finish()
     }
 }
 impl From<ContextClauseBuilder> for ContextClauseSyntax {
@@ -3981,13 +3809,11 @@ impl ContextDeclarationBuilder {
         self
     }
     pub fn build(self) -> ContextDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.context_declaration_preamble);
-        if let Some(n) = self.context_clause {
-            builder.push_node(n);
-        }
-        builder.push_node(self.context_declaration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.context_declaration_preamble)
+            .push_opt_node(self.context_clause)
+            .push_node(self.context_declaration_epilogue)
+            .finish()
     }
 }
 impl From<ContextDeclarationBuilder> for ContextDeclarationSyntax {
@@ -4053,16 +3879,12 @@ impl ContextDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ContextDeclarationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.context_token {
-            builder.push_token(t);
-        }
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.context_token)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ContextDeclarationEpilogueBuilder> for ContextDeclarationEpilogueSyntax {
@@ -4108,11 +3930,11 @@ impl ContextDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> ContextDeclarationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.context_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.context_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<ContextDeclarationPreambleBuilder> for ContextDeclarationPreambleSyntax {
@@ -4154,11 +3976,11 @@ impl ContextReferenceBuilder {
         self
     }
     pub fn build(self) -> ContextReferenceSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.context_token);
-        builder.push_node(self.name_list);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.context_token)
+            .push_node(self.name_list)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ContextReferenceBuilder> for ContextReferenceSyntax {
@@ -4189,9 +4011,7 @@ impl DeclarationStatementSeparatorBuilder {
         self
     }
     pub fn build(self) -> DeclarationStatementSeparatorSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.begin_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.begin_token).finish()
     }
 }
 impl From<DeclarationStatementSeparatorBuilder> for DeclarationStatementSeparatorSyntax {
@@ -4223,12 +4043,10 @@ impl DesignFileBuilder {
         self
     }
     pub fn build(self) -> DesignFileSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.design_units {
-            builder.push_node(n);
-        }
-        builder.push_token(self.eof_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.design_units)
+            .push_token(self.eof_token)
+            .finish()
     }
 }
 impl From<DesignFileBuilder> for DesignFileSyntax {
@@ -4256,12 +4074,10 @@ impl DesignUnitBuilder {
         self
     }
     pub fn build(self) -> DesignUnitSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.context_clause {
-            builder.push_node(n);
-        }
-        builder.push_node(self.library_unit);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.context_clause)
+            .push_node(self.library_unit)
+            .finish()
     }
 }
 impl From<DesignUnitBuilder> for DesignUnitSyntax {
@@ -4325,13 +4141,13 @@ impl DisconnectionSpecificationBuilder {
         self
     }
     pub fn build(self) -> DisconnectionSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.disconnect_token);
-        builder.push_node(self.guarded_signal_specification);
-        builder.push_token(self.after_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.disconnect_token)
+            .push_node(self.guarded_signal_specification)
+            .push_token(self.after_token)
+            .push_node(self.expression)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<DisconnectionSpecificationBuilder> for DisconnectionSpecificationSyntax {
@@ -4359,12 +4175,10 @@ impl ElementAssociationBuilder {
         self
     }
     pub fn build(self) -> ElementAssociationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.element_choices {
-            builder.push_node(n);
-        }
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.element_choices)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<ElementAssociationBuilder> for ElementAssociationSyntax {
@@ -4396,10 +4210,10 @@ impl ElementChoicesBuilder {
         self
     }
     pub fn build(self) -> ElementChoicesSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.choices);
-        builder.push_token(self.right_arrow_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.choices)
+            .push_token(self.right_arrow_token)
+            .finish()
     }
 }
 impl From<ElementChoicesBuilder> for ElementChoicesSyntax {
@@ -4453,12 +4267,12 @@ impl ElementDeclarationBuilder {
         self
     }
     pub fn build(self) -> ElementDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.element_subtype_definition);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_node(self.element_subtype_definition)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ElementDeclarationBuilder> for ElementDeclarationSyntax {
@@ -4480,9 +4294,9 @@ impl ElementResolutionResolutionIndicationBuilder {
         self
     }
     pub fn build(self) -> ElementResolutionResolutionIndicationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.element_resolution);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.element_resolution)
+            .finish()
     }
 }
 impl From<ElementResolutionResolutionIndicationBuilder>
@@ -4516,10 +4330,10 @@ impl ElseExpressionBuilder {
         self
     }
     pub fn build(self) -> ElseExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.else_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.else_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<ElseExpressionBuilder> for ElseExpressionSyntax {
@@ -4551,10 +4365,10 @@ impl ElseWaveformBuilder {
         self
     }
     pub fn build(self) -> ElseWaveformSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.else_token);
-        builder.push_node(self.waveform);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.else_token)
+            .push_node(self.waveform)
+            .finish()
     }
 }
 impl From<ElseWaveformBuilder> for ElseWaveformSyntax {
@@ -4605,12 +4419,12 @@ impl ElseWhenExpressionBuilder {
         self
     }
     pub fn build(self) -> ElseWhenExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.else_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.when_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.else_token)
+            .push_node(self.expression)
+            .push_token(self.when_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<ElseWhenExpressionBuilder> for ElseWhenExpressionSyntax {
@@ -4661,12 +4475,12 @@ impl ElseWhenWaveformBuilder {
         self
     }
     pub fn build(self) -> ElseWhenWaveformSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.else_token);
-        builder.push_node(self.waveform);
-        builder.push_token(self.when_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.else_token)
+            .push_node(self.waveform)
+            .push_token(self.when_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<ElseWhenWaveformBuilder> for ElseWhenWaveformSyntax {
@@ -4707,10 +4521,10 @@ impl EndPackageBodyBuilder {
         self
     }
     pub fn build(self) -> EndPackageBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.package_token);
-        builder.push_token(self.body_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.package_token)
+            .push_token(self.body_token)
+            .finish()
     }
 }
 impl From<EndPackageBodyBuilder> for EndPackageBodySyntax {
@@ -4745,12 +4559,10 @@ impl EntityClassEntryBuilder {
         self
     }
     pub fn build(self) -> EntityClassEntrySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.entity_class.0);
-        if let Some(t) = self.box_token {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.entity_class.0)
+            .push_opt_token(self.box_token)
+            .finish()
     }
 }
 impl From<EntityClassEntryBuilder> for EntityClassEntrySyntax {
@@ -4782,10 +4594,10 @@ impl EntityConfigurationAspectBuilder {
         self
     }
     pub fn build(self) -> EntityConfigurationAspectSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.configuration_token);
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.configuration_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<EntityConfigurationAspectBuilder> for EntityConfigurationAspectSyntax {
@@ -4840,19 +4652,13 @@ impl EntityDeclarationBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.entity_declaration_preamble);
-        if let Some(n) = self.entity_header {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.entity_declarative_part {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.entity_statements {
-            builder.push_node(n);
-        }
-        builder.push_node(self.entity_declaration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.entity_declaration_preamble)
+            .push_opt_node(self.entity_header)
+            .push_opt_node(self.entity_declarative_part)
+            .push_opt_node(self.entity_statements)
+            .push_node(self.entity_declaration_epilogue)
+            .finish()
     }
 }
 impl From<EntityDeclarationBuilder> for EntityDeclarationSyntax {
@@ -4918,16 +4724,12 @@ impl EntityDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.entity_token {
-            builder.push_token(t);
-        }
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.entity_token)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<EntityDeclarationEpilogueBuilder> for EntityDeclarationEpilogueSyntax {
@@ -4973,11 +4775,11 @@ impl EntityDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.entity_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.entity_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<EntityDeclarationPreambleBuilder> for EntityDeclarationPreambleSyntax {
@@ -5007,11 +4809,9 @@ impl EntityDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> EntityDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.entity_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.entity_declarative_items)
+            .finish()
     }
 }
 impl From<EntityDeclarativePartBuilder> for EntityDeclarativePartSyntax {
@@ -5039,12 +4839,10 @@ impl EntityDesignatorBuilder {
         self
     }
     pub fn build(self) -> EntityDesignatorSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.entity_tag.0);
-        if let Some(n) = self.signature {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.entity_tag.0)
+            .push_opt_node(self.signature)
+            .finish()
     }
 }
 impl From<EntityDesignatorBuilder> for EntityDesignatorSyntax {
@@ -5076,10 +4874,10 @@ impl EntityEntityAspectBuilder {
         self
     }
     pub fn build(self) -> EntityEntityAspectSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.entity_token);
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.entity_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<EntityEntityAspectBuilder> for EntityEntityAspectSyntax {
@@ -5112,14 +4910,10 @@ impl EntityHeaderBuilder {
         self
     }
     pub fn build(self) -> EntityHeaderSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.generic_clause {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.port_clause {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.generic_clause)
+            .push_opt_node(self.port_clause)
+            .finish()
     }
 }
 impl From<EntityHeaderBuilder> for EntityHeaderSyntax {
@@ -5150,9 +4944,7 @@ impl EntityNameListAllBuilder {
         self
     }
     pub fn build(self) -> EntityNameListAllSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.all_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.all_token).finish()
     }
 }
 impl From<EntityNameListAllBuilder> for EntityNameListAllSyntax {
@@ -5183,9 +4975,7 @@ impl EntityNameListOthersBuilder {
         self
     }
     pub fn build(self) -> EntityNameListOthersSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.others_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.others_token).finish()
     }
 }
 impl From<EntityNameListOthersBuilder> for EntityNameListOthersSyntax {
@@ -5216,9 +5006,7 @@ impl EntityOpenAspectBuilder {
         self
     }
     pub fn build(self) -> EntityOpenAspectSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.open_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.open_token).finish()
     }
 }
 impl From<EntityOpenAspectBuilder> for EntityOpenAspectSyntax {
@@ -5259,11 +5047,11 @@ impl EntitySpecificationBuilder {
         self
     }
     pub fn build(self) -> EntitySpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.entity_name_list);
-        builder.push_token(self.colon_token);
-        builder.push_token(self.entity_class.0);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.entity_name_list)
+            .push_token(self.colon_token)
+            .push_token(self.entity_class.0)
+            .finish()
     }
 }
 impl From<EntitySpecificationBuilder> for EntitySpecificationSyntax {
@@ -5290,11 +5078,9 @@ impl EntityStatementPartBuilder {
         self
     }
     pub fn build(self) -> EntityStatementPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.entity_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.entity_statements)
+            .finish()
     }
 }
 impl From<EntityStatementPartBuilder> for EntityStatementPartSyntax {
@@ -5331,12 +5117,10 @@ impl EntityStatementsBuilder {
         self
     }
     pub fn build(self) -> EntityStatementsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.declaration_statement_separator);
-        if let Some(n) = self.entity_statement_part {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.declaration_statement_separator)
+            .push_opt_node(self.entity_statement_part)
+            .finish()
     }
 }
 impl From<EntityStatementsBuilder> for EntityStatementsSyntax {
@@ -5378,11 +5162,11 @@ impl EnumerationTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> EnumerationTypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.enumeration_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.enumeration_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<EnumerationTypeDefinitionBuilder> for EnumerationTypeDefinitionSyntax {
@@ -5447,19 +5231,13 @@ impl ExitStatementBuilder {
         self
     }
     pub fn build(self) -> ExitStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.exit_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        if let Some(n) = self.when_clause {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.exit_token)
+            .push_opt_token(self.label)
+            .push_opt_node(self.when_clause)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ExitStatementBuilder> for ExitStatementSyntax {
@@ -5481,9 +5259,7 @@ impl ExpressionChoiceBuilder {
         self
     }
     pub fn build(self) -> ExpressionChoiceSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.expression).finish()
     }
 }
 impl From<ExpressionChoiceBuilder> for ExpressionChoiceSyntax {
@@ -5554,14 +5330,14 @@ impl ExternalConstantNameBuilder {
         self
     }
     pub fn build(self) -> ExternalConstantNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.lt_lt_token);
-        builder.push_token(self.constant_token);
-        builder.push_node(self.external_pathname);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        builder.push_token(self.gt_gt_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.lt_lt_token)
+            .push_token(self.constant_token)
+            .push_node(self.external_pathname)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_token(self.gt_gt_token)
+            .finish()
     }
 }
 impl From<ExternalConstantNameBuilder> for ExternalConstantNameSyntax {
@@ -5632,14 +5408,14 @@ impl ExternalSignalNameBuilder {
         self
     }
     pub fn build(self) -> ExternalSignalNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.lt_lt_token);
-        builder.push_token(self.signal_token);
-        builder.push_node(self.external_pathname);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        builder.push_token(self.gt_gt_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.lt_lt_token)
+            .push_token(self.signal_token)
+            .push_node(self.external_pathname)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_token(self.gt_gt_token)
+            .finish()
     }
 }
 impl From<ExternalSignalNameBuilder> for ExternalSignalNameSyntax {
@@ -5710,14 +5486,14 @@ impl ExternalVariableNameBuilder {
         self
     }
     pub fn build(self) -> ExternalVariableNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.lt_lt_token);
-        builder.push_token(self.variable_token);
-        builder.push_node(self.external_pathname);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        builder.push_token(self.gt_gt_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.lt_lt_token)
+            .push_token(self.variable_token)
+            .push_node(self.external_pathname)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_token(self.gt_gt_token)
+            .finish()
     }
 }
 impl From<ExternalVariableNameBuilder> for ExternalVariableNameSyntax {
@@ -5784,16 +5560,14 @@ impl FileDeclarationBuilder {
         self
     }
     pub fn build(self) -> FileDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.file_token);
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        if let Some(n) = self.file_open_information {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.file_token)
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_opt_node(self.file_open_information)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<FileDeclarationBuilder> for FileDeclarationSyntax {
@@ -5831,13 +5605,11 @@ impl FileOpenInformationBuilder {
         self
     }
     pub fn build(self) -> FileOpenInformationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.file_open_kind {
-            builder.push_node(n);
-        }
-        builder.push_token(self.is_token);
-        builder.push_node(self.file_logical_name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.file_open_kind)
+            .push_token(self.is_token)
+            .push_node(self.file_logical_name)
+            .finish()
     }
 }
 impl From<FileOpenInformationBuilder> for FileOpenInformationSyntax {
@@ -5869,10 +5641,10 @@ impl FileOpenKindBuilder {
         self
     }
     pub fn build(self) -> FileOpenKindSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.open_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.open_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<FileOpenKindBuilder> for FileOpenKindSyntax {
@@ -5914,11 +5686,11 @@ impl FileTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> FileTypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.file_token);
-        builder.push_token(self.of_token);
-        builder.push_node(self.type_mark);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.file_token)
+            .push_token(self.of_token)
+            .push_node(self.type_mark)
+            .finish()
     }
 }
 impl From<FileTypeDefinitionBuilder> for FileTypeDefinitionSyntax {
@@ -5963,11 +5735,11 @@ impl ForGeneratePreambleBuilder {
         self
     }
     pub fn build(self) -> ForGeneratePreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.for_token);
-        builder.push_node(self.parameter_specification);
-        builder.push_token(self.generate_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.for_token)
+            .push_node(self.parameter_specification)
+            .push_token(self.generate_token)
+            .finish()
     }
 }
 impl From<ForGeneratePreambleBuilder> for ForGeneratePreambleSyntax {
@@ -6013,14 +5785,12 @@ impl ForGenerateStatementBuilder {
         self
     }
     pub fn build(self) -> ForGenerateStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.stmt_label);
-        builder.push_node(self.for_generate_preamble);
-        if let Some(n) = self.generate_statement_body {
-            builder.push_node(n);
-        }
-        builder.push_node(self.generate_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.stmt_label)
+            .push_node(self.for_generate_preamble)
+            .push_opt_node(self.generate_statement_body)
+            .push_node(self.generate_epilogue)
+            .finish()
     }
 }
 impl From<ForGenerateStatementBuilder> for ForGenerateStatementSyntax {
@@ -6055,10 +5825,10 @@ impl ForSchemeBuilder {
         self
     }
     pub fn build(self) -> ForSchemeSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.for_token);
-        builder.push_node(self.parameter_specification);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.for_token)
+            .push_node(self.parameter_specification)
+            .finish()
     }
 }
 impl From<ForSchemeBuilder> for ForSchemeSyntax {
@@ -6090,10 +5860,10 @@ impl FormalBuilder {
         self
     }
     pub fn build(self) -> FormalSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.formal_part);
-        builder.push_token(self.right_arrow_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.formal_part)
+            .push_token(self.right_arrow_token)
+            .finish()
     }
 }
 impl From<FormalBuilder> for FormalSyntax {
@@ -6158,13 +5928,13 @@ impl FullTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> FullTypeDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.type_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.push_node(self.type_definition);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.type_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .push_node(self.type_definition)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<FullTypeDeclarationBuilder> for FullTypeDeclarationSyntax {
@@ -6230,21 +6000,15 @@ impl FunctionSpecificationBuilder {
         self
     }
     pub fn build(self) -> FunctionSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.purity {
-            builder.push_token(n.0);
-        }
-        builder.push_token(self.function_token);
-        builder.push_token(self.designator.0);
-        if let Some(n) = self.subprogram_header {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.parameter_list {
-            builder.push_node(n);
-        }
-        builder.push_token(self.return_token);
-        builder.push_node(self.type_mark);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.purity.map(|t| t.0))
+            .push_token(self.function_token)
+            .push_token(self.designator.0)
+            .push_opt_node(self.subprogram_header)
+            .push_opt_node(self.parameter_list)
+            .push_token(self.return_token)
+            .push_node(self.type_mark)
+            .finish()
     }
 }
 impl From<FunctionSpecificationBuilder> for FunctionSpecificationSyntax {
@@ -6281,12 +6045,10 @@ impl GenerateBodyDeclarationsBuilder {
         self
     }
     pub fn build(self) -> GenerateBodyDeclarationsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.block_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.declaration_statement_separator);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.block_declarative_part)
+            .push_node(self.declaration_statement_separator)
+            .finish()
     }
 }
 impl From<GenerateBodyDeclarationsBuilder> for GenerateBodyDeclarationsSyntax {
@@ -6339,13 +6101,11 @@ impl GenerateBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> GenerateBodyEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<GenerateBodyEpilogueBuilder> for GenerateBodyEpilogueSyntax {
@@ -6408,14 +6168,12 @@ impl GenerateEpilogueBuilder {
         self
     }
     pub fn build(self) -> GenerateEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.generate_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.generate_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<GenerateEpilogueBuilder> for GenerateEpilogueSyntax {
@@ -6457,17 +6215,11 @@ impl GenerateStatementBodyBuilder {
         self
     }
     pub fn build(self) -> GenerateStatementBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.generate_body_declarations {
-            builder.push_node(n);
-        }
-        for n in self.concurrent_statements {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.generate_body_epilogue {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.generate_body_declarations)
+            .push_nodes(self.concurrent_statements)
+            .push_opt_node(self.generate_body_epilogue)
+            .finish()
     }
 }
 impl From<GenerateStatementBodyBuilder> for GenerateStatementBodySyntax {
@@ -6529,13 +6281,13 @@ impl GenericClauseBuilder {
         self
     }
     pub fn build(self) -> GenericClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.generic_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.generic_list);
-        builder.push_token(self.right_par_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.generic_token)
+            .push_token(self.left_par_token)
+            .push_node(self.generic_list)
+            .push_token(self.right_par_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<GenericClauseBuilder> for GenericClauseSyntax {
@@ -6567,10 +6319,10 @@ impl GenericMapBuilder {
         self
     }
     pub fn build(self) -> GenericMapSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.generic_map_aspect);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.generic_map_aspect)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<GenericMapBuilder> for GenericMapSyntax {
@@ -6632,13 +6384,13 @@ impl GenericMapAspectBuilder {
         self
     }
     pub fn build(self) -> GenericMapAspectSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.generic_token);
-        builder.push_token(self.map_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.association_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.generic_token)
+            .push_token(self.map_token)
+            .push_token(self.left_par_token)
+            .push_node(self.association_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<GenericMapAspectBuilder> for GenericMapAspectSyntax {
@@ -6666,12 +6418,10 @@ impl GenericPartBuilder {
         self
     }
     pub fn build(self) -> GenericPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.generic_clause);
-        if let Some(n) = self.generic_map {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.generic_clause)
+            .push_opt_node(self.generic_map)
+            .finish()
     }
 }
 impl From<GenericPartBuilder> for GenericPartSyntax {
@@ -6736,13 +6486,13 @@ impl GroupDeclarationBuilder {
         self
     }
     pub fn build(self) -> GroupDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.group_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.name);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.group_token)
+            .push_token(self.identifier_token)
+            .push_token(self.colon_token)
+            .push_node(self.name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<GroupDeclarationBuilder> for GroupDeclarationSyntax {
@@ -6830,15 +6580,15 @@ impl GroupTemplateDeclarationBuilder {
         self
     }
     pub fn build(self) -> GroupTemplateDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.group_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.entity_class_entry_list);
-        builder.push_token(self.right_par_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.group_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .push_token(self.left_par_token)
+            .push_node(self.entity_class_entry_list)
+            .push_token(self.right_par_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<GroupTemplateDeclarationBuilder> for GroupTemplateDeclarationSyntax {
@@ -6876,11 +6626,11 @@ impl GuardedSignalSpecificationBuilder {
         self
     }
     pub fn build(self) -> GuardedSignalSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.signal_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.type_mark);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.signal_list)
+            .push_token(self.colon_token)
+            .push_node(self.type_mark)
+            .finish()
     }
 }
 impl From<GuardedSignalSpecificationBuilder> for GuardedSignalSpecificationSyntax {
@@ -6936,16 +6686,12 @@ impl IfGenerateElseBuilder {
         self
     }
     pub fn build(self) -> IfGenerateElseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.else_token);
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.generate_token);
-        if let Some(n) = self.generate_statement_body {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.else_token)
+            .push_opt_node(self.stmt_label)
+            .push_token(self.generate_token)
+            .push_opt_node(self.generate_statement_body)
+            .finish()
     }
 }
 impl From<IfGenerateElseBuilder> for IfGenerateElseSyntax {
@@ -7002,17 +6748,13 @@ impl IfGenerateElsifBuilder {
         self
     }
     pub fn build(self) -> IfGenerateElsifSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.elsif_token);
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.condition);
-        builder.push_token(self.generate_token);
-        if let Some(n) = self.generate_statement_body {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.elsif_token)
+            .push_opt_node(self.stmt_label)
+            .push_node(self.condition)
+            .push_token(self.generate_token)
+            .push_opt_node(self.generate_statement_body)
+            .finish()
     }
 }
 impl From<IfGenerateElsifBuilder> for IfGenerateElsifSyntax {
@@ -7069,17 +6811,13 @@ impl IfGenerateIfBuilder {
         self
     }
     pub fn build(self) -> IfGenerateIfSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.if_token);
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.condition);
-        builder.push_token(self.generate_token);
-        if let Some(n) = self.generate_statement_body {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.if_token)
+            .push_opt_node(self.stmt_label)
+            .push_node(self.condition)
+            .push_token(self.generate_token)
+            .push_opt_node(self.generate_statement_body)
+            .finish()
     }
 }
 impl From<IfGenerateIfBuilder> for IfGenerateIfSyntax {
@@ -7128,17 +6866,13 @@ impl IfGenerateStatementBuilder {
         self
     }
     pub fn build(self) -> IfGenerateStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.stmt_label);
-        builder.push_node(self.if_generate_if);
-        for n in self.if_generate_elsifs {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.if_generate_else {
-            builder.push_node(n);
-        }
-        builder.push_node(self.generate_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.stmt_label)
+            .push_node(self.if_generate_if)
+            .push_nodes(self.if_generate_elsifs)
+            .push_opt_node(self.if_generate_else)
+            .push_node(self.generate_epilogue)
+            .finish()
     }
 }
 impl From<IfGenerateStatementBuilder> for IfGenerateStatementSyntax {
@@ -7184,19 +6918,13 @@ impl IfStatementBuilder {
         self
     }
     pub fn build(self) -> IfStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.if_statement_preamble);
-        if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n);
-        }
-        for n in self.if_statement_elsifs {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.if_statement_else {
-            builder.push_node(n);
-        }
-        builder.push_node(self.if_statement_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.if_statement_preamble)
+            .push_opt_node(self.sequence_of_statements)
+            .push_nodes(self.if_statement_elsifs)
+            .push_opt_node(self.if_statement_else)
+            .push_node(self.if_statement_epilogue)
+            .finish()
     }
 }
 impl From<IfStatementBuilder> for IfStatementSyntax {
@@ -7233,12 +6961,10 @@ impl IfStatementElseBuilder {
         self
     }
     pub fn build(self) -> IfStatementElseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.else_token);
-        if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.else_token)
+            .push_opt_node(self.sequence_of_statements)
+            .finish()
     }
 }
 impl From<IfStatementElseBuilder> for IfStatementElseSyntax {
@@ -7286,14 +7012,12 @@ impl IfStatementElsifBuilder {
         self
     }
     pub fn build(self) -> IfStatementElsifSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.elsif_token);
-        builder.push_node(self.condition);
-        builder.push_token(self.then_token);
-        if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.elsif_token)
+            .push_node(self.condition)
+            .push_token(self.then_token)
+            .push_opt_node(self.sequence_of_statements)
+            .finish()
     }
 }
 impl From<IfStatementElsifBuilder> for IfStatementElsifSyntax {
@@ -7356,14 +7080,12 @@ impl IfStatementEpilogueBuilder {
         self
     }
     pub fn build(self) -> IfStatementEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.if_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.if_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<IfStatementEpilogueBuilder> for IfStatementEpilogueSyntax {
@@ -7411,14 +7133,12 @@ impl IfStatementPreambleBuilder {
         self
     }
     pub fn build(self) -> IfStatementPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.if_token);
-        builder.push_node(self.condition);
-        builder.push_token(self.then_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.if_token)
+            .push_node(self.condition)
+            .push_token(self.then_token)
+            .finish()
     }
 }
 impl From<IfStatementPreambleBuilder> for IfStatementPreambleSyntax {
@@ -7464,11 +7184,11 @@ impl IncompleteTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> IncompleteTypeDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.type_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.type_token)
+            .push_token(self.identifier_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<IncompleteTypeDeclarationBuilder> for IncompleteTypeDeclarationSyntax {
@@ -7510,11 +7230,11 @@ impl IndexConstraintBuilder {
         self
     }
     pub fn build(self) -> IndexConstraintSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.expression_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.expression_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<IndexConstraintBuilder> for IndexConstraintSyntax {
@@ -7556,11 +7276,11 @@ impl IndexSubtypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> IndexSubtypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.type_mark);
-        builder.push_token(self.range_token);
-        builder.push_token(self.box_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.type_mark)
+            .push_token(self.range_token)
+            .push_token(self.box_token)
+            .finish()
     }
 }
 impl From<IndexSubtypeDefinitionBuilder> for IndexSubtypeDefinitionSyntax {
@@ -7597,12 +7317,10 @@ impl InertialDelayMechanismBuilder {
         self
     }
     pub fn build(self) -> InertialDelayMechanismSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.reject_clause {
-            builder.push_node(n);
-        }
-        builder.push_token(self.inertial_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.reject_clause)
+            .push_token(self.inertial_token)
+            .finish()
     }
 }
 impl From<InertialDelayMechanismBuilder> for InertialDelayMechanismSyntax {
@@ -7634,10 +7352,10 @@ impl InitialValueBuilder {
         self
     }
     pub fn build(self) -> InitialValueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.colon_eq_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.colon_eq_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<InitialValueBuilder> for InitialValueSyntax {
@@ -7672,12 +7390,10 @@ impl InstantiatedComponentBuilder {
         self
     }
     pub fn build(self) -> InstantiatedComponentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(t) = self.component_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.component_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<InstantiatedComponentBuilder> for InstantiatedComponentSyntax {
@@ -7709,10 +7425,10 @@ impl InstantiatedConfigurationBuilder {
         self
     }
     pub fn build(self) -> InstantiatedConfigurationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.configuration_token);
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.configuration_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<InstantiatedConfigurationBuilder> for InstantiatedConfigurationSyntax {
@@ -7744,10 +7460,10 @@ impl InstantiatedEntityBuilder {
         self
     }
     pub fn build(self) -> InstantiatedEntitySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.entity_token);
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.entity_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<InstantiatedEntityBuilder> for InstantiatedEntitySyntax {
@@ -7778,9 +7494,7 @@ impl InstantiationListAllBuilder {
         self
     }
     pub fn build(self) -> InstantiationListAllSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.all_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.all_token).finish()
     }
 }
 impl From<InstantiationListAllBuilder> for InstantiationListAllSyntax {
@@ -7811,9 +7525,7 @@ impl InstantiationListOthersBuilder {
         self
     }
     pub fn build(self) -> InstantiationListOthersSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.others_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.others_token).finish()
     }
 }
 impl From<InstantiationListOthersBuilder> for InstantiationListOthersSyntax {
@@ -7864,12 +7576,12 @@ impl InterfaceFileDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceFileDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.file_token);
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.file_token)
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .finish()
     }
 }
 impl From<InterfaceFileDeclarationBuilder> for InterfaceFileDeclarationSyntax {
@@ -7929,18 +7641,14 @@ impl InterfaceFunctionSpecificationBuilder {
         self
     }
     pub fn build(self) -> InterfaceFunctionSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.purity {
-            builder.push_token(n.0);
-        }
-        builder.push_token(self.function_token);
-        builder.push_token(self.designator.0);
-        if let Some(n) = self.parameter_list {
-            builder.push_node(n);
-        }
-        builder.push_token(self.return_token);
-        builder.push_node(self.type_mark);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.purity.map(|t| t.0))
+            .push_token(self.function_token)
+            .push_token(self.designator.0)
+            .push_opt_node(self.parameter_list)
+            .push_token(self.return_token)
+            .push_node(self.type_mark)
+            .finish()
     }
 }
 impl From<InterfaceFunctionSpecificationBuilder> for InterfaceFunctionSpecificationSyntax {
@@ -7976,10 +7684,10 @@ impl InterfaceIncompleteTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceIncompleteTypeDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.type_token);
-        builder.push_token(self.identifier_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.type_token)
+            .push_token(self.identifier_token)
+            .finish()
     }
 }
 impl From<InterfaceIncompleteTypeDeclarationBuilder> for InterfaceIncompleteTypeDeclarationSyntax {
@@ -8051,23 +7759,15 @@ impl InterfaceObjectDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceObjectDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.interface_object_class {
-            builder.push_token(n.0);
-        }
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        if let Some(n) = self.mode {
-            builder.push_token(n.0);
-        }
-        builder.push_node(self.subtype_indication);
-        if let Some(t) = self.bus_token {
-            builder.push_token(t);
-        }
-        if let Some(n) = self.initial_value {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.interface_object_class.map(|t| t.0))
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_opt_token(self.mode.map(|t| t.0))
+            .push_node(self.subtype_indication)
+            .push_opt_token(self.bus_token)
+            .push_opt_node(self.initial_value)
+            .finish()
     }
 }
 impl From<InterfaceObjectDeclarationBuilder> for InterfaceObjectDeclarationSyntax {
@@ -8121,12 +7821,12 @@ impl InterfacePackageDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.interface_package_declaration_preamble);
-        builder.push_token(self.new_token);
-        builder.push_node(self.name);
-        builder.push_node(self.interface_package_generic_map_aspect);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.interface_package_declaration_preamble)
+            .push_token(self.new_token)
+            .push_node(self.name)
+            .push_node(self.interface_package_generic_map_aspect)
+            .finish()
     }
 }
 impl From<InterfacePackageDeclarationBuilder> for InterfacePackageDeclarationSyntax {
@@ -8172,11 +7872,11 @@ impl InterfacePackageDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageDeclarationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.package_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.package_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<InterfacePackageDeclarationPreambleBuilder>
@@ -8248,13 +7948,13 @@ impl InterfacePackageGenericMapAspectBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.generic_token);
-        builder.push_token(self.map_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.interface_package_generic_map_aspect_inner);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.generic_token)
+            .push_token(self.map_token)
+            .push_token(self.left_par_token)
+            .push_node(self.interface_package_generic_map_aspect_inner)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectBuilder> for InterfacePackageGenericMapAspectSyntax {
@@ -8276,9 +7976,9 @@ impl InterfacePackageGenericMapAspectAssociationsBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectAssociationsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.association_list);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.association_list)
+            .finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectAssociationsBuilder>
@@ -8311,9 +8011,7 @@ impl InterfacePackageGenericMapAspectBoxBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectBoxSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.box_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.box_token).finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectBoxBuilder>
@@ -8346,9 +8044,9 @@ impl InterfacePackageGenericMapAspectDefaultBuilder {
         self
     }
     pub fn build(self) -> InterfacePackageGenericMapAspectDefaultSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.default_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.default_token)
+            .finish()
     }
 }
 impl From<InterfacePackageGenericMapAspectDefaultBuilder>
@@ -8388,13 +8086,11 @@ impl InterfaceProcedureSpecificationBuilder {
         self
     }
     pub fn build(self) -> InterfaceProcedureSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.procedure_token);
-        builder.push_token(self.designator.0);
-        if let Some(n) = self.parameter_list {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.procedure_token)
+            .push_token(self.designator.0)
+            .push_opt_node(self.parameter_list)
+            .finish()
     }
 }
 impl From<InterfaceProcedureSpecificationBuilder> for InterfaceProcedureSpecificationSyntax {
@@ -8427,12 +8123,10 @@ impl InterfaceSubprogramDeclarationBuilder {
         self
     }
     pub fn build(self) -> InterfaceSubprogramDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.interface_subprogram_specification);
-        if let Some(n) = self.subprogram_default {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.interface_subprogram_specification)
+            .push_opt_node(self.subprogram_default)
+            .finish()
     }
 }
 impl From<InterfaceSubprogramDeclarationBuilder> for InterfaceSubprogramDeclarationSyntax {
@@ -8463,9 +8157,7 @@ impl InterfaceSubprogramDefaultBoxBuilder {
         self
     }
     pub fn build(self) -> InterfaceSubprogramDefaultBoxSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.box_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.box_token).finish()
     }
 }
 impl From<InterfaceSubprogramDefaultBoxBuilder> for InterfaceSubprogramDefaultBoxSyntax {
@@ -8485,9 +8177,7 @@ impl InterfaceSubprogramDefaultNameBuilder {
         self
     }
     pub fn build(self) -> InterfaceSubprogramDefaultNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.name).finish()
     }
 }
 impl From<InterfaceSubprogramDefaultNameBuilder> for InterfaceSubprogramDefaultNameSyntax {
@@ -8529,11 +8219,11 @@ impl LibraryClauseBuilder {
         self
     }
     pub fn build(self) -> LibraryClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.library_token);
-        builder.push_node(self.logical_name_list);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.library_token)
+            .push_node(self.logical_name_list)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<LibraryClauseBuilder> for LibraryClauseSyntax {
@@ -8555,9 +8245,7 @@ impl LiteralExpressionBuilder {
         self
     }
     pub fn build(self) -> LiteralExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.literal.0);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.literal.0).finish()
     }
 }
 impl From<LiteralExpressionBuilder> for LiteralExpressionSyntax {
@@ -8602,13 +8290,11 @@ impl LoopStatementBuilder {
         self
     }
     pub fn build(self) -> LoopStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.loop_statement_preamble);
-        if let Some(n) = self.sequence_of_statements {
-            builder.push_node(n);
-        }
-        builder.push_node(self.loop_statement_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.loop_statement_preamble)
+            .push_opt_node(self.sequence_of_statements)
+            .push_node(self.loop_statement_epilogue)
+            .finish()
     }
 }
 impl From<LoopStatementBuilder> for LoopStatementSyntax {
@@ -8671,14 +8357,12 @@ impl LoopStatementEpilogueBuilder {
         self
     }
     pub fn build(self) -> LoopStatementEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.loop_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.loop_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<LoopStatementEpilogueBuilder> for LoopStatementEpilogueSyntax {
@@ -8721,15 +8405,11 @@ impl LoopStatementPreambleBuilder {
         self
     }
     pub fn build(self) -> LoopStatementPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.iteration_scheme {
-            builder.push_node(n);
-        }
-        builder.push_token(self.loop_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_opt_node(self.iteration_scheme)
+            .push_token(self.loop_token)
+            .finish()
     }
 }
 impl From<LoopStatementPreambleBuilder> for LoopStatementPreambleSyntax {
@@ -8763,15 +8443,11 @@ impl NameBuilder {
         self
     }
     pub fn build(self) -> NameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.prefix);
-        for n in self.name_tails {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.range_constraint {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.prefix)
+            .push_nodes(self.name_tails)
+            .push_opt_node(self.range_constraint)
+            .finish()
     }
 }
 impl From<NameBuilder> for NameSyntax {
@@ -8793,9 +8469,9 @@ impl NameDesignatorPrefixBuilder {
         self
     }
     pub fn build(self) -> NameDesignatorPrefixSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.name_designator.0);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.name_designator.0)
+            .finish()
     }
 }
 impl From<NameDesignatorPrefixBuilder> for NameDesignatorPrefixSyntax {
@@ -8815,9 +8491,7 @@ impl NameExpressionBuilder {
         self
     }
     pub fn build(self) -> NameExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.name).finish()
     }
 }
 impl From<NameExpressionBuilder> for NameExpressionSyntax {
@@ -8837,9 +8511,7 @@ impl NameResolutionIndicationBuilder {
         self
     }
     pub fn build(self) -> NameResolutionIndicationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.name).finish()
     }
 }
 impl From<NameResolutionIndicationBuilder> for NameResolutionIndicationSyntax {
@@ -8859,9 +8531,7 @@ impl NameTargetBuilder {
         self
     }
     pub fn build(self) -> NameTargetSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.name).finish()
     }
 }
 impl From<NameTargetBuilder> for NameTargetSyntax {
@@ -8926,19 +8596,13 @@ impl NextStatementBuilder {
         self
     }
     pub fn build(self) -> NextStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.next_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        if let Some(n) = self.when_clause {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.next_token)
+            .push_opt_token(self.label)
+            .push_opt_node(self.when_clause)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<NextStatementBuilder> for NextStatementSyntax {
@@ -8985,13 +8649,11 @@ impl NullStatementBuilder {
         self
     }
     pub fn build(self) -> NullStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.null_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.null_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<NullStatementBuilder> for NullStatementSyntax {
@@ -9013,9 +8675,9 @@ impl NumericTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> NumericTypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.range_constraint);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.range_constraint)
+            .finish()
     }
 }
 impl From<NumericTypeDefinitionBuilder> for NumericTypeDefinitionSyntax {
@@ -9046,9 +8708,7 @@ impl OthersChoiceBuilder {
         self
     }
     pub fn build(self) -> OthersChoiceSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.others_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.others_token).finish()
     }
 }
 impl From<OthersChoiceBuilder> for OthersChoiceSyntax {
@@ -9085,13 +8745,11 @@ impl PackageBodyBuilder {
         self
     }
     pub fn build(self) -> PackageBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_body_preamble);
-        if let Some(n) = self.package_body_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.package_body_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_body_preamble)
+            .push_opt_node(self.package_body_declarative_part)
+            .push_node(self.package_body_epilogue)
+            .finish()
     }
 }
 impl From<PackageBodyBuilder> for PackageBodySyntax {
@@ -9113,9 +8771,7 @@ impl PackageBodyDeclarationBuilder {
         self
     }
     pub fn build(self) -> PackageBodyDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_body);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.package_body).finish()
     }
 }
 impl From<PackageBodyDeclarationBuilder> for PackageBodyDeclarationSyntax {
@@ -9145,11 +8801,9 @@ impl PackageBodyDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> PackageBodyDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.package_body_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.package_body_declarative_items)
+            .finish()
     }
 }
 impl From<PackageBodyDeclarativePartBuilder> for PackageBodyDeclarativePartSyntax {
@@ -9208,16 +8862,12 @@ impl PackageBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> PackageBodyEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(n) = self.end_package_body {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_node(self.end_package_body)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<PackageBodyEpilogueBuilder> for PackageBodyEpilogueSyntax {
@@ -9273,12 +8923,12 @@ impl PackageBodyPreambleBuilder {
         self
     }
     pub fn build(self) -> PackageBodyPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.package_token);
-        builder.push_token(self.body_token);
-        builder.push_token(self.simple_name);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.package_token)
+            .push_token(self.body_token)
+            .push_token(self.simple_name)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<PackageBodyPreambleBuilder> for PackageBodyPreambleSyntax {
@@ -9321,16 +8971,12 @@ impl PackageDeclarationBuilder {
         self
     }
     pub fn build(self) -> PackageDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_preamble);
-        if let Some(n) = self.package_header {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.package_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.package_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_preamble)
+            .push_opt_node(self.package_header)
+            .push_opt_node(self.package_declarative_part)
+            .push_node(self.package_epilogue)
+            .finish()
     }
 }
 impl From<PackageDeclarationBuilder> for PackageDeclarationSyntax {
@@ -9352,9 +8998,9 @@ impl PackageDeclarationItemBuilder {
         self
     }
     pub fn build(self) -> PackageDeclarationItemSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_declaration);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_declaration)
+            .finish()
     }
 }
 impl From<PackageDeclarationItemBuilder> for PackageDeclarationItemSyntax {
@@ -9384,11 +9030,9 @@ impl PackageDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> PackageDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.package_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.package_declarative_items)
+            .finish()
     }
 }
 impl From<PackageDeclarativePartBuilder> for PackageDeclarativePartSyntax {
@@ -9454,16 +9098,12 @@ impl PackageEpilogueBuilder {
         self
     }
     pub fn build(self) -> PackageEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.package_token {
-            builder.push_token(t);
-        }
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.package_token)
+            .push_opt_token(self.simple_name)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<PackageEpilogueBuilder> for PackageEpilogueSyntax {
@@ -9491,12 +9131,10 @@ impl PackageHeaderBuilder {
         self
     }
     pub fn build(self) -> PackageHeaderSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.generic_clause);
-        if let Some(n) = self.generic_map {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.generic_clause)
+            .push_opt_node(self.generic_map)
+            .finish()
     }
 }
 impl From<PackageHeaderBuilder> for PackageHeaderSyntax {
@@ -9539,13 +9177,11 @@ impl PackageInstantiationDeclarationBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_instantiation_preamble);
-        if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_instantiation_preamble)
+            .push_opt_node(self.generic_map_aspect)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<PackageInstantiationDeclarationBuilder> for PackageInstantiationDeclarationSyntax {
@@ -9572,9 +9208,9 @@ impl PackageInstantiationDeclarationItemBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationDeclarationItemSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_instantiation_declaration);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_instantiation_declaration)
+            .finish()
     }
 }
 impl From<PackageInstantiationDeclarationItemBuilder>
@@ -9603,9 +9239,9 @@ impl PackageInstantiationDeclarationPrimaryUnitBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationDeclarationPrimaryUnitSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_instantiation_declaration);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_instantiation_declaration)
+            .finish()
     }
 }
 impl From<PackageInstantiationDeclarationPrimaryUnitBuilder>
@@ -9672,13 +9308,13 @@ impl PackageInstantiationPreambleBuilder {
         self
     }
     pub fn build(self) -> PackageInstantiationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.package_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.push_token(self.new_token);
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.package_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .push_token(self.new_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<PackageInstantiationPreambleBuilder> for PackageInstantiationPreambleSyntax {
@@ -9710,10 +9346,10 @@ impl PackagePathnameBuilder {
         self
     }
     pub fn build(self) -> PackagePathnameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.comm_at_token);
-        builder.push_node(self.package_path);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.comm_at_token)
+            .push_node(self.package_path)
+            .finish()
     }
 }
 impl From<PackagePathnameBuilder> for PackagePathnameSyntax {
@@ -9759,11 +9395,11 @@ impl PackagePreambleBuilder {
         self
     }
     pub fn build(self) -> PackagePreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.package_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.package_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<PackagePreambleBuilder> for PackagePreambleSyntax {
@@ -9801,12 +9437,10 @@ impl ParameterListBuilder {
         self
     }
     pub fn build(self) -> ParameterListSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(t) = self.parameter_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.parenthesized_interface_list);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.parameter_token)
+            .push_node(self.parenthesized_interface_list)
+            .finish()
     }
 }
 impl From<ParameterListBuilder> for ParameterListSyntax {
@@ -9851,11 +9485,11 @@ impl ParameterSpecificationBuilder {
         self
     }
     pub fn build(self) -> ParameterSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.in_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.identifier_token)
+            .push_token(self.in_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<ParameterSpecificationBuilder> for ParameterSpecificationSyntax {
@@ -9897,11 +9531,11 @@ impl ParenthesizedConditionBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedConditionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.condition);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.condition)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedConditionBuilder> for ParenthesizedConditionSyntax {
@@ -9949,11 +9583,11 @@ impl ParenthesizedElementResolutionBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedElementResolutionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.element_resolution_resolution_indication);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.element_resolution_resolution_indication)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedElementResolutionBuilder> for ParenthesizedElementResolutionSyntax {
@@ -9995,11 +9629,11 @@ impl ParenthesizedExpressionBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.expression)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedExpressionBuilder> for ParenthesizedExpressionSyntax {
@@ -10044,11 +9678,11 @@ impl ParenthesizedExpressionOrAggregateBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedExpressionOrAggregateSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.element_association_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.element_association_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedExpressionOrAggregateBuilder> for ParenthesizedExpressionOrAggregateSyntax {
@@ -10090,11 +9724,11 @@ impl ParenthesizedInterfaceListBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedInterfaceListSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.formal_parameter_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.formal_parameter_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedInterfaceListBuilder> for ParenthesizedInterfaceListSyntax {
@@ -10136,11 +9770,11 @@ impl ParenthesizedNameBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.association_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.association_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedNameBuilder> for ParenthesizedNameSyntax {
@@ -10185,11 +9819,11 @@ impl ParenthesizedProcessSensitivityListBuilder {
         self
     }
     pub fn build(self) -> ParenthesizedProcessSensitivityListSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.process_sensitivity_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_par_token)
+            .push_node(self.process_sensitivity_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<ParenthesizedProcessSensitivityListBuilder>
@@ -10226,12 +9860,10 @@ impl PathnameElementBuilder {
         self
     }
     pub fn build(self) -> PathnameElementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.identifier_token);
-        if let Some(n) = self.parenthesized_expression {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.identifier_token)
+            .push_opt_node(self.parenthesized_expression)
+            .finish()
     }
 }
 impl From<PathnameElementBuilder> for PathnameElementSyntax {
@@ -10268,12 +9900,10 @@ impl PhysicalLiteralBuilder {
         self
     }
     pub fn build(self) -> PhysicalLiteralSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(t) = self.abstract_literal_token {
-            builder.push_token(t);
-        }
-        builder.push_node(self.name);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.abstract_literal_token)
+            .push_node(self.name)
+            .finish()
     }
 }
 impl From<PhysicalLiteralBuilder> for PhysicalLiteralSyntax {
@@ -10295,9 +9925,9 @@ impl PhysicalLiteralExpressionBuilder {
         self
     }
     pub fn build(self) -> PhysicalLiteralExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.physical_literal);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.physical_literal)
+            .finish()
     }
 }
 impl From<PhysicalLiteralExpressionBuilder> for PhysicalLiteralExpressionSyntax {
@@ -10338,11 +9968,11 @@ impl PhysicalTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> PhysicalTypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.range_constraint);
-        builder.push_node(self.unit_declarations);
-        builder.push_node(self.physical_type_definition_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.range_constraint)
+            .push_node(self.unit_declarations)
+            .push_node(self.physical_type_definition_epilogue)
+            .finish()
     }
 }
 impl From<PhysicalTypeDefinitionBuilder> for PhysicalTypeDefinitionSyntax {
@@ -10395,13 +10025,11 @@ impl PhysicalTypeDefinitionEpilogueBuilder {
         self
     }
     pub fn build(self) -> PhysicalTypeDefinitionEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.units_token);
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.units_token)
+            .push_opt_token(self.simple_name)
+            .finish()
     }
 }
 impl From<PhysicalTypeDefinitionEpilogueBuilder> for PhysicalTypeDefinitionEpilogueSyntax {
@@ -10463,13 +10091,13 @@ impl PortClauseBuilder {
         self
     }
     pub fn build(self) -> PortClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.port_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.port_list);
-        builder.push_token(self.right_par_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.port_token)
+            .push_token(self.left_par_token)
+            .push_node(self.port_list)
+            .push_token(self.right_par_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<PortClauseBuilder> for PortClauseSyntax {
@@ -10501,10 +10129,10 @@ impl PortMapBuilder {
         self
     }
     pub fn build(self) -> PortMapSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.port_map_aspect);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.port_map_aspect)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<PortMapBuilder> for PortMapSyntax {
@@ -10566,13 +10194,13 @@ impl PortMapAspectBuilder {
         self
     }
     pub fn build(self) -> PortMapAspectSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.port_token);
-        builder.push_token(self.map_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.association_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.port_token)
+            .push_token(self.map_token)
+            .push_token(self.left_par_token)
+            .push_node(self.association_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<PortMapAspectBuilder> for PortMapAspectSyntax {
@@ -10600,12 +10228,10 @@ impl PortPartBuilder {
         self
     }
     pub fn build(self) -> PortPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.port_clause);
-        if let Some(n) = self.port_map {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.port_clause)
+            .push_opt_node(self.port_map)
+            .finish()
     }
 }
 impl From<PortPartBuilder> for PortPartSyntax {
@@ -10641,10 +10267,10 @@ impl PrimaryUnitDeclarationBuilder {
         self
     }
     pub fn build(self) -> PrimaryUnitDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.identifier_token)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<PrimaryUnitDeclarationBuilder> for PrimaryUnitDeclarationSyntax {
@@ -10666,9 +10292,9 @@ impl PrimaryUnitPackageDeclarationBuilder {
         self
     }
     pub fn build(self) -> PrimaryUnitPackageDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_declaration);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.package_declaration)
+            .finish()
     }
 }
 impl From<PrimaryUnitPackageDeclarationBuilder> for PrimaryUnitPackageDeclarationSyntax {
@@ -10706,13 +10332,11 @@ impl ProcedureCallStatementBuilder {
         self
     }
     pub fn build(self) -> ProcedureCallStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.procedure_call);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.procedure_call)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ProcedureCallStatementBuilder> for ProcedureCallStatementSyntax {
@@ -10756,16 +10380,12 @@ impl ProcedureSpecificationBuilder {
         self
     }
     pub fn build(self) -> ProcedureSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.procedure_token);
-        builder.push_token(self.designator.0);
-        if let Some(n) = self.subprogram_header {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.parameter_list {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.procedure_token)
+            .push_token(self.designator.0)
+            .push_opt_node(self.subprogram_header)
+            .push_opt_node(self.parameter_list)
+            .finish()
     }
 }
 impl From<ProcedureSpecificationBuilder> for ProcedureSpecificationSyntax {
@@ -10795,11 +10415,9 @@ impl ProcessDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ProcessDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.process_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.process_declarative_items)
+            .finish()
     }
 }
 impl From<ProcessDeclarativePartBuilder> for ProcessDeclarativePartSyntax {
@@ -10875,17 +10493,13 @@ impl ProcessEpilogueBuilder {
         self
     }
     pub fn build(self) -> ProcessEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_token(self.process_token);
-        if let Some(t) = self.label {
-            builder.push_token(t);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.postponed_token)
+            .push_token(self.process_token)
+            .push_opt_token(self.label)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ProcessEpilogueBuilder> for ProcessEpilogueSyntax {
@@ -10951,18 +10565,12 @@ impl ProcessPreambleBuilder {
         self
     }
     pub fn build(self) -> ProcessPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(t) = self.postponed_token {
-            builder.push_token(t);
-        }
-        builder.push_token(self.process_token);
-        if let Some(n) = self.parenthesized_process_sensitivity_list {
-            builder.push_node(n);
-        }
-        if let Some(t) = self.is_token {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.postponed_token)
+            .push_token(self.process_token)
+            .push_opt_node(self.parenthesized_process_sensitivity_list)
+            .push_opt_token(self.is_token)
+            .finish()
     }
 }
 impl From<ProcessPreambleBuilder> for ProcessPreambleSyntax {
@@ -11026,20 +10634,14 @@ impl ProcessStatementBuilder {
         self
     }
     pub fn build(self) -> ProcessStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.process_preamble);
-        if let Some(n) = self.process_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.declaration_statement_separator);
-        if let Some(n) = self.process_statement_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.process_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.process_preamble)
+            .push_opt_node(self.process_declarative_part)
+            .push_node(self.declaration_statement_separator)
+            .push_opt_node(self.process_statement_part)
+            .push_node(self.process_epilogue)
+            .finish()
     }
 }
 impl From<ProcessStatementBuilder> for ProcessStatementSyntax {
@@ -11066,11 +10668,9 @@ impl ProcessStatementPartBuilder {
         self
     }
     pub fn build(self) -> ProcessStatementPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.sequential_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.sequential_statements)
+            .finish()
     }
 }
 impl From<ProcessStatementPartBuilder> for ProcessStatementPartSyntax {
@@ -11101,9 +10701,9 @@ impl ProtectedPreambleBuilder {
         self
     }
     pub fn build(self) -> ProtectedPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.protected_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.protected_token)
+            .finish()
     }
 }
 impl From<ProtectedPreambleBuilder> for ProtectedPreambleSyntax {
@@ -11151,13 +10751,11 @@ impl ProtectedTypeBodyBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.protected_type_body_preamble);
-        if let Some(n) = self.protected_type_body_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.protected_type_body_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.protected_type_body_preamble)
+            .push_opt_node(self.protected_type_body_declarative_part)
+            .push_node(self.protected_type_body_epilogue)
+            .finish()
     }
 }
 impl From<ProtectedTypeBodyBuilder> for ProtectedTypeBodySyntax {
@@ -11187,11 +10785,9 @@ impl ProtectedTypeBodyDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodyDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.protected_type_body_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.protected_type_body_declarative_items)
+            .finish()
     }
 }
 impl From<ProtectedTypeBodyDeclarativePartBuilder> for ProtectedTypeBodyDeclarativePartSyntax {
@@ -11254,14 +10850,12 @@ impl ProtectedTypeBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodyEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.protected_token);
-        builder.push_token(self.body_token);
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.protected_token)
+            .push_token(self.body_token)
+            .push_opt_token(self.simple_name)
+            .finish()
     }
 }
 impl From<ProtectedTypeBodyEpilogueBuilder> for ProtectedTypeBodyEpilogueSyntax {
@@ -11302,10 +10896,10 @@ impl ProtectedTypeBodyPreambleBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeBodyPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.protected_token);
-        builder.push_token(self.body_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.protected_token)
+            .push_token(self.body_token)
+            .finish()
     }
 }
 impl From<ProtectedTypeBodyPreambleBuilder> for ProtectedTypeBodyPreambleSyntax {
@@ -11351,13 +10945,11 @@ impl ProtectedTypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.protected_preamble);
-        if let Some(n) = self.protected_type_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.protected_type_declaration_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.protected_preamble)
+            .push_opt_node(self.protected_type_declarative_part)
+            .push_node(self.protected_type_declaration_epilogue)
+            .finish()
     }
 }
 impl From<ProtectedTypeDeclarationBuilder> for ProtectedTypeDeclarationSyntax {
@@ -11410,13 +11002,11 @@ impl ProtectedTypeDeclarationEpilogueBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeDeclarationEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.protected_token);
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.protected_token)
+            .push_opt_token(self.simple_name)
+            .finish()
     }
 }
 impl From<ProtectedTypeDeclarationEpilogueBuilder> for ProtectedTypeDeclarationEpilogueSyntax {
@@ -11446,11 +11036,9 @@ impl ProtectedTypeDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> ProtectedTypeDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.protected_type_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.protected_type_declarative_items)
+            .finish()
     }
 }
 impl From<ProtectedTypeDeclarativePartBuilder> for ProtectedTypeDeclarativePartSyntax {
@@ -11494,11 +11082,11 @@ impl QualifiedExpressionBuilder {
         self
     }
     pub fn build(self) -> QualifiedExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.type_mark);
-        builder.push_token(self.tick_token);
-        builder.push_node(self.parenthesized_expression_or_aggregate);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.type_mark)
+            .push_token(self.tick_token)
+            .push_node(self.parenthesized_expression_or_aggregate)
+            .finish()
     }
 }
 impl From<QualifiedExpressionBuilder> for QualifiedExpressionSyntax {
@@ -11530,10 +11118,10 @@ impl RangeConstraintBuilder {
         self
     }
     pub fn build(self) -> RangeConstraintSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.range_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.range_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<RangeConstraintBuilder> for RangeConstraintSyntax {
@@ -11555,11 +11143,9 @@ impl RecordElementDeclarationsBuilder {
         self
     }
     pub fn build(self) -> RecordElementDeclarationsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.element_declarations {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.element_declarations)
+            .finish()
     }
 }
 impl From<RecordElementDeclarationsBuilder> for RecordElementDeclarationsSyntax {
@@ -11594,10 +11180,10 @@ impl RecordElementResolutionBuilder {
         self
     }
     pub fn build(self) -> RecordElementResolutionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.simple_name);
-        builder.push_node(self.resolution_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.simple_name)
+            .push_node(self.resolution_indication)
+            .finish()
     }
 }
 impl From<RecordElementResolutionBuilder> for RecordElementResolutionSyntax {
@@ -11619,9 +11205,9 @@ impl RecordResolutionElementResolutionBuilder {
         self
     }
     pub fn build(self) -> RecordResolutionElementResolutionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.record_resolution);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.record_resolution)
+            .finish()
     }
 }
 impl From<RecordResolutionElementResolutionBuilder> for RecordResolutionElementResolutionSyntax {
@@ -11664,11 +11250,11 @@ impl RecordTypeDefinitionBuilder {
         self
     }
     pub fn build(self) -> RecordTypeDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.record_type_definition_preamble);
-        builder.push_node(self.record_element_declarations);
-        builder.push_node(self.record_type_definition_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.record_type_definition_preamble)
+            .push_node(self.record_element_declarations)
+            .push_node(self.record_type_definition_epilogue)
+            .finish()
     }
 }
 impl From<RecordTypeDefinitionBuilder> for RecordTypeDefinitionSyntax {
@@ -11721,13 +11307,11 @@ impl RecordTypeDefinitionEpilogueBuilder {
         self
     }
     pub fn build(self) -> RecordTypeDefinitionEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        builder.push_token(self.record_token);
-        if let Some(t) = self.simple_name {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_token(self.record_token)
+            .push_opt_token(self.simple_name)
+            .finish()
     }
 }
 impl From<RecordTypeDefinitionEpilogueBuilder> for RecordTypeDefinitionEpilogueSyntax {
@@ -11758,9 +11342,7 @@ impl RecordTypeDefinitionPreambleBuilder {
         self
     }
     pub fn build(self) -> RecordTypeDefinitionPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.record_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.record_token).finish()
     }
 }
 impl From<RecordTypeDefinitionPreambleBuilder> for RecordTypeDefinitionPreambleSyntax {
@@ -11792,10 +11374,10 @@ impl RejectClauseBuilder {
         self
     }
     pub fn build(self) -> RejectClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.reject_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.reject_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<RejectClauseBuilder> for RejectClauseSyntax {
@@ -11823,12 +11405,10 @@ impl RelativePathnameBuilder {
         self
     }
     pub fn build(self) -> RelativePathnameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.up_levels {
-            builder.push_node(n);
-        }
-        builder.push_node(self.partial_pathname);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.up_levels)
+            .push_node(self.partial_pathname)
+            .finish()
     }
 }
 impl From<RelativePathnameBuilder> for RelativePathnameSyntax {
@@ -11860,10 +11440,10 @@ impl ReportClauseBuilder {
         self
     }
     pub fn build(self) -> ReportClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.report_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.report_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<ReportClauseBuilder> for ReportClauseSyntax {
@@ -11917,17 +11497,13 @@ impl ReportStatementBuilder {
         self
     }
     pub fn build(self) -> ReportStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.report_token);
-        builder.push_node(self.expression);
-        if let Some(n) = self.severity_clause {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.report_token)
+            .push_node(self.expression)
+            .push_opt_node(self.severity_clause)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ReportStatementBuilder> for ReportStatementSyntax {
@@ -11980,16 +11556,12 @@ impl ReturnStatementBuilder {
         self
     }
     pub fn build(self) -> ReturnStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.return_token);
-        if let Some(n) = self.expression {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.return_token)
+            .push_opt_node(self.expression)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<ReturnStatementBuilder> for ReturnStatementSyntax {
@@ -12021,10 +11593,10 @@ impl ReturnTypeBuilder {
         self
     }
     pub fn build(self) -> ReturnTypeSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.return_token);
-        builder.push_node(self.type_mark);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.return_token)
+            .push_node(self.type_mark)
+            .finish()
     }
 }
 impl From<ReturnTypeBuilder> for ReturnTypeSyntax {
@@ -12079,12 +11651,12 @@ impl SecondaryUnitDeclarationBuilder {
         self
     }
     pub fn build(self) -> SecondaryUnitDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.eq_token);
-        builder.push_node(self.physical_literal);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.identifier_token)
+            .push_token(self.eq_token)
+            .push_node(self.physical_literal)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SecondaryUnitDeclarationBuilder> for SecondaryUnitDeclarationSyntax {
@@ -12106,9 +11678,7 @@ impl SecondaryUnitPackageBodyBuilder {
         self
     }
     pub fn build(self) -> SecondaryUnitPackageBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.package_body);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.package_body).finish()
     }
 }
 impl From<SecondaryUnitPackageBodyBuilder> for SecondaryUnitPackageBodySyntax {
@@ -12163,14 +11733,12 @@ impl SelectedAssignmentPreambleBuilder {
         self
     }
     pub fn build(self) -> SelectedAssignmentPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.with_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.select_token);
-        if let Some(t) = self.que_token {
-            builder.push_token(t);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.with_token)
+            .push_node(self.expression)
+            .push_token(self.select_token)
+            .push_opt_token(self.que_token)
+            .finish()
     }
 }
 impl From<SelectedAssignmentPreambleBuilder> for SelectedAssignmentPreambleSyntax {
@@ -12208,11 +11776,11 @@ impl SelectedExpressionItemBuilder {
         self
     }
     pub fn build(self) -> SelectedExpressionItemSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.expression);
-        builder.push_token(self.when_token);
-        builder.push_node(self.choices);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.expression)
+            .push_token(self.when_token)
+            .push_node(self.choices)
+            .finish()
     }
 }
 impl From<SelectedExpressionItemBuilder> for SelectedExpressionItemSyntax {
@@ -12295,20 +11863,16 @@ impl SelectedForceAssignmentBuilder {
         self
     }
     pub fn build(self) -> SelectedForceAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.selected_assignment_preamble);
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        builder.push_token(self.force_token);
-        if let Some(n) = self.force_mode {
-            builder.push_token(n.0);
-        }
-        builder.push_node(self.selected_expressions);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.selected_assignment_preamble)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_token(self.force_token)
+            .push_opt_token(self.force_mode.map(|t| t.0))
+            .push_node(self.selected_expressions)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SelectedForceAssignmentBuilder> for SelectedForceAssignmentSyntax {
@@ -12340,10 +11904,10 @@ impl SelectedNameBuilder {
         self
     }
     pub fn build(self) -> SelectedNameSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.dot_token);
-        builder.push_token(self.suffix.0);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.dot_token)
+            .push_token(self.suffix.0)
+            .finish()
     }
 }
 impl From<SelectedNameBuilder> for SelectedNameSyntax {
@@ -12410,16 +11974,14 @@ impl SelectedVariableAssignmentBuilder {
         self
     }
     pub fn build(self) -> SelectedVariableAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.selected_assignment_preamble);
-        builder.push_node(self.target);
-        builder.push_token(self.colon_eq_token);
-        builder.push_node(self.selected_expressions);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.selected_assignment_preamble)
+            .push_node(self.target)
+            .push_token(self.colon_eq_token)
+            .push_node(self.selected_expressions)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SelectedVariableAssignmentBuilder> for SelectedVariableAssignmentSyntax {
@@ -12492,19 +12054,15 @@ impl SelectedWaveformAssignmentBuilder {
         self
     }
     pub fn build(self) -> SelectedWaveformAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.selected_assignment_preamble);
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        if let Some(n) = self.delay_mechanism {
-            builder.push_node(n);
-        }
-        builder.push_node(self.selected_waveforms);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.selected_assignment_preamble)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_opt_node(self.delay_mechanism)
+            .push_node(self.selected_waveforms)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SelectedWaveformAssignmentBuilder> for SelectedWaveformAssignmentSyntax {
@@ -12542,11 +12100,11 @@ impl SelectedWaveformItemBuilder {
         self
     }
     pub fn build(self) -> SelectedWaveformItemSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.waveform);
-        builder.push_token(self.when_token);
-        builder.push_node(self.choices);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.waveform)
+            .push_token(self.when_token)
+            .push_node(self.choices)
+            .finish()
     }
 }
 impl From<SelectedWaveformItemBuilder> for SelectedWaveformItemSyntax {
@@ -12578,10 +12136,10 @@ impl SensitivityClauseBuilder {
         self
     }
     pub fn build(self) -> SensitivityClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.on_token);
-        builder.push_node(self.sensitivity_list);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.on_token)
+            .push_node(self.sensitivity_list)
+            .finish()
     }
 }
 impl From<SensitivityClauseBuilder> for SensitivityClauseSyntax {
@@ -12608,11 +12166,9 @@ impl SequenceOfStatementsBuilder {
         self
     }
     pub fn build(self) -> SequenceOfStatementsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.sequential_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.sequential_statements)
+            .finish()
     }
 }
 impl From<SequenceOfStatementsBuilder> for SequenceOfStatementsSyntax {
@@ -12644,10 +12200,10 @@ impl SeverityClauseBuilder {
         self
     }
     pub fn build(self) -> SeverityClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.severity_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.severity_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<SeverityClauseBuilder> for SeverityClauseSyntax {
@@ -12720,19 +12276,15 @@ impl SignalDeclarationBuilder {
         self
     }
     pub fn build(self) -> SignalDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.signal_token);
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        if let Some(n) = self.signal_kind {
-            builder.push_token(n.0);
-        }
-        if let Some(n) = self.initial_value {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.signal_token)
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_opt_token(self.signal_kind.map(|t| t.0))
+            .push_opt_node(self.initial_value)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SignalDeclarationBuilder> for SignalDeclarationSyntax {
@@ -12763,9 +12315,7 @@ impl SignalListAllBuilder {
         self
     }
     pub fn build(self) -> SignalListAllSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.all_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.all_token).finish()
     }
 }
 impl From<SignalListAllBuilder> for SignalListAllSyntax {
@@ -12796,9 +12346,7 @@ impl SignalListOthersBuilder {
         self
     }
     pub fn build(self) -> SignalListOthersSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.others_token);
-        builder.finish()
+        RawNodeBuilder::new().push_token(self.others_token).finish()
     }
 }
 impl From<SignalListOthersBuilder> for SignalListOthersSyntax {
@@ -12851,16 +12399,12 @@ impl SignatureBuilder {
         self
     }
     pub fn build(self) -> SignatureSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.left_square_token);
-        if let Some(n) = self.type_mark_list {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.return_type {
-            builder.push_node(n);
-        }
-        builder.push_token(self.right_square_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.left_square_token)
+            .push_opt_node(self.type_mark_list)
+            .push_opt_node(self.return_type)
+            .push_token(self.right_square_token)
+            .finish()
     }
 }
 impl From<SignatureBuilder> for SignatureSyntax {
@@ -12912,16 +12456,12 @@ impl SimpleConfigurationSpecificationBuilder {
         self
     }
     pub fn build(self) -> SimpleConfigurationSpecificationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.component_configuration_preamble);
-        if let Some(n) = self.binding_indication {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        if let Some(n) = self.component_configuration_epilogue {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.component_configuration_preamble)
+            .push_opt_node(self.binding_indication)
+            .push_token(self.semi_colon_token)
+            .push_opt_node(self.component_configuration_epilogue)
+            .finish()
     }
 }
 impl From<SimpleConfigurationSpecificationBuilder> for SimpleConfigurationSpecificationSyntax {
@@ -12991,19 +12531,15 @@ impl SimpleForceAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleForceAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        builder.push_token(self.force_token);
-        if let Some(n) = self.force_mode {
-            builder.push_token(n.0);
-        }
-        builder.push_node(self.expression);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_token(self.force_token)
+            .push_opt_token(self.force_mode.map(|t| t.0))
+            .push_node(self.expression)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SimpleForceAssignmentBuilder> for SimpleForceAssignmentSyntax {
@@ -13067,18 +12603,14 @@ impl SimpleReleaseAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleReleaseAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        builder.push_token(self.release_token);
-        if let Some(n) = self.force_mode {
-            builder.push_token(n.0);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_token(self.release_token)
+            .push_opt_token(self.force_mode.map(|t| t.0))
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SimpleReleaseAssignmentBuilder> for SimpleReleaseAssignmentSyntax {
@@ -13132,15 +12664,13 @@ impl SimpleVariableAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleVariableAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.colon_eq_token);
-        builder.push_node(self.expression);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.colon_eq_token)
+            .push_node(self.expression)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SimpleVariableAssignmentBuilder> for SimpleVariableAssignmentSyntax {
@@ -13200,18 +12730,14 @@ impl SimpleWaveformAssignmentBuilder {
         self
     }
     pub fn build(self) -> SimpleWaveformAssignmentSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_node(self.target);
-        builder.push_token(self.lte_token);
-        if let Some(n) = self.delay_mechanism {
-            builder.push_node(n);
-        }
-        builder.push_node(self.waveform);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_node(self.target)
+            .push_token(self.lte_token)
+            .push_opt_node(self.delay_mechanism)
+            .push_node(self.waveform)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SimpleWaveformAssignmentBuilder> for SimpleWaveformAssignmentSyntax {
@@ -13247,10 +12773,10 @@ impl StmtLabelBuilder {
         self
     }
     pub fn build(self) -> StmtLabelSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.label);
-        builder.push_token(self.colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.label)
+            .push_token(self.colon_token)
+            .finish()
     }
 }
 impl From<StmtLabelBuilder> for StmtLabelSyntax {
@@ -13312,17 +12838,13 @@ impl SubprogramBodyBuilder {
         self
     }
     pub fn build(self) -> SubprogramBodySyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.subprogram_body_preamble);
-        if let Some(n) = self.subprogram_declarative_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.declaration_statement_separator);
-        if let Some(n) = self.subprogram_statement_part {
-            builder.push_node(n);
-        }
-        builder.push_node(self.subprogram_body_epilogue);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.subprogram_body_preamble)
+            .push_opt_node(self.subprogram_declarative_part)
+            .push_node(self.declaration_statement_separator)
+            .push_opt_node(self.subprogram_statement_part)
+            .push_node(self.subprogram_body_epilogue)
+            .finish()
     }
 }
 impl From<SubprogramBodyBuilder> for SubprogramBodySyntax {
@@ -13375,16 +12897,12 @@ impl SubprogramBodyEpilogueBuilder {
         self
     }
     pub fn build(self) -> SubprogramBodyEpilogueSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.end_token);
-        if let Some(n) = self.subprogram_kind {
-            builder.push_token(n.0);
-        }
-        if let Some(n) = self.designator {
-            builder.push_token(n.0);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.end_token)
+            .push_opt_token(self.subprogram_kind.map(|t| t.0))
+            .push_opt_token(self.designator.map(|t| t.0))
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SubprogramBodyEpilogueBuilder> for SubprogramBodyEpilogueSyntax {
@@ -13419,10 +12937,10 @@ impl SubprogramBodyPreambleBuilder {
         self
     }
     pub fn build(self) -> SubprogramBodyPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.subprogram_specification);
-        builder.push_token(self.is_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.subprogram_specification)
+            .push_token(self.is_token)
+            .finish()
     }
 }
 impl From<SubprogramBodyPreambleBuilder> for SubprogramBodyPreambleSyntax {
@@ -13457,10 +12975,10 @@ impl SubprogramDeclarationBuilder {
         self
     }
     pub fn build(self) -> SubprogramDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.subprogram_specification);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.subprogram_specification)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SubprogramDeclarationBuilder> for SubprogramDeclarationSyntax {
@@ -13490,11 +13008,9 @@ impl SubprogramDeclarativePartBuilder {
         self
     }
     pub fn build(self) -> SubprogramDeclarativePartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.subprogram_declarative_items {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.subprogram_declarative_items)
+            .finish()
     }
 }
 impl From<SubprogramDeclarativePartBuilder> for SubprogramDeclarativePartSyntax {
@@ -13529,10 +13045,10 @@ impl SubprogramDefaultBuilder {
         self
     }
     pub fn build(self) -> SubprogramDefaultSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.is_token);
-        builder.push_node(self.interface_subprogram_default);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.is_token)
+            .push_node(self.interface_subprogram_default)
+            .finish()
     }
 }
 impl From<SubprogramDefaultBuilder> for SubprogramDefaultSyntax {
@@ -13565,12 +13081,10 @@ impl SubprogramHeaderBuilder {
         self
     }
     pub fn build(self) -> SubprogramHeaderSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.subprogram_header_generic_clause);
-        if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.subprogram_header_generic_clause)
+            .push_opt_node(self.generic_map_aspect)
+            .finish()
     }
 }
 impl From<SubprogramHeaderBuilder> for SubprogramHeaderSyntax {
@@ -13622,12 +13136,12 @@ impl SubprogramHeaderGenericClauseBuilder {
         self
     }
     pub fn build(self) -> SubprogramHeaderGenericClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.generic_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.generic_list);
-        builder.push_token(self.right_par_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.generic_token)
+            .push_token(self.left_par_token)
+            .push_node(self.generic_list)
+            .push_token(self.right_par_token)
+            .finish()
     }
 }
 impl From<SubprogramHeaderGenericClauseBuilder> for SubprogramHeaderGenericClauseSyntax {
@@ -13673,13 +13187,11 @@ impl SubprogramInstantiationDeclarationBuilder {
         self
     }
     pub fn build(self) -> SubprogramInstantiationDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.subprogram_instantiation_declaration_preamble);
-        if let Some(n) = self.generic_map_aspect {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.subprogram_instantiation_declaration_preamble)
+            .push_opt_node(self.generic_map_aspect)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SubprogramInstantiationDeclarationBuilder> for SubprogramInstantiationDeclarationSyntax {
@@ -13747,16 +13259,14 @@ impl SubprogramInstantiationDeclarationPreambleBuilder {
         self
     }
     pub fn build(self) -> SubprogramInstantiationDeclarationPreambleSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.subprogram_kind.0);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.push_token(self.new_token);
-        builder.push_node(self.name);
-        if let Some(n) = self.signature {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.subprogram_kind.0)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .push_token(self.new_token)
+            .push_node(self.name)
+            .push_opt_node(self.signature)
+            .finish()
     }
 }
 impl From<SubprogramInstantiationDeclarationPreambleBuilder>
@@ -13785,11 +13295,9 @@ impl SubprogramStatementPartBuilder {
         self
     }
     pub fn build(self) -> SubprogramStatementPartSyntax {
-        let mut builder = RawNodeBuilder::new();
-        for n in self.sequential_statements {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_nodes(self.sequential_statements)
+            .finish()
     }
 }
 impl From<SubprogramStatementPartBuilder> for SubprogramStatementPartSyntax {
@@ -13854,13 +13362,13 @@ impl SubtypeDeclarationBuilder {
         self
     }
     pub fn build(self) -> SubtypeDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.subtype_token);
-        builder.push_token(self.identifier_token);
-        builder.push_token(self.is_token);
-        builder.push_node(self.subtype_indication);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.subtype_token)
+            .push_token(self.identifier_token)
+            .push_token(self.is_token)
+            .push_node(self.subtype_indication)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<SubtypeDeclarationBuilder> for SubtypeDeclarationSyntax {
@@ -13888,12 +13396,10 @@ impl SubtypeIndicationBuilder {
         self
     }
     pub fn build(self) -> SubtypeIndicationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.resolution_indication {
-            builder.push_node(n);
-        }
-        builder.push_node(self.type_mark);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.resolution_indication)
+            .push_node(self.type_mark)
+            .finish()
     }
 }
 impl From<SubtypeIndicationBuilder> for SubtypeIndicationSyntax {
@@ -13925,10 +13431,10 @@ impl TimeoutClauseBuilder {
         self
     }
     pub fn build(self) -> TimeoutClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.for_token);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.for_token)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<TimeoutClauseBuilder> for TimeoutClauseSyntax {
@@ -13959,9 +13465,9 @@ impl TransportDelayMechanismBuilder {
         self
     }
     pub fn build(self) -> TransportDelayMechanismSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.transport_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.transport_token)
+            .finish()
     }
 }
 impl From<TransportDelayMechanismBuilder> for TransportDelayMechanismSyntax {
@@ -13992,9 +13498,9 @@ impl UnaffectedWaveformBuilder {
         self
     }
     pub fn build(self) -> UnaffectedWaveformSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.unaffected_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.unaffected_token)
+            .finish()
     }
 }
 impl From<UnaffectedWaveformBuilder> for UnaffectedWaveformSyntax {
@@ -14025,10 +13531,10 @@ impl UnaryExpressionBuilder {
         self
     }
     pub fn build(self) -> UnaryExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.unary_operator.0);
-        builder.push_node(self.expression);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.unary_operator.0)
+            .push_node(self.expression)
+            .finish()
     }
 }
 impl From<UnaryExpressionBuilder> for UnaryExpressionSyntax {
@@ -14102,14 +13608,14 @@ impl UnboundedArrayDefinitionBuilder {
         self
     }
     pub fn build(self) -> UnboundedArrayDefinitionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.array_token);
-        builder.push_token(self.left_par_token);
-        builder.push_node(self.index_subtype_definition_list);
-        builder.push_token(self.right_par_token);
-        builder.push_token(self.of_token);
-        builder.push_node(self.subtype_indication);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.array_token)
+            .push_token(self.left_par_token)
+            .push_node(self.index_subtype_definition_list)
+            .push_token(self.right_par_token)
+            .push_token(self.of_token)
+            .push_node(self.subtype_indication)
+            .finish()
     }
 }
 impl From<UnboundedArrayDefinitionBuilder> for UnboundedArrayDefinitionSyntax {
@@ -14153,13 +13659,11 @@ impl UnitDeclarationsBuilder {
         self
     }
     pub fn build(self) -> UnitDeclarationsSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.units_token);
-        builder.push_node(self.primary_unit_declaration);
-        for n in self.secondary_unit_declarations {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.units_token)
+            .push_node(self.primary_unit_declaration)
+            .push_nodes(self.secondary_unit_declarations)
+            .finish()
     }
 }
 impl From<UnitDeclarationsBuilder> for UnitDeclarationsSyntax {
@@ -14200,10 +13704,10 @@ impl UpLevelBuilder {
         self
     }
     pub fn build(self) -> UpLevelSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.circ_token);
-        builder.push_token(self.dot_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.circ_token)
+            .push_token(self.dot_token)
+            .finish()
     }
 }
 impl From<UpLevelBuilder> for UpLevelSyntax {
@@ -14245,11 +13749,11 @@ impl UseClauseBuilder {
         self
     }
     pub fn build(self) -> UseClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.use_token);
-        builder.push_node(self.name_list);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.use_token)
+            .push_node(self.name_list)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<UseClauseBuilder> for UseClauseSyntax {
@@ -14271,9 +13775,7 @@ impl UseClauseContextItemBuilder {
         self
     }
     pub fn build(self) -> UseClauseContextItemSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.use_clause);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.use_clause).finish()
     }
 }
 impl From<UseClauseContextItemBuilder> for UseClauseContextItemSyntax {
@@ -14295,9 +13797,7 @@ impl UseClauseDeclarationBuilder {
         self
     }
     pub fn build(self) -> UseClauseDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.use_clause);
-        builder.finish()
+        RawNodeBuilder::new().push_node(self.use_clause).finish()
     }
 }
 impl From<UseClauseDeclarationBuilder> for UseClauseDeclarationSyntax {
@@ -14377,19 +13877,15 @@ impl VariableDeclarationBuilder {
         self
     }
     pub fn build(self) -> VariableDeclarationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(t) = self.shared_token {
-            builder.push_token(t);
-        }
-        builder.push_token(self.variable_token);
-        builder.push_node(self.identifier_list);
-        builder.push_token(self.colon_token);
-        builder.push_node(self.subtype_indication);
-        if let Some(n) = self.initial_value {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_token(self.shared_token)
+            .push_token(self.variable_token)
+            .push_node(self.identifier_list)
+            .push_token(self.colon_token)
+            .push_node(self.subtype_indication)
+            .push_opt_node(self.initial_value)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<VariableDeclarationBuilder> for VariableDeclarationSyntax {
@@ -14426,10 +13922,10 @@ impl VerificationUnitBindingBuilder {
         self
     }
     pub fn build(self) -> VerificationUnitBindingSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.verification_unit_binding_indication);
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.verification_unit_binding_indication)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<VerificationUnitBindingBuilder> for VerificationUnitBindingSyntax {
@@ -14471,11 +13967,11 @@ impl VerificationUnitBindingIndicationBuilder {
         self
     }
     pub fn build(self) -> VerificationUnitBindingIndicationSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.use_token);
-        builder.push_token(self.vunit_token);
-        builder.push_node(self.verification_unit_list);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.use_token)
+            .push_token(self.vunit_token)
+            .push_node(self.verification_unit_list)
+            .finish()
     }
 }
 impl From<VerificationUnitBindingIndicationBuilder> for VerificationUnitBindingIndicationSyntax {
@@ -14540,22 +14036,14 @@ impl WaitStatementBuilder {
         self
     }
     pub fn build(self) -> WaitStatementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        if let Some(n) = self.stmt_label {
-            builder.push_node(n);
-        }
-        builder.push_token(self.wait_token);
-        if let Some(n) = self.sensitivity_clause {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.condition_clause {
-            builder.push_node(n);
-        }
-        if let Some(n) = self.timeout_clause {
-            builder.push_node(n);
-        }
-        builder.push_token(self.semi_colon_token);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_opt_node(self.stmt_label)
+            .push_token(self.wait_token)
+            .push_opt_node(self.sensitivity_clause)
+            .push_opt_node(self.condition_clause)
+            .push_opt_node(self.timeout_clause)
+            .push_token(self.semi_colon_token)
+            .finish()
     }
 }
 impl From<WaitStatementBuilder> for WaitStatementSyntax {
@@ -14583,12 +14071,10 @@ impl WaveformElementBuilder {
         self
     }
     pub fn build(self) -> WaveformElementSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.expression);
-        if let Some(n) = self.after_clause {
-            builder.push_node(n);
-        }
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.expression)
+            .push_opt_node(self.after_clause)
+            .finish()
     }
 }
 impl From<WaveformElementBuilder> for WaveformElementSyntax {
@@ -14620,10 +14106,10 @@ impl WhenClauseBuilder {
         self
     }
     pub fn build(self) -> WhenClauseSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.when_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.when_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<WhenClauseBuilder> for WhenClauseSyntax {
@@ -14664,11 +14150,11 @@ impl WhenExpressionBuilder {
         self
     }
     pub fn build(self) -> WhenExpressionSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.expression);
-        builder.push_token(self.when_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.expression)
+            .push_token(self.when_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<WhenExpressionBuilder> for WhenExpressionSyntax {
@@ -14709,11 +14195,11 @@ impl WhenWaveformBuilder {
         self
     }
     pub fn build(self) -> WhenWaveformSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_node(self.waveform);
-        builder.push_token(self.when_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_node(self.waveform)
+            .push_token(self.when_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<WhenWaveformBuilder> for WhenWaveformSyntax {
@@ -14745,10 +14231,10 @@ impl WhileSchemeBuilder {
         self
     }
     pub fn build(self) -> WhileSchemeSyntax {
-        let mut builder = RawNodeBuilder::new();
-        builder.push_token(self.while_token);
-        builder.push_node(self.condition);
-        builder.finish()
+        RawNodeBuilder::new()
+            .push_token(self.while_token)
+            .push_node(self.condition)
+            .finish()
     }
 }
 impl From<WhileSchemeBuilder> for WhileSchemeSyntax {
@@ -14783,10 +14269,10 @@ impl AssociationListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -14820,10 +14306,10 @@ impl ChoicesBuilder {
             if !first {
                 let mut separator = TokenKind::Bar.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -14860,10 +14346,10 @@ impl ElementAssociationListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -14900,10 +14386,10 @@ impl EntityClassEntryListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -14940,10 +14426,10 @@ impl EntityDesignatorListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -14980,10 +14466,10 @@ impl EnumerationListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_token(element.0);
+            builder = builder.push_token(element.0)
         }
         builder.finish()
     }
@@ -15020,10 +14506,10 @@ impl ExpressionListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15060,10 +14546,10 @@ impl IdentifierListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_token(element.into());
+            builder = builder.push_token(element.into())
         }
         builder.finish()
     }
@@ -15100,10 +14586,10 @@ impl IndexSubtypeDefinitionListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15140,10 +14626,10 @@ impl InstantiationListListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_token(element.into());
+            builder = builder.push_token(element.into())
         }
         builder.finish()
     }
@@ -15180,10 +14666,10 @@ impl InterfaceListBuilder {
             if !first {
                 let mut separator = TokenKind::SemiColon.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15220,10 +14706,10 @@ impl LogicalNameListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_token(element.into());
+            builder = builder.push_token(element.into())
         }
         builder.finish()
     }
@@ -15257,10 +14743,10 @@ impl NameListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15297,10 +14783,10 @@ impl PackagePathBuilder {
             if !first {
                 let mut separator = TokenKind::Dot.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_token(element.into());
+            builder = builder.push_token(element.into())
         }
         builder.finish()
     }
@@ -15337,10 +14823,10 @@ impl PartialPathnameBuilder {
             if !first {
                 let mut separator = TokenKind::Dot.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15377,10 +14863,10 @@ impl RecordResolutionBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15417,10 +14903,10 @@ impl SelectedExpressionsBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15457,10 +14943,10 @@ impl SelectedWaveformsBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15494,10 +14980,10 @@ impl SensitivityListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15531,10 +15017,10 @@ impl SignalListListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15568,10 +15054,10 @@ impl TypeMarkListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15605,10 +15091,10 @@ impl VerificationUnitListBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }
@@ -15645,10 +15131,10 @@ impl WaveformElementsBuilder {
             if !first {
                 let mut separator = TokenKind::Comma.canonical_token().unwrap();
                 separator.set_leading_trivia(Trivia::default());
-                builder.push_token(separator);
+                builder = builder.push_token(separator);
             }
             first = false;
-            builder.push_node(element);
+            builder = builder.push_node(element)
         }
         builder.finish()
     }

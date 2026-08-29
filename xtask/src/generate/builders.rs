@@ -336,16 +336,12 @@ fn describe_item(item: &Field, model: &Model, defaultable: &HashSet<NodeKind>) -
 
             let build_stmt = match item.cardinality {
                 Cardinality::Repeated(_) => quote! {
-                    for t in self.#field {
-                        builder.push_token(t);
-                    }
+                    .push_tokens(self.#field)
                 },
                 Cardinality::Optional { .. } => quote! {
-                    if let Some(t) = self.#field {
-                        builder.push_token(t);
-                    }
+                    .push_opt_token(self.#field)
                 },
-                Cardinality::Required { .. } => quote! { builder.push_token(self.#field); },
+                Cardinality::Required { .. } => quote! { .push_token(self.#field) },
             };
 
             ItemDescriptor {
@@ -427,31 +423,40 @@ fn describe_item(item: &Field, model: &Model, defaultable: &HashSet<NodeKind>) -
                 }
             };
 
-            // A token-choice child is a thin `XyzToken` wrapper around a raw token, so it is
-            // pushed as a token; every other child contributes its own green node.
-            let (push_bound, push_owned) = if model.is_token_choice(node_kind) {
-                (
-                    quote! { builder.push_token(n.0); },
-                    quote! { builder.push_token(self.#field.0); },
-                )
-            } else {
-                (
-                    quote! { builder.push_node(n); },
-                    quote! { builder.push_node(self.#field); },
-                )
-            };
             let build_stmt = match item.cardinality {
-                Cardinality::Repeated(_) => quote! {
-                    for n in self.#field {
-                        #push_bound
+                Cardinality::Repeated(_) => {
+                    if model.is_token_choice(node_kind) {
+                        quote! {
+                            .push_tokens(self.#field.into_iter().map(|t| t.0))
+                        }
+                    } else {
+                        quote! {
+                            .push_nodes(self.#field)
+                        }
                     }
-                },
-                Cardinality::Optional { .. } => quote! {
-                    if let Some(n) = self.#field {
-                        #push_bound
+                }
+                Cardinality::Optional { .. } => {
+                    if model.is_token_choice(node_kind) {
+                        quote! {
+                            .push_opt_token(self.#field.map(|t| t.0))
+                        }
+                    } else {
+                        quote! {
+                            .push_opt_node(self.#field)
+                        }
                     }
-                },
-                Cardinality::Required { .. } => push_owned,
+                }
+                Cardinality::Required { .. } => {
+                    if model.is_token_choice(node_kind) {
+                        quote! {
+                           .push_token(self.#field.0)
+                        }
+                    } else {
+                        quote! {
+                            .push_node(self.#field)
+                        }
+                    }
+                }
             };
 
             ItemDescriptor {
@@ -518,9 +523,9 @@ fn generate_builder(
             #(#setters)*
 
             pub fn build(self) -> #syntax {
-                let mut builder = RawNodeBuilder::new();
+                RawNodeBuilder::new()
                 #(#build_stmts)*
-                builder.finish()
+                .finish()
             }
         }
 
@@ -547,11 +552,11 @@ fn element_shape(element: &Field, model: &Model) -> ElementShape {
         NodeOrTokenKind::Token(kind) => match domain_type(kind) {
             Some(domain) => ElementShape {
                 ty: domain,
-                push: quote! { builder.push_token(element.into()); },
+                push: quote! { .push_token(element.into()) },
             },
             None => ElementShape {
                 ty: quote! { Token },
-                push: quote! { builder.push_token(element); },
+                push: quote! { .push_token(element) },
             },
         },
         // A token-choice child is a thin wrapper around a raw token.
@@ -559,14 +564,14 @@ fn element_shape(element: &Field, model: &Model) -> ElementShape {
             let ty = token_type_ident(kind);
             ElementShape {
                 ty: quote! { #ty },
-                push: quote! { builder.push_token(element.0); },
+                push: quote! { .push_token(element.0) },
             }
         }
         NodeOrTokenKind::Node(kind) => {
             let ty = syntax_type_ident(kind);
             ElementShape {
                 ty: quote! { #ty },
-                push: quote! { builder.push_node(element); },
+                push: quote! { .push_node(element) },
             }
         }
     }
@@ -625,10 +630,10 @@ fn generate_list_builder(list: &ListNode, model: &Model) -> TokenStream {
                         // next element; the separator itself carries none.
                         let mut separator = #separator_expr;
                         separator.set_leading_trivia(Trivia::default());
-                        builder.push_token(separator);
+                        builder = builder.push_token(separator);
                     }
                     first = false;
-                    #push
+                    builder = builder #push
                 }
                 builder.finish()
             }
