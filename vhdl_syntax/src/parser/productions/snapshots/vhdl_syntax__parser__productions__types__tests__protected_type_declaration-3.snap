@@ -9,7 +9,7 @@ FullTypeDeclaration
   ProtectedTypeDeclaration
     ProtectedPreamble
       Keyword(Protected)
-    Declarations
+    ProtectedTypeDeclarativePart
       SubprogramDeclaration
         ProcedureSpecification
           Keyword(Procedure)

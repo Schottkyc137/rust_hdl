@@ -7,10 +7,10 @@ EntityDeclaration
     Keyword(Entity)
     Identifier 'myent'
     Keyword(Is)
-  EntityStatementPart
+  EntityStatements
     DeclarationStatementSeparator
       Keyword(Begin)
-    ConcurrentStatements
+    EntityStatementPart
       ConcurrentProcedureCallOrComponentInstantiationStatement
         Name
           NameDesignatorPrefix

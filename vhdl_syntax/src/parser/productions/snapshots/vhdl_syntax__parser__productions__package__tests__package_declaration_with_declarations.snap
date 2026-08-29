@@ -2,12 +2,12 @@
 source: vhdl_syntax/src/parser/productions/package.rs
 expression: "to_test_text(Parser::package,\n\"\\\npackage pkg_name is\n  type foo;\n  constant bar : natural := 0;\nend package;\")"
 ---
-Package
+PackageDeclaration
   PackagePreamble
     Keyword(Package)
     Identifier 'pkg_name'
     Keyword(Is)
-  Declarations
+  PackageDeclarativePart
     IncompleteTypeDeclaration
       Keyword(Type)
       Identifier 'foo'

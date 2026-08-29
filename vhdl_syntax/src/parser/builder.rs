@@ -94,4 +94,19 @@ impl NodeBuilder {
     pub fn current_token_index(&self) -> usize {
         self.token_index
     }
+
+    /// The node that was just parsed
+    pub fn last_node(&self) -> Option<NodeKind> {
+        let first_child = self
+            .parents
+            .last()
+            .map_or(0, |&(_, first_child)| first_child);
+        if self.children.len() <= first_child {
+            return None;
+        }
+        match self.children.last()? {
+            GreenChild::Token(_) => None,
+            GreenChild::Node(node) => Some(node.kind()),
+        }
+    }
 }

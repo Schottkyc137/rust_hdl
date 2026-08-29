@@ -9,7 +9,7 @@ DesignFile
         Keyword(Entity)
         Identifier 'my_ent'
         Keyword(Is)
-      EntityStatementPart
+      EntityStatements
         DeclarationStatementSeparator
           Keyword(Begin)
       EntityDeclarationEpilogue
@@ -22,7 +22,7 @@ DesignFile
         Keyword(Entity)
         Identifier 'my_ent2'
         Keyword(Is)
-      EntityStatementPart
+      EntityStatements
         DeclarationStatementSeparator
           Keyword(Begin)
       EntityDeclarationEpilogue

@@ -10,7 +10,7 @@ FullTypeDeclaration
     ProtectedTypeBodyPreamble
       Keyword(Protected)
       Keyword(Body)
-    Declarations
+    ProtectedTypeBodyDeclarativePart
       VariableDeclaration
         Keyword(Variable)
         IdentifierList

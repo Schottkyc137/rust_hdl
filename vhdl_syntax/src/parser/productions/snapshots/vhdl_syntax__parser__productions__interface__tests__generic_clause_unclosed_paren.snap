@@ -7,9 +7,8 @@ generic (width : integer
 
 == tree ==
 GenericClause
-  GenericClausePreamble
-    Keyword(Generic)
-    LeftPar
+  Keyword(Generic)
+  LeftPar
   InterfaceList
     InterfaceObjectDeclaration
       IdentifierList
@@ -21,5 +20,5 @@ GenericClause
             Identifier 'integer'
 
 == diagnostics ==
-1:25 Expected([RightPar])
-1:25 Expected([SemiColon])
+1:25 Expected(Token([RightPar]))
+1:25 Expected(Token([SemiColon]))

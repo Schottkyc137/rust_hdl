@@ -6,7 +6,7 @@
 
 use crate::parser::builder::Checkpoint;
 use crate::parser::Parser;
-use crate::syntax::NodeKind;
+use crate::syntax::NodeKind::{self, ConfigurationDeclarativePart};
 use crate::tokens::TokenKind::*;
 use crate::tokens::{Keyword as Kw, TokenKind};
 
@@ -14,9 +14,7 @@ impl Parser {
     pub fn configuration_declaration(&mut self) {
         self.start_node(NodeKind::ConfigurationDeclaration);
         self.configuration_declaration_preamble();
-        self.start_node(NodeKind::Declarations);
         self.configuration_declarative_part();
-        self.end_node();
         if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
             self.start_node(NodeKind::VerificationUnitBinding);
             self.verification_unit_binding_indication();
@@ -48,6 +46,7 @@ impl Parser {
     }
 
     pub fn configuration_declarative_part(&mut self) {
+        self.start_node(ConfigurationDeclarativePart);
         loop {
             if self.next_is(Keyword(Kw::Use)) && !self.next_nth_is(Keyword(Kw::Vunit), 1) {
                 self.use_clause_declaration();
@@ -59,6 +58,7 @@ impl Parser {
                 break;
             }
         }
+        self.end_node();
     }
 
     pub fn configuration_item(&mut self) {

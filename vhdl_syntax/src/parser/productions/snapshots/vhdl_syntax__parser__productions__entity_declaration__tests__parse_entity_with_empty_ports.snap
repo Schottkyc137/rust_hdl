@@ -17,13 +17,11 @@ EntityDeclaration
     Keyword(Is)
   EntityHeader
     PortClause
-      PortClausePreamble
-        Keyword(Port)
-        LeftPar
-      PortClauseEpilogue
-        RightPar
-        SemiColon
-  EntityStatementPart
+      Keyword(Port)
+      LeftPar
+      RightPar
+      SemiColon
+  EntityStatements
     DeclarationStatementSeparator
       Keyword(Begin)
   EntityDeclarationEpilogue
@@ -32,4 +30,4 @@ EntityDeclaration
     SemiColon
 
 == diagnostics ==
-2:10 Expected([Keyword(Signal), Keyword(Constant), Keyword(Variable), Identifier, Keyword(File), Keyword(Type), Keyword(Function), Keyword(Procedure), Keyword(Impure), Keyword(Pure), Keyword(Package)])
+2:10 Expected(Token([Keyword(Signal), Keyword(Constant), Keyword(Variable), Identifier, Keyword(File), Keyword(Type), Keyword(Function), Keyword(Procedure), Keyword(Impure), Keyword(Pure), Keyword(Package)]))

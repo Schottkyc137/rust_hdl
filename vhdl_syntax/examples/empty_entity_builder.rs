@@ -10,7 +10,7 @@
 use vhdl_syntax::{
     fmt::write::FormatToExt,
     syntax::{
-        builders::*, AstNode, LibraryUnitSyntax, NameDesignatorToken, NamePrefixSyntax,
+        builders::*, AstNode, LibraryUnitSyntax, NameDesignatorToken, PrefixSyntax,
         PrimaryUnitSyntax, SecondaryUnitSyntax,
     },
 };
@@ -31,7 +31,7 @@ fn main() {
     // In order to repeat the second identifier, we overwrite the default-generated `EntityDeclarationEpilogue`
     // and provide the name. The new epilogue is equally generated through a builder.
     builder = builder.with_entity_declaration_epilogue(
-        EntityDeclarationEpilogueBuilder::new().with_identifier_token(b"foo"),
+        EntityDeclarationEpilogueBuilder::new().with_simple_name(b"foo"),
     );
     // transform the builder into syntax by calling `build()` on it
     let entity_declaration_node = builder.build();
@@ -39,7 +39,7 @@ fn main() {
     // Names are highly complicated in VHDL and so is building them.
     // The ergonomics of this may change in the future, but currently this is the only way to build names.
     // `NameDesignatorToken::identifier` creates a token-choice wrapper from a plain identifier.
-    let entity_name = NameBuilder::new(NamePrefixSyntax::NameDesignatorPrefix(
+    let entity_name = NameBuilder::new(PrefixSyntax::NameDesignatorPrefix(
         NameDesignatorPrefixBuilder::new(NameDesignatorToken::identifier(b"foo")).build(),
     ));
 
@@ -49,14 +49,13 @@ fn main() {
             .build();
 
     // build the VHDL file with entity and architecture
-    let file = DesignFileBuilder::new()
-        .add_design_units(DesignUnitBuilder::new(LibraryUnitSyntax::PrimaryUnit(
-            PrimaryUnitSyntax::EntityDeclaration(entity_declaration_node),
-        )))
-        .add_design_units(DesignUnitBuilder::new(LibraryUnitSyntax::SecondaryUnit(
-            SecondaryUnitSyntax::ArchitectureBody(architecture_syntax),
-        )))
-        .build();
+    let file = DesignFileBuilder::new(DesignUnitBuilder::new(LibraryUnitSyntax::PrimaryUnit(
+        PrimaryUnitSyntax::EntityDeclaration(entity_declaration_node),
+    )))
+    .add_design_units(DesignUnitBuilder::new(LibraryUnitSyntax::SecondaryUnit(
+        SecondaryUnitSyntax::ArchitectureBody(architecture_syntax),
+    )))
+    .build();
 
     // The canonical output consists of tokens separated by a single space.
     // Formatters can be used to nicely display this to the user.

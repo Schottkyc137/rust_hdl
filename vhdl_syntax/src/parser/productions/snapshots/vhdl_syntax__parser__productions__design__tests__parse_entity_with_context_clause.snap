@@ -7,7 +7,7 @@ DesignFile
     ContextClause
       LibraryClause
         Keyword(Library)
-        IdentifierList
+        LogicalNameList
           Identifier 'ieee'
         SemiColon
       UseClauseContextItem
@@ -29,7 +29,7 @@ DesignFile
         Keyword(Entity)
         Identifier 'my_ent'
         Keyword(Is)
-      EntityStatementPart
+      EntityStatements
         DeclarationStatementSeparator
           Keyword(Begin)
       EntityDeclarationEpilogue

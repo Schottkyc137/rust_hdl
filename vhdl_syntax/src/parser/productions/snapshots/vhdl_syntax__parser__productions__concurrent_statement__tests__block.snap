@@ -3,12 +3,12 @@ source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
 expression: "stmt_to_test_text(\"\\\nname : block\n  constant const : natural := 0;\nbegin\n  name2: foo(clk);\nend block;\",)"
 ---
 BlockStatement
-  Label
+  StmtLabel
     Identifier 'name'
     Colon
   BlockPreamble
     Keyword(Block)
-  Declarations
+  BlockDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
@@ -25,9 +25,9 @@ BlockStatement
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
-  ConcurrentStatements
+  BlockStatementPart
     ConcurrentProcedureCallOrComponentInstantiationStatement
-      Label
+      StmtLabel
         Identifier 'name2'
         Colon
       Name

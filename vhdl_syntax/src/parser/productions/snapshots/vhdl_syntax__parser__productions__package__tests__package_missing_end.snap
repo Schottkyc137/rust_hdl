@@ -7,12 +7,12 @@ package math_pkg is
   constant pi : real := 3.14;
 
 == tree ==
-Package
+PackageDeclaration
   PackagePreamble
     Keyword(Package)
     Identifier 'math_pkg'
     Keyword(Is)
-  Declarations
+  PackageDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
@@ -29,5 +29,5 @@ Package
       SemiColon
 
 == diagnostics ==
-2:30 Expected([Keyword(End)])
-2:30 Expected([SemiColon])
+2:30 Expected(Token([Keyword(End)]))
+2:30 Expected(Token([SemiColon]))

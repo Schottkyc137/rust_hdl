@@ -8,7 +8,7 @@ PackageBody
     Keyword(Body)
     Identifier 'pkg_name'
     Keyword(Is)
-  Declarations
+  PackageBodyDeclarativePart
     SubprogramBody
       SubprogramBodyPreamble
         ProcedureSpecification
@@ -23,6 +23,7 @@ PackageBody
         SemiColon
   PackageBodyEpilogue
     Keyword(End)
-    Keyword(Package)
-    Keyword(Body)
+    EndPackageBody
+      Keyword(Package)
+      Keyword(Body)
     SemiColon

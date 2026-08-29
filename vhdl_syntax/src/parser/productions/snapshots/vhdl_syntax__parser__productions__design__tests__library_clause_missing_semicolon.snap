@@ -11,10 +11,10 @@ DesignFile
     ContextClause
       LibraryClause
         Keyword(Library)
-        IdentifierList
+        LogicalNameList
           Identifier 'ieee'
   Eof
 
 == diagnostics ==
-1:13 Expected([SemiColon])
-1:13 Expected([Keyword(Architecture), Keyword(Package), Keyword(Entity), Keyword(Configuration), Keyword(Context)])
+1:13 Expected(Token([SemiColon]))
+1:13 Expected(Token([Keyword(Architecture), Keyword(Package), Keyword(Entity), Keyword(Configuration), Keyword(Context)]))

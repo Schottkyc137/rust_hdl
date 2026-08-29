@@ -6,6 +6,7 @@
 
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
+use crate::syntax::child::{Child, ChildKind};
 use crate::syntax::layout_of;
 use crate::syntax::meta::{Layout, LayoutItem, LayoutItemKind};
 use crate::syntax::NodeKind;
@@ -65,7 +66,7 @@ impl Parser {
         if self.peek_token().is_eof() {
             self.errors.push(SyntaxErr::new(
                 start..start,
-                SyntaxErrKind::Expected(expected.into()),
+                SyntaxErrKind::Expected(Child::Token(expected.into())),
             ));
             return;
         }
@@ -84,7 +85,7 @@ impl Parser {
                 let end = self.builder.current_pos();
                 self.errors.push(SyntaxErr::new(
                     start + initial_trivia_len..end,
-                    SyntaxErrKind::Unexpected(tok),
+                    SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
                 ));
                 return;
             }
@@ -102,13 +103,13 @@ impl Parser {
                 if !skipped_any {
                     self.errors.push(SyntaxErr::new(
                         start..start,
-                        SyntaxErrKind::Expected(expected.into()),
+                        SyntaxErrKind::Expected(Child::Token(expected.into())),
                     ));
                 // skipped tokens: Garbage input before recovery token.
                 } else {
                     self.errors.push(SyntaxErr::new(
                         start + initial_trivia_len..self.builder.current_pos(),
-                        SyntaxErrKind::Unexpected(tok),
+                        SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
                     ));
                 };
                 return;
@@ -268,7 +269,6 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::InterfacePackageGenericMapAspectDefault
         | NodeKind::RecordResolution
         | NodeKind::RecordResolutionElementResolution
-        | NodeKind::ResolutionIndicationElementResolution
         | NodeKind::SensitivityList
         | NodeKind::ExpressionList
         | NodeKind::EnumerationList
@@ -333,7 +333,7 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         NodeKind::FunctionSpecification | NodeKind::ProcedureSpecification => {
             &[Keyword(Kw::Is), SemiColon]
         }
-        NodeKind::IdentifierList => &[Colon, SemiColon],
+        NodeKind::IdentifierList | NodeKind::LogicalNameList => &[Colon, SemiColon],
         NodeKind::IfGenerateElsif | NodeKind::IfStatementElsif => {
             &[Keyword(Kw::Else), Keyword(Kw::End)]
         }
@@ -358,9 +358,11 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         NodeKind::VerificationUnitBinding
         | NodeKind::VerificationUnitBindingIndication
         | NodeKind::VerificationUnitList => &[Keyword(Kw::End), SemiColon],
-        NodeKind::AssertionStatement
+        NodeKind::ArchitectureStatementPart
+        | NodeKind::AssertionStatement
         | NodeKind::BlockEpilogue
         | NodeKind::BlockStatement
+        | NodeKind::BlockStatementPart
         | NodeKind::CaseGenerateStatement
         | NodeKind::CaseStatement
         | NodeKind::CaseStatementEpilogue
@@ -370,7 +372,6 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::ConcurrentProcedureCallOrComponentInstantiationStatement
         | NodeKind::ConcurrentSelectedSignalAssignment
         | NodeKind::ConcurrentSimpleSignalAssignment
-        | NodeKind::ConcurrentStatements
         | NodeKind::ConditionalForceAssignment
         | NodeKind::ConditionalVariableAssignment
         | NodeKind::ConditionalWaveformAssignment
@@ -387,18 +388,22 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::NextStatement
         | NodeKind::NullStatement
         | NodeKind::ProcedureCallStatement
+        | NodeKind::EntityStatementPart
+        | NodeKind::EntityStatements
         | NodeKind::ProcessStatement
         | NodeKind::ProcessEpilogue
+        | NodeKind::ProcessStatementPart
         | NodeKind::ReportStatement
         | NodeKind::ReturnStatement
         | NodeKind::SelectedForceAssignment
         | NodeKind::SelectedVariableAssignment
         | NodeKind::SelectedWaveformAssignment
-        | NodeKind::SequentialStatements
+        | NodeKind::SequenceOfStatements
         | NodeKind::SimpleForceAssignment
         | NodeKind::SimpleReleaseAssignment
         | NodeKind::SimpleVariableAssignment
         | NodeKind::SimpleWaveformAssignment
+        | NodeKind::SubprogramStatementPart
         | NodeKind::WaitStatement => &[Keyword(Kw::Else), Keyword(Kw::Elsif), Keyword(Kw::End)],
         NodeKind::BlockConfigurationPreamble => {
             &[Keyword(Kw::End), Keyword(Kw::For), Keyword(Kw::Use)]
@@ -415,6 +420,10 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         NodeKind::NameList | NodeKind::SensitivityClause => {
             &[Keyword(Kw::For), Keyword(Kw::Until), SemiColon]
         }
+        NodeKind::TypeMarkList => &[Keyword(Kw::Return), RightSquare],
+        // `end package body` with the `body` missing must not swallow the simple name or the
+        // semicolon that follow the pair.
+        NodeKind::EndPackageBody => &[Identifier, SemiColon],
         NodeKind::RecordTypeDefinitionPreamble => &[Comma, Identifier, Keyword(Kw::End)],
         NodeKind::WaveformElement => &[Comma, Keyword(Kw::When), SemiColon],
         NodeKind::ContextDeclarationPreamble => &[
@@ -505,21 +514,6 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
             LtLt,
             StringLiteral,
         ],
-        NodeKind::GenericClausePreamble | NodeKind::PortClausePreamble => &[
-            Comma,
-            Identifier,
-            Keyword(Kw::Constant),
-            Keyword(Kw::File),
-            Keyword(Kw::Function),
-            Keyword(Kw::Impure),
-            Keyword(Kw::Package),
-            Keyword(Kw::Procedure),
-            Keyword(Kw::Pure),
-            Keyword(Kw::Signal),
-            Keyword(Kw::Type),
-            Keyword(Kw::Variable),
-            RightPar,
-        ],
         NodeKind::IfStatementPreamble => &[
             CharacterLiteral,
             Identifier,
@@ -543,7 +537,16 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::ComponentDeclarationEpilogue
         | NodeKind::CompoundConfigurationSpecification
         | NodeKind::ConstantDeclaration
-        | NodeKind::Declarations
+        | NodeKind::ArchitectureDeclarativePart
+        | NodeKind::BlockDeclarativePart
+        | NodeKind::ConfigurationDeclarativePart
+        | NodeKind::EntityDeclarativePart
+        | NodeKind::PackageBodyDeclarativePart
+        | NodeKind::PackageDeclarativePart
+        | NodeKind::ProcessDeclarativePart
+        | NodeKind::ProtectedTypeBodyDeclarativePart
+        | NodeKind::ProtectedTypeDeclarativePart
+        | NodeKind::SubprogramDeclarativePart
         | NodeKind::DisconnectionSpecification
         | NodeKind::FileDeclaration
         | NodeKind::FullTypeDeclaration
@@ -551,8 +554,8 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
         | NodeKind::GroupTemplateDeclaration
         | NodeKind::IncompleteTypeDeclaration
         | NodeKind::PackageBodyDeclaration
-        | NodeKind::PackageDeclaration
-        | NodeKind::PackageInstantiationDeclaration
+        | NodeKind::PackageDeclarationItem
+        | NodeKind::PackageInstantiationDeclarationItem
         | NodeKind::SignalDeclaration
         | NodeKind::SimpleConfigurationSpecification
         | NodeKind::SubprogramBody
@@ -595,11 +598,11 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
             LtLt,
             StringLiteral,
         ],
-        NodeKind::Package
+        NodeKind::PackageDeclaration
         | NodeKind::PackageBody
         | NodeKind::PackageBodyEpilogue
         | NodeKind::PackageEpilogue
-        | NodeKind::PackageInstantiation => &[
+        | NodeKind::PackageInstantiationDeclaration => &[
             CharacterLiteral,
             Eof,
             Identifier,
@@ -783,31 +786,6 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
             SemiColon,
             StringLiteral,
         ],
-        NodeKind::FormalPart => &[
-            AbstractLiteral,
-            BitStringLiteral,
-            CharacterLiteral,
-            Identifier,
-            Keyword(Kw::Abs),
-            Keyword(Kw::And),
-            Keyword(Kw::Inertial),
-            Keyword(Kw::Nand),
-            Keyword(Kw::New),
-            Keyword(Kw::Nor),
-            Keyword(Kw::Not),
-            Keyword(Kw::Null),
-            Keyword(Kw::Open),
-            Keyword(Kw::Or),
-            Keyword(Kw::Xnor),
-            Keyword(Kw::Xor),
-            LeftPar,
-            LtLt,
-            Minus,
-            Plus,
-            QueQue,
-            RightArrow,
-            StringLiteral,
-        ],
         NodeKind::PackagePreamble => &[
             Keyword(Kw::Alias),
             Keyword(Kw::Attribute),
@@ -949,7 +927,7 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
             LtLt,
             StringLiteral,
         ],
-        NodeKind::PortClause | NodeKind::PortClauseEpilogue => &[
+        NodeKind::PortClause => &[
             CharacterLiteral,
             Identifier,
             Keyword(Kw::Alias),
@@ -1050,7 +1028,7 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
             LtLt,
             StringLiteral,
         ],
-        NodeKind::GenericClause | NodeKind::GenericClauseEpilogue => &[
+        NodeKind::GenericClause => &[
             CharacterLiteral,
             Identifier,
             Keyword(Kw::Alias),
@@ -1085,7 +1063,7 @@ pub(crate) fn sync_tokens_for_node_kind(nk: NodeKind) -> &'static [TokenKind] {
             SemiColon,
             StringLiteral,
         ],
-        NodeKind::Label => &[
+        NodeKind::StmtLabel => &[
             AbstractLiteral,
             BitStringLiteral,
             CharacterLiteral,
@@ -1328,7 +1306,7 @@ mod tests {
 
     fn assert_expected_token(diag: &SyntaxErr, expected_kinds: &[TokenKind]) {
         match diag.err() {
-            SyntaxErrKind::Expected(kinds) => {
+            SyntaxErrKind::Expected(Child::Token(kinds)) => {
                 assert_eq!(kinds.as_ref(), expected_kinds, "expected kinds mismatch");
             }
             other => panic!("expected ExpectedToken, got {:?}", other),
@@ -1338,7 +1316,7 @@ mod tests {
     #[test]
     fn is_recovery_point_walks_full_sync_stack() {
         let mut state = RecoveryState::new();
-        state.push(NodeKind::Package);
+        state.push(NodeKind::PackageDeclaration);
 
         assert!(state.is_in_follow_set(TokenKind::Eof));
         state.push(NodeKind::AbsolutePathname);

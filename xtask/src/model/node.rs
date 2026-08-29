@@ -62,6 +62,30 @@ pub enum NodeOrTokenKind {
     Token(TokenKind),
 }
 
+impl NodeOrTokenKind {
+    /// The node kind, or `None` when this is a token.
+    pub fn as_node_kind(&self) -> Option<&NodeKind> {
+        match self {
+            NodeOrTokenKind::Node(kind) => Some(kind),
+            NodeOrTokenKind::Token(_) => None,
+        }
+    }
+
+    /// The token kind, or `None` when this is a node.
+    pub fn as_token_kind(&self) -> Option<&TokenKind> {
+        match self {
+            NodeOrTokenKind::Token(kind) => Some(kind),
+            NodeOrTokenKind::Node(_) => None,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum RepeatedCardinality {
+    ZeroOrMore,
+    OneOrMore,
+}
+
 /// How often a [`Field`] occurs in its parent production.
 ///
 /// `nth` distinguishes several fields of the same kind within one production (the 2nd
@@ -71,21 +95,21 @@ pub enum NodeOrTokenKind {
 pub enum Cardinality {
     Required { nth: usize },
     Optional { nth: usize },
-    Repeated,
+    Repeated(RepeatedCardinality),
 }
 
 impl Cardinality {
-    pub fn is_optional(self) -> bool {
-        matches!(self, Cardinality::Optional { .. })
-    }
-
     pub fn is_repeated(self) -> bool {
-        matches!(self, Cardinality::Repeated)
+        matches!(self, Cardinality::Repeated(_))
     }
 
-    /// Whether the field may be absent from the green tree — i.e. everything but `Required`.
+    /// Whether the field may be absent from the green tree — i.e. everything but `Required`
+    /// and `RepeatedAtLeastOnce`, both of which always contribute at least one child.
     pub fn may_be_absent(self) -> bool {
-        !matches!(self, Cardinality::Required { .. })
+        matches!(
+            self,
+            Cardinality::Optional { .. } | Cardinality::Repeated(RepeatedCardinality::ZeroOrMore)
+        )
     }
 }
 
@@ -114,6 +138,7 @@ impl Field {
         }
     }
 
+    #[cfg(test)]
     pub fn with_name(self, name: impl Into<String>) -> Field {
         Field {
             name: name.into(),
@@ -122,16 +147,20 @@ impl Field {
     }
 
     /// Sets which occurrence of its kind this field denotes, keeping the cardinality.
-    pub fn with_nth(self, nth: usize) -> Field {
-        let cardinality = match self.cardinality {
+    #[cfg(test)]
+    pub fn with_nth(mut self, nth: usize) -> Field {
+        self.set_nth(nth);
+        self
+    }
+
+    /// [`Field::with_nth`], in place. A repeated field owns every occurrence of its kind, so it
+    /// has no ordinal to set.
+    pub fn set_nth(&mut self, nth: usize) {
+        self.cardinality = match self.cardinality {
             Cardinality::Required { .. } => Cardinality::Required { nth },
             Cardinality::Optional { .. } => Cardinality::Optional { nth },
-            Cardinality::Repeated => Cardinality::Repeated,
+            repeated @ Cardinality::Repeated(_) => repeated,
         };
-        Field {
-            cardinality,
-            ..self
-        }
     }
 
     pub fn make_optional(mut self) -> Field {
@@ -157,20 +186,16 @@ impl Field {
         }
 
         Field {
-            cardinality: Cardinality::Repeated,
+            cardinality: Cardinality::Repeated(RepeatedCardinality::ZeroOrMore),
             ..self
         }
-    }
-
-    pub fn is_optional(&self) -> bool {
-        self.cardinality.is_optional()
     }
 
     pub fn is_repeated(&self) -> bool {
         self.cardinality.is_repeated()
     }
 
-    /// Whether the field may be absent from the green tree — i.e. everything but `Required`.
+    /// Whether the field may be absent from the green tree
     pub fn may_be_absent(&self) -> bool {
         self.cardinality.may_be_absent()
     }
@@ -184,17 +209,49 @@ impl Field {
 
     /// The kind of the referenced token, or `None` when this item references a node.
     pub fn as_token_kind(&self) -> Option<&TokenKind> {
-        match &self.kind {
-            NodeOrTokenKind::Token(kind) => Some(kind),
-            NodeOrTokenKind::Node(_) => None,
-        }
+        self.kind.as_token_kind()
     }
 
     /// The kind of the referenced node, or `None` when this item references a token.
     pub fn as_node_kind(&self) -> Option<&NodeKind> {
-        match &self.kind {
-            NodeOrTokenKind::Node(kind) => Some(kind),
-            NodeOrTokenKind::Token(_) => None,
+        self.kind.as_node_kind()
+    }
+}
+
+/// The set of children the accessor generated for a [`Field`] can pick up.
+///
+/// A token field is addressed by its kind and matches exactly that. A node field is addressed by
+/// a *cast*, and a cast to a choice accepts every node kind the choice reaches — so a node field
+/// stands for a set of kinds rather than for the single one it is spelled with, and two fields
+/// spelled with different kinds can still collide.
+#[derive(PartialEq, Eq, Debug)]
+pub enum FieldCast {
+    Token(TokenKind),
+    /// A choice of tokens materializes as a token rather than as a node of its own, so it is
+    /// addressed by kind like a token and never collides with a node field.
+    TokenChoice(NodeKind),
+    Nodes(Vec<NodeKind>),
+}
+
+impl FieldCast {
+    /// Whether both accessors can pick up the same child.
+    fn overlaps(&self, other: &FieldCast) -> bool {
+        match (self, other) {
+            (FieldCast::Nodes(this), FieldCast::Nodes(other)) => {
+                this.iter().any(|kind| other.contains(kind))
+            }
+            (this, other) => this == other,
+        }
+    }
+
+    /// Whether both accessors pick up exactly the same children, which is what lets the `nth`
+    /// ordinal keep counting past one field and land on the next.
+    fn is_same(&self, other: &FieldCast) -> bool {
+        match (self, other) {
+            (FieldCast::Nodes(this), FieldCast::Nodes(other)) => {
+                this.len() == other.len() && this.iter().all(|kind| other.contains(kind))
+            }
+            (this, other) => this == other,
         }
     }
 }
@@ -205,11 +262,21 @@ impl From<TokenKind> for Field {
     }
 }
 
+impl From<NodeOrTokenKind> for Field {
+    fn from(value: NodeOrTokenKind) -> Self {
+        match value {
+            NodeOrTokenKind::Node(kind) => Field::node(kind),
+            NodeOrTokenKind::Token(kind) => Field::token(kind),
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Node {
     Items(SequenceNode),
     Choices(ChoiceNode),
     List(ListNode),
+    Alias(AliasNode),
 }
 
 impl Node {
@@ -218,6 +285,7 @@ impl Node {
             Node::Items(items) => &items.name,
             Node::Choices(choices) => &choices.name,
             Node::List(list) => &list.kind,
+            Node::Alias(alias) => &alias.name,
         }
     }
 
@@ -234,7 +302,15 @@ impl Node {
     pub fn as_sequence(&self) -> Option<&SequenceNode> {
         match self {
             Node::Items(seq) => Some(seq),
-            Node::Choices(_) | Node::List(_) => None,
+            _ => None,
+        }
+    }
+
+    /// The node an alias stands for, or `None` for a node that is not an alias.
+    pub fn as_alias(&self) -> Option<&AliasNode> {
+        match self {
+            Node::Alias(alias) => Some(alias),
+            _ => None,
         }
     }
 }
@@ -257,10 +333,24 @@ impl From<ListNode> for Node {
     }
 }
 
+impl From<AliasNode> for Node {
+    fn from(value: AliasNode) -> Self {
+        Node::Alias(value)
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct SequenceNode {
     pub name: NodeKind,
     pub items: Vec<Field>,
+    /// Whether the production declares its whole body optional (`Foo = (A B)?`).
+    ///
+    /// The marker is about the node, not about its items: those stay exactly as they are and are
+    /// required whenever the node exists. What it adds is that the node may match nothing at
+    /// all, which the tree cannot express by itself -- an empty node is dropped -- so it shows
+    /// up at the use sites instead, as the `?` that
+    /// [`Model::fixup_empty_capable_optional_markers`] puts on every reference to the node.
+    pub optional_body: bool,
 }
 
 #[cfg(test)]
@@ -271,17 +361,28 @@ impl SequenceNode {
         SequenceNode {
             name: name.into(),
             items,
+            optional_body: false,
+        }
+    }
+
+    /// Test-only: the same, for a production whose body carries `?` as a whole.
+    pub fn new_optional_body(name: impl Into<NodeKind>, items: Vec<Field>) -> SequenceNode {
+        SequenceNode {
+            optional_body: true,
+            ..SequenceNode::new(name, items)
         }
     }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum NodesOrTokens {
-    /// The alternatives of a node choice, as node kinds.
+    /// The alternatives of a node choice, as node kinds. An alternative is always a bare node
+    /// reference, so the kind is also the name.
     Nodes(Vec<NodeKind>),
-    /// The alternatives of a token choice, as token kinds. Same rule as [`NodesOrTokens::Nodes`]:
-    /// an alternative is always a bare token reference.
-    Tokens(Vec<TokenKind>),
+    /// The alternatives of a token choice, as spelled: a bare token, or a reference to a
+    /// production that renames one (`OperatorSymbol = '#string_literal'`). The name of the
+    /// alternative names the variant, [`Model::alternative_token`] gives the token it denotes.
+    Tokens(Vec<Field>),
 }
 
 impl FromIterator<NodeKind> for NodesOrTokens {
@@ -290,8 +391,8 @@ impl FromIterator<NodeKind> for NodesOrTokens {
     }
 }
 
-impl FromIterator<TokenKind> for NodesOrTokens {
-    fn from_iter<T: IntoIterator<Item = TokenKind>>(iter: T) -> Self {
+impl FromIterator<Field> for NodesOrTokens {
+    fn from_iter<T: IntoIterator<Item = Field>>(iter: T) -> Self {
         NodesOrTokens::Tokens(iter.into_iter().collect())
     }
 }
@@ -307,6 +408,43 @@ pub struct ListNode {
     pub kind: NodeKind,
     pub element: Field,
     pub separator: Field,
+}
+
+/// A second name for another node.
+///
+/// The alias is a name and nothing else: it materializes no node of its own, so a reference to
+/// it is a reference to what it renames. A token can be renamed too — `OthersChoice = 'others'`
+/// gives the keyword a node-shaped name, which is what lets it stand as the alternative of a
+/// choice.
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct AliasNode {
+    /// The kind this alias introduces, i.e. the name under which the aliased node is known here.
+    pub name: NodeKind,
+    /// What the alias renames. Held as a kind, not a node: the aliased production need not have
+    /// been mapped yet when the alias is built, and a token has no node to hold.
+    pub aliased: NodeOrTokenKind,
+}
+
+impl AliasNode {
+    pub fn new(name: impl Into<NodeKind>, aliased: NodeOrTokenKind) -> AliasNode {
+        AliasNode {
+            name: name.into(),
+            aliased,
+        }
+    }
+}
+
+/// Test-only convenience constructors. Production code goes through [`AliasNode::new`] in
+/// [`crate::model::load_model`], where the aliased kind comes from the ungrammar.
+#[cfg(test)]
+impl AliasNode {
+    pub fn node(name: impl Into<NodeKind>, aliased: impl Into<NodeKind>) -> AliasNode {
+        AliasNode::new(name, NodeOrTokenKind::Node(aliased.into()))
+    }
+
+    pub fn token(name: impl Into<NodeKind>, aliased: TokenKind) -> AliasNode {
+        AliasNode::new(name, NodeOrTokenKind::Token(aliased))
+    }
 }
 
 #[derive(Debug, Default)]
@@ -338,46 +476,267 @@ impl Model {
         self.nodes.get(kind)
     }
 
+    /// What a reference to `kind` actually denotes in the tree.
+    ///
+    /// An alias is a pure renaming — it materializes nothing of its own — so a reference to one
+    /// resolves to what it renames, through as many alias layers as it takes, and ends at a node
+    /// or at a token. Every other kind, and every kind the model doesn't know, resolves to
+    /// itself.
+    pub fn resolve_alias(&self, kind: &NodeKind) -> NodeOrTokenKind {
+        let mut current = kind;
+        // An alias chain cannot revisit a kind without being a cycle, so it is at most as long
+        // as the model has nodes.
+        for _ in 0..=self.nodes.len() {
+            match self.node(current) {
+                Some(Node::Alias(alias)) => match &alias.aliased {
+                    NodeOrTokenKind::Node(next) => current = next,
+                    NodeOrTokenKind::Token(token) => return NodeOrTokenKind::Token(*token),
+                },
+                _ => return NodeOrTokenKind::Node(current.clone()),
+            }
+        }
+        panic!("alias {kind} is part of a cycle: following it never reaches a node or a token");
+    }
+
+    /// The token an alternative of a token choice denotes: the token it is, or the token it
+    /// renames.
+    pub fn alternative_token(&self, alternative: &Field) -> TokenKind {
+        match self.resolved_kind(alternative) {
+            NodeOrTokenKind::Token(kind) => kind,
+            NodeOrTokenKind::Node(kind) => {
+                unreachable!("alternative {kind} of a token choice does not denote a token")
+            }
+        }
+    }
+
+    /// The kind a field addresses in the tree, i.e. its own with any alias resolved.
+    pub fn resolved_kind(&self, field: &Field) -> NodeOrTokenKind {
+        match &field.kind {
+            NodeOrTokenKind::Node(kind) => self.resolve_alias(kind),
+            NodeOrTokenKind::Token(kind) => NodeOrTokenKind::Token(*kind),
+        }
+    }
+
     /// Returns true if the given node kind is a choice node whose choices are all tokens.
     pub fn is_token_choice(&self, kind: &NodeKind) -> bool {
         self.token_choice_kinds.contains(kind)
+    }
+
+    /// The concrete node kinds that a cast to `kind` accepts.
+    ///
+    /// A sequence or a list is materialized by the parser as a node of exactly its own kind, so
+    /// it reaches only itself. A choice is abstract — the parser emits one of its alternatives,
+    /// never the choice itself — so it reaches the union of theirs, transitively. An alias
+    /// reaches whatever it renames, and an alias of a token reaches nothing at all, since a
+    /// token is not castable to a node type.
+    ///
+    /// The result is in grammar order and free of repeats, so it can be compared as a set as
+    /// well as emitted as a list.
+    pub fn reachable_node_kinds(&self, kind: &NodeKind) -> Vec<NodeKind> {
+        let mut reachable = Vec::new();
+        self.collect_reachable_node_kinds(kind, &mut HashSet::new(), &mut reachable);
+        reachable
+    }
+
+    fn collect_reachable_node_kinds(
+        &self,
+        kind: &NodeKind,
+        visited: &mut HashSet<NodeKind>,
+        reachable: &mut Vec<NodeKind>,
+    ) {
+        // An alias materializes nothing of its own, so it stands for whatever it renames.
+        let NodeOrTokenKind::Node(kind) = self.resolve_alias(kind) else {
+            return; // an alias of a token has no node for a cast to accept
+        };
+        if !visited.insert(kind.clone()) {
+            return;
+        }
+        // A kind the model doesn't know reaches itself, the same way `resolve_alias` resolves
+        // one to itself: nothing here can say what it expands to, and it is a distinct kind as
+        // far as any two sets being compared are concerned.
+        let Some(node) = self.node(&kind) else {
+            reachable.push(kind);
+            return;
+        };
+        match node {
+            Node::Items(_) | Node::List(_) => reachable.push(kind),
+            Node::Choices(choice) => match &choice.items {
+                NodesOrTokens::Nodes(alternatives) => {
+                    for alternative in alternatives {
+                        self.collect_reachable_node_kinds(alternative, visited, reachable);
+                    }
+                }
+                // A token choice materializes as a token, which no node cast reaches.
+                NodesOrTokens::Tokens(_) => {}
+            },
+            Node::Alias(_) => unreachable!("resolve_alias never yields an alias"),
+        }
     }
 
     // MARK: Checks
     pub fn do_checks(&self) {
         self.check_no_duplicates();
         self.check_all_nodes_exist();
-        self.check_choices_are_unique();
+        self.check_aliased_nodes_are_defined();
+        self.check_choice_alternatives_are_nodes();
+        self.check_choice_alternatives_are_disjoint();
         self.check_empty_capable_nodes_marked_optional();
+        self.check_optional_bodies_are_not_redundant();
         self.check_nth_accessors_are_unambiguous();
     }
 
+    /// Checks that what every alias renames exists.
+    ///
+    /// An alias generates nothing: a reference to it resolves to the aliased node's kind, struct
+    /// and getters, so those have to be generated from a definition of that node elsewhere in the
+    /// model. A token needs no definition, so a token alias is always fine.
+    pub fn check_aliased_nodes_are_defined(&self) {
+        for node in self.all_nodes() {
+            let Some(target) = node
+                .as_alias()
+                .and_then(|alias| alias.aliased.as_node_kind())
+            else {
+                continue;
+            };
+            assert!(
+                self.node(target).is_some(),
+                "alias {} renames {target}, which is not defined anywhere: an alias is a second \
+                 name for a node, so the node it renames must be a production of its own.",
+                node.name()
+            );
+        }
+    }
+
+    /// Checks that no alternative of a choice resolves to a token.
+    ///
+    /// An alternative is spelled as a node reference, but an alias can rename a token
+    /// (`OthersChoice = 'others'`), so a choice can end up part nodes and part tokens. The
+    /// generated enum would then have to be castable from a token as well as from a node, which
+    /// `AstNode` — `cast_unchecked(SyntaxNode)`, `raw() -> SyntaxNode` — cannot express.
+    pub fn check_choice_alternatives_are_nodes(&self) {
+        let mut violations: Vec<String> = vec![];
+        for node in self.all_nodes() {
+            let Node::Choices(choice) = node else {
+                continue;
+            };
+            let NodesOrTokens::Nodes(alternatives) = &choice.items else {
+                continue;
+            };
+            for alternative in alternatives {
+                if let NodeOrTokenKind::Token(token) = self.resolve_alias(alternative) {
+                    violations.push(format!(
+                        "  {alternative} in {}: renames the token {token:?}",
+                        choice.name
+                    ));
+                }
+            }
+        }
+        if !violations.is_empty() {
+            println!("The following choice alternatives are tokens rather than nodes:");
+            for violation in &violations {
+                println!("{violation}");
+            }
+            panic!(
+                "a choice is cast from a syntax node, so every alternative must be one; an \
+                 alternative that renames a token has no node to cast from"
+            );
+        }
+    }
+
+    /// Checks that no two alternatives of a choice can be cast from the same node.
+    ///
+    /// `cast_unchecked` tries the alternatives in the order they are written and returns the
+    /// first that can cast the node, so an alternative that shares a node kind with an earlier
+    /// one is partly or wholly dead: which variant a caller ends up with is decided by the order
+    /// the alternatives happen to be spelled in rather than by what the tree holds. Alternatives
+    /// are compared by the kinds they *reach* — a choice alternative stands for every kind of
+    /// its own — so `Declaration | ConstantDeclaration` is a violation even though the two are
+    /// spelled differently.
+    pub fn check_choice_alternatives_are_disjoint(&self) {
+        let mut violations: Vec<String> = vec![];
+        for node in self.all_nodes() {
+            let Node::Choices(choice) = node else {
+                continue;
+            };
+            let NodesOrTokens::Nodes(alternatives) = &choice.items else {
+                continue;
+            };
+            let reachable: Vec<Vec<NodeKind>> = alternatives
+                .iter()
+                .map(|alternative| self.reachable_node_kinds(alternative))
+                .collect();
+            for (index, alternative) in alternatives.iter().enumerate() {
+                for (earlier_index, earlier) in alternatives[..index].iter().enumerate() {
+                    let shared: Vec<&str> = reachable[index]
+                        .iter()
+                        .filter(|kind| reachable[earlier_index].contains(kind))
+                        .map(NodeKind::as_str)
+                        .collect();
+                    if shared.is_empty() {
+                        continue;
+                    }
+                    violations.push(format!(
+                        "  {alternative} in {}: reaches {}, which `{earlier}` already reaches",
+                        choice.name,
+                        shared.join(", ")
+                    ));
+                }
+            }
+        }
+        if !violations.is_empty() {
+            println!("The following choice alternatives are cast from the same nodes:");
+            for violation in &violations {
+                println!("{violation}");
+            }
+            panic!(
+                "a choice picks the first alternative that can cast the node, so overlapping \
+                 alternatives make the variant depend on the order they are written in; drop the \
+                 redundant alternative or split the kinds they share"
+            );
+        }
+    }
+
     /// Checks that every `nth`-based accessor actually addresses the field it was generated for.
+    ///
+    /// Fields are compared by the children their accessors can pick up — see [`FieldCast`] —
+    /// which for a node reference is the set of kinds it reaches rather than the one kind it is
+    /// spelled with. Two fields whose sets are *equal* can still be told apart by their ordinal,
+    /// as long as every earlier one is guaranteed present; two fields whose sets merely
+    /// intersect cannot, because which occurrence each accessor lands on then depends on which
+    /// alternative the tree actually holds.
     pub fn check_nth_accessors_are_unambiguous(&self) {
         let mut violations: Vec<String> = vec![];
         for node in self.all_nodes() {
             let Node::Items(seq) = node else {
                 continue;
             };
+            let casts: Vec<FieldCast> =
+                seq.items.iter().map(|item| self.field_cast(item)).collect();
             for (index, item) in seq.items.iter().enumerate() {
                 if item.is_repeated() {
-                    if let Some((_, other)) =
-                        seq.items.iter().enumerate().find(|(other_index, other)| {
-                            *other_index != index && other.kind == item.kind
-                        })
+                    // A repeated accessor yields every child it can cast, so it has no ordinal
+                    // to disambiguate it: any overlap at all, in either direction, is fatal.
+                    if let Some(other) = (0..seq.items.len())
+                        .find(|&other| other != index && casts[other].overlaps(&casts[index]))
                     {
                         violations.push(format!(
                             "  {} in {}: repeated field shares its kind with `{}`",
-                            item.name, seq.name, other.name
+                            item.name, seq.name, seq.items[other].name
                         ));
                     }
                     continue;
                 }
-                for earlier in seq.items[..index]
-                    .iter()
-                    .filter(|earlier| earlier.kind == item.kind)
-                {
-                    if earlier.may_be_absent() {
+                for (earlier_index, earlier) in seq.items[..index].iter().enumerate() {
+                    if !casts[earlier_index].overlaps(&casts[index]) {
+                        continue;
+                    }
+                    if !casts[earlier_index].is_same(&casts[index]) {
+                        violations.push(format!(
+                            "  {} in {}: preceded by `{}`, which addresses an overlapping but \
+                             different set of kinds",
+                            item.name, seq.name, earlier.name
+                        ));
+                    } else if earlier.may_be_absent() {
                         violations.push(format!(
                             "  {} in {}: preceded by `{}` of the same kind, which may be absent",
                             item.name, seq.name, earlier.name
@@ -398,6 +757,17 @@ impl Model {
         }
     }
 
+    /// The children an accessor generated for `field` can pick up.
+    fn field_cast(&self, field: &Field) -> FieldCast {
+        match self.resolved_kind(field) {
+            NodeOrTokenKind::Token(kind) => FieldCast::Token(kind),
+            NodeOrTokenKind::Node(kind) if self.is_token_choice(&kind) => {
+                FieldCast::TokenChoice(kind)
+            }
+            NodeOrTokenKind::Node(kind) => FieldCast::Nodes(self.reachable_node_kinds(&kind)),
+        }
+    }
+
     /// Computes the set of sequence nodes that can produce a completely empty green tree node.
     ///
     /// A sequence node is empty-capable when every item is either:
@@ -406,44 +776,36 @@ impl Model {
     ///
     /// A choice node is empty-capable when any of its alternatives is.
     ///
+    /// An alias node is empty-capable when the node it aliases is.
+    ///
     /// Nodes with canonical-text tokens (keywords, symbols) are **not** empty-capable because
     /// those tokens are always emitted. The computation is a fixed-point iteration to handle
     /// transitive cases.
     pub fn compute_empty_capable_nodes(&self) -> HashSet<NodeKind> {
+        self.empty_capable_fixed_point(is_empty_capable)
+    }
+
+    /// The same fixed point with every declared `?` body ignored, i.e. the empty-capability that
+    /// the items alone account for. [`Model::check_optional_bodies_are_not_redundant`] compares
+    /// the two.
+    fn compute_structurally_empty_capable_nodes(&self) -> HashSet<NodeKind> {
+        self.empty_capable_fixed_point(is_structurally_empty_capable)
+    }
+
+    /// Grows the set of empty-capable kinds until `is_empty` adds nothing more to it.
+    fn empty_capable_fixed_point(
+        &self,
+        is_empty: impl Fn(&Node, &HashSet<NodeKind>) -> bool,
+    ) -> HashSet<NodeKind> {
         let mut empty_capable: HashSet<NodeKind> = HashSet::new();
         loop {
             let prev_size = empty_capable.len();
             for node in self.all_nodes() {
-                match node {
-                    Node::Items(seq) => {
-                        if empty_capable.contains(&seq.name) {
-                            continue;
-                        }
-                        let is_empty_capable = seq.items.iter().all(|item| match &item.kind {
-                            NodeOrTokenKind::Token(_) => item.may_be_absent(),
-                            NodeOrTokenKind::Node(kind) => {
-                                item.may_be_absent() || empty_capable.contains(kind)
-                            }
-                        });
-                        if is_empty_capable {
-                            empty_capable.insert(seq.name.clone());
-                        }
-                    }
-                    // A choice is empty-capable when any alternative is: the parser
-                    // can select that alternative, emit nothing, and the empty node
-                    // is dropped — leaving the choice reference absent in the parent.
-                    Node::Choices(choice) => {
-                        if empty_capable.contains(&choice.name) {
-                            continue;
-                        }
-                        if let NodesOrTokens::Nodes(options) = &choice.items {
-                            if options.iter().any(|option| empty_capable.contains(option)) {
-                                empty_capable.insert(choice.name.clone());
-                            }
-                        }
-                    }
-                    // Lists are never empty-capable
-                    Node::List(_) => {}
+                if empty_capable.contains(node.name()) {
+                    continue;
+                }
+                if is_empty(node, &empty_capable) {
+                    empty_capable.insert(node.name().clone());
                 }
             }
             if empty_capable.len() == prev_size {
@@ -482,48 +844,30 @@ impl Model {
         }
     }
 
+    /// Checks that no production declares its whole body optional when its items already make it
+    /// empty-capable.
+    ///
+    /// The marker would decide nothing there: references to the node come out optional either
+    /// way. Rejecting it keeps `?` on a body meaning what it says -- that the items require
+    /// something the parser may nevertheless leave out altogether.
+    pub fn check_optional_bodies_are_not_redundant(&self) {
+        let structurally_empty_capable = self.compute_structurally_empty_capable_nodes();
+        for node in self.all_nodes() {
+            let Node::Items(seq) = node else {
+                continue;
+            };
+            assert!(
+                !(seq.optional_body && structurally_empty_capable.contains(&seq.name)),
+                "production {} marks its whole body `?`, but its items already let it match \
+                 nothing, so every reference to it is optional either way; drop the marker.",
+                seq.name
+            );
+        }
+    }
+
     pub fn check_no_duplicates(&self) {
         for node in self.all_nodes() {
-            let mut seen = HashSet::new();
-            let mut check_field = |field: &Field| {
-                let name = field.getter_name();
-                if seen.contains(&name) {
-                    panic!("Duplicate node {} in node {}", name, node.name())
-                }
-                seen.insert(name);
-            };
-
-            match node {
-                Node::Items(seq_node) => {
-                    for item in &seq_node.items {
-                        check_field(item);
-                    }
-                }
-                Node::Choices(choices_node) => match &choices_node.items {
-                    NodesOrTokens::Nodes(nodes) => {
-                        for item in nodes {
-                            let name = item.as_str().to_case(Case::Snake);
-                            if seen.contains(&name) {
-                                panic!("Duplicate node {} in node {}", name, node.name())
-                            }
-                            seen.insert(name);
-                        }
-                    }
-                    NodesOrTokens::Tokens(tokens) => {
-                        for item in tokens {
-                            let name = item.getter_name();
-                            if seen.contains(&name) {
-                                panic!("Duplicate node {} in node {}", name, node.name())
-                            }
-                            seen.insert(name);
-                        }
-                    }
-                },
-                Node::List(list) => {
-                    check_field(&list.element);
-                    check_field(&list.separator);
-                }
-            }
+            check_no_duplicate_accessors(node);
         }
     }
 
@@ -545,58 +889,6 @@ impl Model {
             }
             panic!()
         }
-    }
-
-    /// Check that all `Choice` nodes contain elements that are only reachable by this choice
-    pub fn check_choices_are_unique(&self) {
-        let mut found_nodes = HashSet::new();
-        for node in self.all_nodes() {
-            match node {
-                Node::Items(_) | Node::List(_) => {}
-                Node::Choices(choice) => match &choice.items {
-                    NodesOrTokens::Nodes(nodes) => {
-                        for node in nodes {
-                            if self.count_uses_of_node(node) > 1 && !found_nodes.contains(node) {
-                                found_nodes.insert(node.clone());
-                                println!("Node {node} is used multiple times, but must only be used in a single choice node");
-                            }
-                        }
-                    }
-                    NodesOrTokens::Tokens(_) => {}
-                },
-            }
-        }
-    }
-
-    /// The number of places (sequence items and choice alternatives) that reference `kind`.
-    pub fn count_uses_of_node(&self, kind: &NodeKind) -> usize {
-        let mut uses = 0;
-        for node in self.all_nodes() {
-            match node {
-                Node::Items(items) => {
-                    uses += items
-                        .items
-                        .iter()
-                        .filter(|item| item.as_node_kind() == Some(kind))
-                        .count();
-                }
-                Node::Choices(choices) => match &choices.items {
-                    NodesOrTokens::Nodes(nodes) => {
-                        uses += nodes.iter().filter(|node| *node == kind).count();
-                    }
-                    NodesOrTokens::Tokens(_) => {}
-                },
-                Node::List(list) => {
-                    if list.element.as_node_kind() == Some(kind) {
-                        uses += 1;
-                    }
-                    if list.separator.as_node_kind() == Some(kind) {
-                        uses += 1;
-                    }
-                }
-            }
-        }
-        uses
     }
 
     // MARK: Postprocessing
@@ -632,31 +924,53 @@ impl Model {
         }
     }
 
+    /// Numbers each sequence item by the kind it *resolves* to.
+    ///
+    /// A getter reaches its child by casting and counting, so what decides an item's ordinal is
+    /// the kind in the tree, not the name the grammar spells. An alias and the node it renames
+    /// are one kind there — `('else' Expression 'when' Condition)` with `Condition = Expression`
+    /// holds two `Expression`s — so they are numbered 0 and 1 and the two getters address
+    /// different children.
+    ///
+    /// This cannot happen while mapping the grammar: resolving an alias needs the whole model,
+    /// and the alias may not have been mapped yet.
+    pub fn fixup_nth_by_resolved_kind(&mut self) {
+        // Resolution borrows the model, so number every item first and write back afterwards.
+        let ordinals: HashMap<NodeKind, Vec<usize>> = self
+            .all_nodes()
+            .filter_map(|node| {
+                let Node::Items(seq) = node else {
+                    return None;
+                };
+                let mut seen: Vec<NodeOrTokenKind> = Vec::with_capacity(seq.items.len());
+                let nths = seq
+                    .items
+                    .iter()
+                    .map(|item| {
+                        let kind = self.resolved_kind(item);
+                        let nth = seen.iter().filter(|earlier| **earlier == kind).count();
+                        seen.push(kind);
+                        nth
+                    })
+                    .collect();
+                Some((seq.name.clone(), nths))
+            })
+            .collect();
+
+        for (name, nths) in ordinals {
+            let Some(Node::Items(seq)) = self.nodes.get_mut(&name) else {
+                unreachable!("{name} was a sequence node a moment ago");
+            };
+            for (item, nth) in seq.items.iter_mut().zip(nths) {
+                item.set_nth(nth);
+            }
+        }
+    }
+
     fn collect_referenced_nodes(&self) -> HashSet<NodeKind> {
         let mut referenced = HashSet::new();
         for node in self.all_nodes() {
-            match node {
-                Node::Items(seq_node) => {
-                    for item in &seq_node.items {
-                        if let Some(kind) = item.as_node_kind() {
-                            referenced.insert(kind.clone());
-                        }
-                    }
-                }
-                Node::Choices(choices_node) => {
-                    if let NodesOrTokens::Nodes(nodes) = &choices_node.items {
-                        referenced.extend(nodes.iter().cloned());
-                    }
-                }
-                Node::List(list) => {
-                    if let Some(kind) = list.element.as_node_kind() {
-                        referenced.insert(kind.clone());
-                    }
-                    if let Some(kind) = list.separator.as_node_kind() {
-                        referenced.insert(kind.clone());
-                    }
-                }
-            }
+            collect_referenced_nodes_of(node, &mut referenced);
         }
         referenced
     }
@@ -667,7 +981,9 @@ impl Model {
 
     /// The kinds that the parser actually materializes as green nodes: sequences and lists.
     /// A choice is abstract — the parser emits one of its options, never the choice itself —
-    /// so choice kinds are deliberately absent from the generated `NodeKind` enum.
+    /// so choice kinds are deliberately absent from the generated `NodeKind` enum. So is an
+    /// alias: the tree holds a node of the aliased kind, the alias only renames the accessor
+    /// that reaches it.
     pub fn collect_all_materialized_node_kinds(&self) -> HashSet<NodeKind> {
         self.all_nodes()
             .filter(|node| matches!(node, Node::Items(_) | Node::List(_)))
@@ -681,6 +997,128 @@ impl Model {
     }
 }
 
+// MARK: Single-node traversals
+//
+// One `Node` at a time, so that the alias case is spelled out beside the shapes that do carry
+// fields of their own.
+
+/// Whether `node` can produce a completely empty green node, given the kinds already known to be
+/// empty-capable. See [`Model::compute_empty_capable_nodes`].
+///
+/// Either the production says so itself, by carrying `?` on its whole body, or its items leave
+/// it nothing it has to emit.
+fn is_empty_capable(node: &Node, empty_capable: &HashSet<NodeKind>) -> bool {
+    declares_optional_body(node) || is_structurally_empty_capable(node, empty_capable)
+}
+
+/// Whether `node`'s production declares its whole body optional (`Foo = (A B)?`).
+fn declares_optional_body(node: &Node) -> bool {
+    matches!(node, Node::Items(seq) if seq.optional_body)
+}
+
+/// Whether `node`'s *items* let it produce a completely empty green node -- the declared `?` of
+/// [`declares_optional_body`] left aside.
+fn is_structurally_empty_capable(node: &Node, empty_capable: &HashSet<NodeKind>) -> bool {
+    match node {
+        Node::Items(seq) => seq.items.iter().all(|item| match &item.kind {
+            NodeOrTokenKind::Token(_) => item.may_be_absent(),
+            NodeOrTokenKind::Node(kind) => item.may_be_absent() || empty_capable.contains(kind),
+        }),
+        // A choice is empty-capable when any alternative is: the parser can select that
+        // alternative, emit nothing, and the empty node is dropped — leaving the choice
+        // reference absent in the parent.
+        Node::Choices(choice) => match &choice.items {
+            NodesOrTokens::Nodes(options) => {
+                options.iter().any(|option| empty_capable.contains(option))
+            }
+            NodesOrTokens::Tokens(_) => false,
+        },
+        // Lists are never empty-capable
+        Node::List(_) => false,
+        // An alias is empty-capable exactly when what it renames is. A token never is.
+        Node::Alias(alias) => alias
+            .aliased
+            .as_node_kind()
+            .is_some_and(|kind| empty_capable.contains(kind)),
+    }
+}
+
+/// Checks that no two fields of `node` generate the same accessor name.
+fn check_no_duplicate_accessors(node: &Node) {
+    let name = node.name();
+    let mut seen = HashSet::new();
+    let mut check_accessor = |accessor: String| {
+        if seen.contains(&accessor) {
+            panic!("Duplicate node {accessor} in node {name}")
+        }
+        seen.insert(accessor);
+    };
+
+    match node {
+        Node::Items(seq_node) => {
+            for item in &seq_node.items {
+                check_accessor(item.getter_name());
+            }
+        }
+        Node::Choices(choices_node) => match &choices_node.items {
+            NodesOrTokens::Nodes(nodes) => {
+                for item in nodes {
+                    check_accessor(item.as_str().to_case(Case::Snake));
+                }
+            }
+            NodesOrTokens::Tokens(tokens) => {
+                for item in tokens {
+                    check_accessor(item.getter_name());
+                }
+            }
+        },
+        Node::List(list) => {
+            check_accessor(list.element.getter_name());
+            check_accessor(list.separator.getter_name());
+        }
+        // An alias has no fields of its own; the accessors belong to what it renames.
+        Node::Alias(_) => {}
+    }
+}
+
+/// Adds every node kind that `node` references to `referenced`.
+fn collect_referenced_nodes_of(node: &Node, referenced: &mut HashSet<NodeKind>) {
+    match node {
+        Node::Items(seq_node) => {
+            for item in &seq_node.items {
+                if let Some(kind) = item.as_node_kind() {
+                    referenced.insert(kind.clone());
+                }
+            }
+        }
+        Node::Choices(choices_node) => match &choices_node.items {
+            NodesOrTokens::Nodes(nodes) => referenced.extend(nodes.iter().cloned()),
+            // An alternative that renames a token references that renaming production.
+            NodesOrTokens::Tokens(alternatives) => referenced.extend(
+                alternatives
+                    .iter()
+                    .filter_map(|alternative| alternative.as_node_kind())
+                    .cloned(),
+            ),
+        },
+        Node::List(list) => {
+            if let Some(kind) = list.element.as_node_kind() {
+                referenced.insert(kind.clone());
+            }
+            if let Some(kind) = list.separator.as_node_kind() {
+                referenced.insert(kind.clone());
+            }
+        }
+        // An alias references what it renames, which is what keeps a production that is only
+        // ever reached through an alias from looking unreferenced.
+        Node::Alias(alias) => {
+            if let Some(kind) = alias.aliased.as_node_kind() {
+                referenced.insert(kind.clone());
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -690,7 +1128,10 @@ mod tests {
         // Add a token-choice node: RelationalOperator -> { EQ | NE | LT }
         let choice = ChoiceNode {
             name: NodeKind::from("RelationalOperator"),
-            items: NodesOrTokens::Tokens(vec![TokenKind::EQ, TokenKind::NE]),
+            items: NodesOrTokens::Tokens(vec![
+                Field::token(TokenKind::EQ),
+                Field::token(TokenKind::NE),
+            ]),
         };
         model.push_node(Node::Choices(choice));
         // Add a sequence node that references the choice node
@@ -791,6 +1232,33 @@ mod tests {
         model.check_empty_capable_nodes_marked_optional(); // must not panic
     }
 
+    /// A production that declares its whole body optional is empty-capable even though its items
+    /// are not, and the fixup carries that to the reference in the parent.
+    #[test]
+    fn a_declared_optional_body_is_empty_capable() {
+        let mut model = Model::default();
+        // Header: a required canonical token, so nothing about its items says it may be absent.
+        let header =
+            SequenceNode::new_optional_body("Header", vec![Field::token(TokenKind::SemiColon)]);
+        let root = SequenceNode::new("DesignFile", vec![Field::node("Header")]);
+        model.push_node(Node::Items(header));
+        model.push_node(Node::Items(root));
+        model.do_postprocessing();
+
+        assert!(
+            model.compute_empty_capable_nodes().contains("Header"),
+            "a declared `?` body must make the node empty-capable"
+        );
+        // The marker is not redundant: only the declaration makes Header empty-capable.
+        model.check_optional_bodies_are_not_redundant();
+
+        model.fixup_empty_capable_optional_markers();
+        let Some(Node::Items(root)) = model.node(&"DesignFile".into()) else {
+            panic!("DesignFile should be a sequence node")
+        };
+        assert_eq!(root.items[0].cardinality, Cardinality::Optional { nth: 0 });
+    }
+
     fn model_with(items: Vec<Field>) -> Model {
         let mut model = Model::default();
         model.push_node(Node::Items(SequenceNode::new("DesignFile", items)));
@@ -843,6 +1311,297 @@ mod tests {
             Field::node("Expression").make_repeated().with_name("rest"),
         ]);
         model.check_nth_accessors_are_unambiguous();
+    }
+
+    /// `Declaration` (a choice over `Constant | Signal`) plus `Item` (a choice over
+    /// `Constant | Variable`), both referenced from `DesignFile`.
+    fn model_with_overlapping_choices() -> Model {
+        let mut model = Model::default();
+        for leaf in [
+            "ConstantDeclaration",
+            "SignalDeclaration",
+            "VariableDeclaration",
+        ] {
+            model.push_node(SequenceNode::new(
+                leaf,
+                vec![Field::token(TokenKind::Identifier)],
+            ));
+        }
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Declaration"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("ConstantDeclaration"),
+                NodeKind::from("SignalDeclaration"),
+            ]),
+        }));
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Item"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("ConstantDeclaration"),
+                NodeKind::from("VariableDeclaration"),
+            ]),
+        }));
+        model
+    }
+
+    /// A choice reaches its alternatives, transitively and with aliases peeled.
+    #[test]
+    fn reachable_node_kinds_flattens_nested_choices() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(AliasNode::node("Decl", "Declaration"));
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Outer"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("Decl"),
+                NodeKind::from("VariableDeclaration"),
+            ]),
+        }));
+        assert_eq!(
+            model.reachable_node_kinds(&NodeKind::from("Outer")),
+            vec![
+                NodeKind::from("ConstantDeclaration"),
+                NodeKind::from("SignalDeclaration"),
+                NodeKind::from("VariableDeclaration"),
+            ]
+        );
+        // A sequence is materialized as itself, so it reaches only itself.
+        assert_eq!(
+            model.reachable_node_kinds(&NodeKind::from("SignalDeclaration")),
+            vec![NodeKind::from("SignalDeclaration")]
+        );
+    }
+
+    /// Two sibling fields spelled with different choices still collide when the choices share an
+    /// alternative: `item()` would return whatever `declaration` holds whenever that happens to
+    /// be a `ConstantDeclaration`.
+    #[test]
+    #[should_panic(expected = "distinct node kinds")]
+    fn check_nth_accessors_rejects_overlapping_choices() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![
+                Field::node("Declaration").with_name("declaration"),
+                Field::node("Item").with_name("item"),
+            ],
+        ));
+        model.check_nth_accessors_are_unambiguous();
+    }
+
+    /// Disjoint choices are addressed by casts that cannot see each other's children, so both
+    /// accessors are exact no matter what the tree holds.
+    #[test]
+    fn check_nth_accessors_allows_disjoint_choices() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("Other"),
+            items: NodesOrTokens::Nodes(vec![NodeKind::from("VariableDeclaration")]),
+        }));
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![
+                Field::node("Declaration")
+                    .make_optional()
+                    .with_name("first"),
+                Field::node("Other").make_optional().with_name("second"),
+            ],
+        ));
+        model.check_nth_accessors_are_unambiguous(); // must not panic
+    }
+
+    /// `cast_unchecked` returns the first alternative that matches, so an alternative subsumed
+    /// by an earlier one is never constructed.
+    #[test]
+    #[should_panic(expected = "overlapping alternatives")]
+    fn check_choice_alternatives_rejects_a_subsumed_alternative() {
+        let mut model = model_with_overlapping_choices();
+        model.push_node(Node::Choices(ChoiceNode {
+            name: NodeKind::from("DesignFile"),
+            items: NodesOrTokens::Nodes(vec![
+                NodeKind::from("Declaration"),
+                NodeKind::from("ConstantDeclaration"),
+            ]),
+        }));
+        model.check_choice_alternatives_are_disjoint();
+    }
+
+    /// The same alternatives spread over two *different* choices are fine — a cast names the
+    /// choice it wants, so nothing is ambiguous about `Declaration` and `Item` sharing one.
+    #[test]
+    fn check_choice_alternatives_allows_a_kind_in_several_choices() {
+        let model = model_with_overlapping_choices();
+        model.check_choice_alternatives_are_disjoint(); // must not panic
+    }
+
+    /// `Expression` plus `Condition`, an alias for it, referenced from `DesignFile`.
+    fn model_with_alias() -> Model {
+        let mut model = Model::default();
+        model.push_node(SequenceNode::new(
+            "Expression",
+            vec![Field::token(TokenKind::Identifier)],
+        ));
+        model.push_node(AliasNode::node("Condition", "Expression"));
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![Field::node("Condition")],
+        ));
+        model.do_postprocessing();
+        model
+    }
+
+    #[test]
+    fn resolve_alias_yields_the_aliased_kind() {
+        let model = model_with_alias();
+        assert_eq!(
+            model.resolve_alias(&NodeKind::from("Condition")),
+            NodeOrTokenKind::Node("Expression".into())
+        );
+    }
+
+    /// A kind that is not an alias — and one the model has never heard of — is its own answer.
+    #[test]
+    fn resolve_alias_leaves_other_kinds_alone() {
+        let model = model_with_alias();
+        for kind in ["Expression", "DesignFile", "NotInTheModel"] {
+            assert_eq!(
+                model.resolve_alias(&NodeKind::from(kind)),
+                NodeOrTokenKind::Node(kind.into())
+            );
+        }
+    }
+
+    #[test]
+    fn resolve_alias_peels_nested_aliases() {
+        let mut model = model_with_alias();
+        model.push_node(AliasNode::node("Guard", "Condition"));
+        assert_eq!(
+            model.resolve_alias(&NodeKind::from("Guard")),
+            NodeOrTokenKind::Node("Expression".into())
+        );
+    }
+
+    /// An alias may rename a token, which is what lets a keyword stand as a choice alternative.
+    #[test]
+    fn resolve_alias_ends_at_a_token() {
+        let mut model = Model::default();
+        model.push_node(AliasNode::token("OthersChoice", TokenKind::Identifier));
+        model.push_node(AliasNode::node("Renamed", "OthersChoice"));
+        assert_eq!(
+            model.resolve_alias(&NodeKind::from("Renamed")),
+            NodeOrTokenKind::Token(TokenKind::Identifier)
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "part of a cycle")]
+    fn resolve_alias_rejects_a_cycle() {
+        let mut model = Model::default();
+        model.push_node(AliasNode::node("A", "B"));
+        model.push_node(AliasNode::node("B", "A"));
+        model.resolve_alias(&NodeKind::from("A"));
+    }
+
+    /// The tree holds a node of the aliased kind, so the alias itself is not a `NodeKind`.
+    #[test]
+    fn an_alias_is_not_a_materialized_node_kind() {
+        let kinds = model_with_alias().collect_all_materialized_node_kinds();
+        assert!(kinds.contains("Expression"));
+        assert!(!kinds.contains("Condition"));
+    }
+
+    #[test]
+    fn an_alias_is_empty_capable_with_its_target() {
+        let mut model = Model::default();
+        // All-repeated → empty-capable.
+        let leaf = SequenceNode::new(
+            "Leaf",
+            vec![Field::token(TokenKind::SemiColon).make_repeated()],
+        );
+        model.push_node(leaf);
+        model.push_node(AliasNode::node("LeafAlias", "Leaf"));
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![Field::token(TokenKind::SemiColon)],
+        ));
+
+        let empty_capable = model.compute_empty_capable_nodes();
+        assert!(empty_capable.contains("LeafAlias"));
+        assert!(!empty_capable.contains("DesignFile"));
+    }
+
+    /// A reference to an alias is a reference, so the alias is not "defined but never used" —
+    /// and neither is the node it renames.
+    #[test]
+    fn check_all_nodes_exist_accepts_an_alias() {
+        model_with_alias().check_all_nodes_exist();
+    }
+
+    /// An alias and the node it renames are one kind in the tree, so they are numbered as one
+    /// run: `expression()` reaches the first child, `condition()` the second.
+    #[test]
+    fn fixup_nth_numbers_an_alias_and_its_target_as_one_kind() {
+        let mut model = model_with_alias();
+        model.push_node(SequenceNode::new(
+            "ElseWhenExpression",
+            vec![
+                Field::token(TokenKind::Comma),
+                Field::node("Expression"),
+                Field::token(TokenKind::SemiColon),
+                Field::node("Condition"),
+            ],
+        ));
+        model.fixup_nth_by_resolved_kind();
+        model.check_nth_accessors_are_unambiguous(); // must not panic
+
+        let Some(Node::Items(seq)) = model.node(&"ElseWhenExpression".into()) else {
+            panic!("ElseWhenExpression should be a sequence node")
+        };
+        assert_eq!(
+            seq.items[1].cardinality,
+            Cardinality::Required { nth: 0 },
+            "the bare Expression is the first of its kind"
+        );
+        assert_eq!(
+            seq.items[3].cardinality,
+            Cardinality::Required { nth: 1 },
+            "Condition renames Expression, so it is the second of that kind"
+        );
+    }
+
+    /// The two keywords are distinct kinds, so each stays at ordinal 0.
+    #[test]
+    fn fixup_nth_numbers_each_kind_separately() {
+        let mut model = Model::default();
+        model.push_node(SequenceNode::new(
+            "DesignFile",
+            vec![
+                Field::token(TokenKind::SemiColon),
+                Field::token(TokenKind::Comma),
+                Field::token(TokenKind::SemiColon),
+            ],
+        ));
+        model.fixup_nth_by_resolved_kind();
+
+        let Some(Node::Items(seq)) = model.node(&"DesignFile".into()) else {
+            panic!("DesignFile should be a sequence node")
+        };
+        let nths: Vec<Cardinality> = seq.items.iter().map(|item| item.cardinality).collect();
+        assert_eq!(
+            nths,
+            [
+                Cardinality::Required { nth: 0 },
+                Cardinality::Required { nth: 0 },
+                Cardinality::Required { nth: 1 },
+            ]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "which is not defined anywhere")]
+    fn check_aliased_nodes_are_defined_panics_on_a_dangling_alias() {
+        let mut model = Model::default();
+        model.push_node(AliasNode::node("Condition", "Expression"));
+        model.check_aliased_nodes_are_defined();
     }
 
     #[test]

@@ -6,6 +6,8 @@
 
 use std::ops::Range;
 
+use crate::syntax::child::{Child, ChildKind};
+use crate::syntax::NodeKind;
 use crate::tokens::tokenizer::{LexErr, LexErrKind, LexErrPos, UnterminatedKind};
 use crate::tokens::{Token, TokenKind};
 
@@ -14,10 +16,10 @@ pub type Span = Range<usize>;
 /// Syntax error kinds that may occur when parsing a VHDL source file
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyntaxErrKind {
-    /// One of the tokens was expected, but it is missing from the tree.
-    Expected(Box<[TokenKind]>),
+    /// One of the items was expected, but it is missing from the tree.
+    Expected(Child<Box<[NodeKind]>, Box<[TokenKind]>>),
     /// A token was seen that was not expected in some context
-    Unexpected(TokenKind),
+    Unexpected(ChildKind),
     /// A token or error that was unterminated
     Unterminated(UnterminatedKind),
 }
@@ -71,7 +73,9 @@ impl SyntaxErr {
 
         let kind = match err.err {
             LexErrKind::Unterminated(kind) => SyntaxErrKind::Unterminated(kind),
-            LexErrKind::IllegalInput => SyntaxErrKind::Unexpected(TokenKind::Unknown),
+            LexErrKind::IllegalInput => {
+                SyntaxErrKind::Unexpected(ChildKind::Token(TokenKind::Unknown))
+            }
         };
 
         SyntaxErr::new(span, kind)
@@ -99,7 +103,7 @@ mod tests {
         assert_eq!(*syntax_err.span(), 2..3);
         assert_eq!(
             *syntax_err.err(),
-            SyntaxErrKind::Unexpected(TokenKind::Unknown)
+            SyntaxErrKind::Unexpected(ChildKind::Token(TokenKind::Unknown))
         );
     }
 

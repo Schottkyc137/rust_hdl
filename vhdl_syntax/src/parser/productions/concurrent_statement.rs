@@ -5,9 +5,14 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::parser::productions::declarations::is_start_of_declarative_part;
-use crate::parser::util::StallGuard;
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{
+    AstNode, BlockDeclarativeItemSyntax, ConcurrentStatementSyntax, NodeKind,
+    ProcessDeclarativeItemSyntax, SequentialStatementSyntax,
+};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
@@ -17,11 +22,11 @@ impl Parser {
         self.label();
         self.block_preamble();
         self.block_header();
-        self.declarations();
+        self.block_declarative_part();
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
-        self.concurrent_statements();
+        self.block_statement_part();
         self.block_epilogue();
         self.end_node();
     }
@@ -30,7 +35,7 @@ impl Parser {
         self.start_node(BlockPreamble);
         self.expect_kw(Kw::Block);
         if self.next_is(LeftPar) {
-            self.start_node(ParenthesizedExpression);
+            self.start_node(ParenthesizedCondition);
             self.skip(); // LeftPar
             self.expression();
             self.expect_token(RightPar);
@@ -46,6 +51,14 @@ impl Parser {
         self.opt_identifier();
         self.expect_token(SemiColon);
         self.end_node();
+    }
+
+    pub fn block_declarative_part(&mut self) {
+        self.declarations(BlockDeclarativePart, BlockDeclarativeItemSyntax::META);
+    }
+
+    pub fn block_statement_part(&mut self) {
+        self.concurrent_statements(BlockStatementPart, ConcurrentStatementSyntax::META);
     }
 
     pub fn block_header(&mut self) {
@@ -78,18 +91,24 @@ impl Parser {
         self.end_node();
     }
 
-    pub fn concurrent_statements(&mut self) {
-        self.start_node(ConcurrentStatements);
+    pub(crate) fn concurrent_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
+        self.start_node(node_kind);
+        self.concurrent_statement_list(choice_options(layout));
+        self.end_node();
+    }
+
+    fn concurrent_statement_list(&mut self, allowed_nodes: &[NodeKind]) {
         let mut guard = StallGuard::new();
         while guard.should_continue(self) {
+            let start = self.builder.current_pos();
             match self.peek_token() {
                 Keyword(Kw::End | Kw::Elsif | Kw::Else | Kw::When) | Eof => {
                     break;
                 }
                 _ => self.concurrent_statement(),
             }
+            self.check_last_node_is_allowed(start, allowed_nodes);
         }
-        self.end_node();
     }
 
     pub fn component_instantiated_unit(&mut self) {
@@ -287,6 +306,7 @@ impl Parser {
         self.start_node(CaseGenerateStatement);
         self.label();
         self.case_generate_preamble();
+        self.case_generate_alternative();
         while self.next_is(Keyword(Kw::When)) {
             self.case_generate_alternative();
         }
@@ -384,13 +404,13 @@ impl Parser {
         self.start_node(GenerateStatementBody);
         if is_start_of_declarative_part(self.peek_token()) || self.next_is(Keyword(Kw::Begin)) {
             self.start_node(GenerateBodyDeclarations);
-            self.declarations();
+            self.block_declarative_part();
             self.start_node(DeclarationStatementSeparator);
             self.expect_kw(Kw::Begin);
             self.end_node();
             self.end_node();
         }
-        self.concurrent_statements();
+        self.concurrent_statement_list(choice_options(ConcurrentStatementSyntax::META));
         if self.next_is(Keyword(Kw::End)) && !self.next_nth_is(Keyword(Kw::Generate), 1) {
             self.generate_statement_body_epilogue();
         }
@@ -422,13 +442,21 @@ impl Parser {
         self.start_node(ProcessStatement);
         self.opt_label();
         self.process_preamble();
-        self.declarations();
+        self.process_declarative_part();
         self.start_node(DeclarationStatementSeparator);
         self.expect_kw(Kw::Begin);
         self.end_node();
-        self.sequential_statements();
+        self.process_statement_part();
         self.process_epilogue();
         self.end_node();
+    }
+
+    pub fn process_declarative_part(&mut self) {
+        self.declarations(ProcessDeclarativePart, ProcessDeclarativeItemSyntax::META);
+    }
+
+    pub fn process_statement_part(&mut self) {
+        self.sequential_statements(ProcessStatementPart, SequentialStatementSyntax::META);
     }
 
     pub fn process_preamble(&mut self) {
@@ -887,6 +915,16 @@ else alt3: generate
 end alt3;
 end generate;",
         ))
+    }
+
+    #[test]
+    fn empty_case_generate() {
+        assert_recovery_snapshot!(
+            "\
+gen: case expr(0) + 2 generate
+end generate;",
+            Parser::case_generate_statement
+        );
     }
 
     #[test]

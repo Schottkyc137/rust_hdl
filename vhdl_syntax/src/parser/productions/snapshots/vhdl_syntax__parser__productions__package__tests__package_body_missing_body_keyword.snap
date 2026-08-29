@@ -13,7 +13,7 @@ PackageBody
     Keyword(Package)
     Identifier 'math_pkg'
     Keyword(Is)
-  Declarations
+  PackageBodyDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
@@ -30,9 +30,10 @@ PackageBody
       SemiColon
   PackageBodyEpilogue
     Keyword(End)
-    Keyword(Package)
-    Keyword(Body)
+    EndPackageBody
+      Keyword(Package)
+      Keyword(Body)
     SemiColon
 
 == diagnostics ==
-1:8 Expected([Keyword(Body)])
+1:8 Expected(Token([Keyword(Body)]))

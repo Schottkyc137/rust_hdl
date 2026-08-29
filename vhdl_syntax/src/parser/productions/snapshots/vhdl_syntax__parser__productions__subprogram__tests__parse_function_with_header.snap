@@ -43,7 +43,7 @@ SubprogramBody
         NameDesignatorPrefix
           Identifier 'natural'
     Keyword(Is)
-  Declarations
+  SubprogramDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
@@ -60,7 +60,7 @@ SubprogramBody
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
-  SequentialStatements
+  SubprogramStatementPart
     ReturnStatement
       Keyword(Return)
       BinaryExpression

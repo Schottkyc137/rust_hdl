@@ -1,16 +1,21 @@
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{AstNode, PackageBodyDeclarativeItemSyntax, PackageDeclarativeItemSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
     pub fn package(&mut self) {
-        self.start_node(Package);
+        self.start_node(PackageDeclaration);
         self.package_preamble();
         self.package_header();
-        self.declarations();
+        self.package_declarative_part();
         self.package_epilogue();
         self.end_node();
+    }
+
+    pub fn package_declarative_part(&mut self) {
+        self.declarations(PackageDeclarativePart, PackageDeclarativeItemSyntax::META);
     }
 
     pub fn package_preamble(&mut self) {
@@ -48,9 +53,16 @@ impl Parser {
     pub fn package_body(&mut self) {
         self.start_node(PackageBody);
         self.package_body_preamble();
-        self.declarations();
+        self.package_body_declarative_part();
         self.package_body_epilogue();
         self.end_node();
+    }
+
+    pub fn package_body_declarative_part(&mut self) {
+        self.declarations(
+            PackageBodyDeclarativePart,
+            PackageBodyDeclarativeItemSyntax::META,
+        );
     }
 
     pub fn package_body_preamble(&mut self) {
@@ -65,8 +77,12 @@ impl Parser {
     pub fn package_body_epilogue(&mut self) {
         self.start_node(PackageBodyEpilogue);
         self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Package));
-        self.opt_token(Keyword(Kw::Body));
+        if self.next_is(Keyword(Kw::Package)) {
+            self.start_node(EndPackageBody);
+            self.skip(); // Kw::Package
+            self.expect_kw(Kw::Body);
+            self.end_node();
+        }
         self.opt_identifier();
         self.expect_token(SemiColon);
         self.end_node();
@@ -182,6 +198,16 @@ package math_pkg is
 package math_pkg is
   constant pi : real := 3.14;
 end package body;",
+            Parser::package_body
+        );
+    }
+
+    #[test]
+    fn package_body_end_package_without_body_keyword() {
+        assert_recovery_snapshot!(
+            "\
+package body math_pkg is
+end package;",
             Parser::package_body
         );
     }

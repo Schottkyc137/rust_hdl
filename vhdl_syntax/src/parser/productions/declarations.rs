@@ -4,8 +4,9 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::util::StallGuard;
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
+use crate::syntax::meta::Layout;
 use crate::syntax::NodeKind::{self, *};
 use crate::tokens::TokenKind::*;
 use crate::tokens::{Keyword as Kw, TokenKind};
@@ -38,16 +39,12 @@ pub(crate) fn is_start_of_declarative_part(token_kind: TokenKind) -> bool {
 }
 
 impl Parser {
-    pub(crate) fn opt_declarative_part(&mut self) {
-        if is_start_of_declarative_part(self.peek_token()) {
-            self.declarations();
-        }
-    }
-
-    pub(crate) fn declarations(&mut self) {
-        self.start_node(Declarations);
+    pub(crate) fn declarations(&mut self, node_kind: NodeKind, layout: &Layout) {
+        let allowed_nodes = choice_options(layout);
+        self.start_node(node_kind);
         let mut guard = StallGuard::new();
         while guard.should_continue(self) {
+            let start = self.builder.current_pos();
             match self.peek_token() {
                 Keyword(Kw::Begin | Kw::End) | Eof => break,
                 Keyword(Kw::Type) => self.type_declaration(),
@@ -90,8 +87,10 @@ impl Parser {
                         Keyword(Kw::Use),
                         Keyword(Kw::Alias),
                     ]);
+                    continue;
                 }
             }
+            self.check_last_node_is_allowed(start, allowed_nodes);
         }
         self.end_node();
     }
@@ -103,7 +102,7 @@ impl Parser {
     }
 
     pub fn package_declaration(&mut self) {
-        self.start_node(PackageDeclaration);
+        self.start_node(PackageDeclarationItem);
         self.package();
         self.end_node();
     }
