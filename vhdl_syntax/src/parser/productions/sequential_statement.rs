@@ -373,26 +373,23 @@ impl Parser {
                     self.aggregate();
                     self.end_node();
                 } else {
-                    let target_marker = self.start_unknown();
                     self.name();
                     if self.next_is_one_of([ColonEq, LTE]) {
-                        self.set_unknown(target_marker, NameTarget);
+                        self.precede(NameTarget);
                         self.end_node();
                     }
                 }
                 match self.peek_token() {
                     ColonEq => {
                         self.skip();
-                        let expressions_marker = self.start_unknown();
-                        let when_marker = self.start_unknown();
                         self.expression();
                         if self.next_is(Keyword(Kw::When)) {
                             self.set_unknown(marker, ConditionalVariableAssignment);
-                            self.set_unknown(expressions_marker, ConditionalExpressions);
-                            self.set_unknown(when_marker, WhenExpression);
+                            self.precede(WhenExpression);
                             self.skip();
                             self.expression();
                             self.end_node();
+                            self.precede(ConditionalExpressions);
                             self.conditional_else(
                                 Parser::expression,
                                 ElseWhenExpression,
@@ -407,16 +404,14 @@ impl Parser {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
                             self.skip_n(2);
                             self.opt_force_mode();
-                            let expressions_marker = self.start_unknown();
-                            let when_marker = self.start_unknown();
                             self.expression();
                             if self.next_is(Keyword(Kw::When)) {
                                 self.set_unknown(marker, ConditionalForceAssignment);
-                                self.set_unknown(expressions_marker, ConditionalExpressions);
-                                self.set_unknown(when_marker, WhenExpression);
+                                self.precede(WhenExpression);
                                 self.skip();
                                 self.expression();
                                 self.end_node();
+                                self.precede(ConditionalExpressions);
                                 self.conditional_else(
                                     Parser::expression,
                                     ElseWhenExpression,
@@ -433,16 +428,14 @@ impl Parser {
                         } else {
                             self.skip();
                             self.opt_delay_mechanism();
-                            let waveforms_marker = self.start_unknown();
-                            let when_marker = self.start_unknown();
                             self.waveform();
                             if self.next_is(Keyword(Kw::When)) {
                                 self.set_unknown(marker, ConditionalWaveformAssignment);
-                                self.set_unknown(waveforms_marker, ConditionalWaveforms);
-                                self.set_unknown(when_marker, WhenWaveform);
+                                self.precede(WhenWaveform);
                                 self.skip();
                                 self.expression();
                                 self.end_node();
+                                self.precede(ConditionalWaveforms);
                                 self.conditional_else(
                                     Parser::waveform,
                                     ElseWhenWaveform,

@@ -51,13 +51,12 @@ impl Parser {
             BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Kw::Null) => self.skip_into_node(LiteralExpression),
             AbstractLiteral => {
                 let literal_marker = self.start_unknown();
-                let expression_marker = self.start_unknown();
                 self.skip();
                 if self.next_is(Identifier) {
                     self.set_unknown(literal_marker, PhysicalLiteral);
                     self.name();
                     self.end_node();
-                    self.set_unknown(expression_marker, PhysicalLiteralExpression);
+                    self.precede(PhysicalLiteralExpression);
                     self.end_node();
                 } else {
                     self.set_unknown(literal_marker, LiteralExpression);

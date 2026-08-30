@@ -69,10 +69,9 @@ impl Parser {
             // second name follows. Mark the position, parse the first name,
             // and if another name follows wrap the first retroactively as a
             // `NameResolutionIndication`.
-            let marker = self.start_unknown();
             self.name();
             if is_start_of_name(self) {
-                self.set_unknown(marker, NameResolutionIndication);
+                self.precede(NameResolutionIndication);
                 self.end_node();
                 self.name();
             }

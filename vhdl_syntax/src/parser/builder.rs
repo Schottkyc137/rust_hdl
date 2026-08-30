@@ -16,7 +16,39 @@ pub(crate) struct NodeBuilder {
     children: Vec<GreenChild>,
 }
 
-pub(crate) struct Marker(usize);
+pub(crate) struct Marker {
+    pos: usize,
+    #[cfg(debug_assertions)]
+    fused: bool,
+}
+
+impl Marker {
+    pub fn new(pos: usize) -> Marker {
+        Marker {
+            pos,
+            #[cfg(debug_assertions)]
+            fused: true,
+        }
+    }
+
+    pub fn defuse(&mut self) {
+        #[cfg(debug_assertions)]
+        {
+            self.fused = false;
+        }
+    }
+}
+
+impl Drop for Marker {
+    fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        // Don't panic while another panic is unwinding: this aborts the process
+        // and hides the original failure
+        if self.fused && !std::thread::panicking() {
+            panic!("marker dropped without set_unknown or abandon");
+        }
+    }
+}
 
 impl NodeBuilder {
     pub fn new() -> NodeBuilder {
@@ -63,23 +95,30 @@ impl NodeBuilder {
 
     /// Start an unknown node that is later patched using `set_unknown`
     pub fn start_unknown(&self) -> Marker {
-        Marker(self.children.len())
+        Marker::new(self.children.len())
     }
 
-    pub fn set_unknown(&mut self, marker: Marker, kind: NodeKind) {
+    pub fn set_unknown(&mut self, mut marker: Marker, kind: NodeKind) {
         assert!(
-            marker.0 <= self.children.len(),
+            marker.pos <= self.children.len(),
             "marker no longer valid, was end_node called early?"
         );
 
         if let Some(&(_, first_child)) = self.parents.last() {
             assert!(
-                marker.0 >= first_child,
+                marker.pos >= first_child,
                 "marker no longer valid, was it taken in an already-closed node?"
             );
         }
 
-        self.parents.push((kind, marker.0));
+        self.parents.push((kind, marker.pos));
+        marker.defuse();
+    }
+
+    #[allow(dead_code)]
+    pub fn abandon(&mut self, mut marker: Marker) {
+        // TODO: set tombstone when event-based
+        marker.defuse();
     }
 
     /// Insert a new parent above the node that was just completed.

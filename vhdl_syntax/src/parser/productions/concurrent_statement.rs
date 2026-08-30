@@ -187,25 +187,22 @@ impl Parser {
                 let marker = self.start_unknown();
                 self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
-                let name_marker = self.start_unknown();
                 self.name();
                 match self.peek_token() {
                     LTE => {
-                        self.set_unknown(name_marker, NameTarget);
+                        self.precede(NameTarget);
                         self.end_node();
                         self.skip();
                         self.opt_token(Keyword(Kw::Guarded));
                         self.opt_delay_mechanism();
-                        let waveforms_marker = self.start_unknown();
-                        let when_marker = self.start_unknown();
                         self.waveform();
                         if self.next_is(Keyword(Kw::When)) {
                             self.set_unknown(marker, ConcurrentConditionalSignalAssignment);
-                            self.set_unknown(waveforms_marker, ConditionalWaveforms);
-                            self.set_unknown(when_marker, WhenWaveform);
+                            self.precede(WhenWaveform);
                             self.skip();
                             self.expression();
                             self.end_node();
+                            self.precede(ConditionalWaveforms);
                             self.conditional_else(Parser::waveform, ElseWhenWaveform, ElseWaveform);
                             self.end_node();
                         } else {
@@ -213,7 +210,7 @@ impl Parser {
                         }
                     }
                     Keyword(Kw::Port | Kw::Generic) => {
-                        self.set_unknown(name_marker, InstantiatedComponent);
+                        self.precede(InstantiatedComponent);
                         self.end_node();
                         self.set_unknown(marker, ComponentInstantiationStatement);
                         self.instantiation_statement_inner();
