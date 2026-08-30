@@ -4,7 +4,6 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::builder::Checkpoint;
 use crate::parser::Parser;
 use crate::syntax::NodeKind::{self, ConfigurationDeclarativePart};
 use crate::tokens::TokenKind::*;
@@ -62,9 +61,28 @@ impl Parser {
     }
 
     pub fn configuration_item(&mut self) {
-        let checkpoint = self.checkpoint();
-        self.expect_kw(Kw::For);
-        self.configuration_item_known_keyword(checkpoint);
+        // A component configuration's instantiation list is
+        // `all`, `others`, or `identifier {, identifier} :`; a block
+        // configuration is a block specification (a name) that is never
+        // followed by `:`. Two tokens past the `for` decide which, so the kind
+        // is known before anything is consumed.
+        match self.peek_nth_token(1) {
+            Keyword(Kw::All | Kw::Others) => self.component_configuration(),
+            Identifier if self.next_nth_is(Comma, 2) || self.next_nth_is(Colon, 2) => {
+                self.component_configuration()
+            }
+            // A nested block configuration, matching
+            // `BlockConfigurationItem ::= BlockConfiguration`.
+            Identifier => {
+                self.start_node(NodeKind::BlockConfigurationItem);
+                self.block_configuration();
+                self.end_node();
+            }
+            _ => {
+                self.expect_kw(Kw::For);
+                self.expect_tokens_recover([Keyword(Kw::All), Keyword(Kw::Others), Identifier]);
+            }
+        }
     }
 
     pub fn block_configuration(&mut self) {
@@ -97,59 +115,22 @@ impl Parser {
         self.end_node();
     }
 
-    fn configuration_item_known_keyword(&mut self, item_checkpoint: Checkpoint) {
+    fn component_configuration(&mut self) {
+        self.start_node(NodeKind::ComponentConfiguration);
+        self.start_node(NodeKind::ComponentConfigurationPreamble);
+        self.expect_kw(Kw::For);
+        self.start_node(NodeKind::ComponentSpecification);
         match self.peek_token() {
-            tok @ Keyword(Kw::All | Kw::Others) => {
-                self.start_node_at(item_checkpoint, NodeKind::ComponentConfiguration);
-                self.start_node_at(item_checkpoint, NodeKind::ComponentConfigurationPreamble);
-                self.start_node(NodeKind::ComponentSpecification);
-                if tok == Keyword(Kw::All) {
-                    self.start_node(NodeKind::InstantiationListAll);
-                } else {
-                    self.start_node(NodeKind::InstantiationListOthers);
-                }
-                self.skip();
-                self.end_node();
-                self.expect_token(Colon);
-                self.name();
-                self.end_node();
-                self.end_node();
-                self.component_configuration_known_spec();
-                self.end_node();
-            }
-            Identifier => {
-                // A component configuration's instantiation list is
-                // `identifier {, identifier} :`; a block configuration is a block
-                // specification (a name) that is never followed by `:`. So a
-                // leading identifier followed by `,` or `:` is a component
-                // configuration, otherwise it is a block configuration.
-                if self.next_nth_is(Comma, 1) || self.next_nth_is(Colon, 1) {
-                    self.start_node_at(item_checkpoint, NodeKind::ComponentConfiguration);
-                    self.start_node_at(item_checkpoint, NodeKind::ComponentConfigurationPreamble);
-                    self.start_node(NodeKind::ComponentSpecification);
-                    self.separated_list(NodeKind::InstantiationListList, Parser::identifier, Comma);
-                    self.expect_token(Colon);
-                    self.name();
-                    self.end_node();
-                    self.end_node();
-                    self.component_configuration_known_spec();
-                    self.end_node();
-                } else {
-                    // A nested block configuration: wrap the `for <name>` in a
-                    // `BlockConfiguration`/preamble, matching
-                    // `BlockConfigurationItem ::= BlockConfiguration`.
-                    self.name();
-                    self.start_node_at(item_checkpoint, NodeKind::BlockConfigurationItem);
-                    self.start_node_at(item_checkpoint, NodeKind::BlockConfiguration);
-                    self.start_node_at(item_checkpoint, NodeKind::BlockConfigurationPreamble);
-                    self.end_node();
-                    self.block_configuration_known_spec();
-                    self.end_node();
-                    self.end_node();
-                }
-            }
-            _ => self.expect_tokens_recover([Keyword(Kw::All), Keyword(Kw::Others), Identifier]),
+            Keyword(Kw::All) => self.skip_into_node(NodeKind::InstantiationListAll),
+            Keyword(Kw::Others) => self.skip_into_node(NodeKind::InstantiationListOthers),
+            _ => self.separated_list(NodeKind::InstantiationListList, Parser::identifier, Comma),
         }
+        self.expect_token(Colon);
+        self.name();
+        self.end_node(); // ComponentSpecification
+        self.end_node(); // ComponentConfigurationPreamble
+        self.component_configuration_known_spec();
+        self.end_node(); // ComponentConfiguration
     }
 
     pub fn component_configuration_epilogue(&mut self) {

@@ -184,43 +184,44 @@ impl Parser {
             Keyword(Kw::Assert) => self.concurrent_assertion_statement(),
             Keyword(Kw::With) => self.concurrent_selected_signal_assignment(),
             Identifier | LtLt | StringLiteral | CharacterLiteral => {
-                let checkpoint = self.checkpoint();
+                let marker = self.start_unknown();
                 self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
-                let checkpoint2 = self.checkpoint();
+                let name_marker = self.start_unknown();
                 self.name();
                 match self.peek_token() {
                     LTE => {
-                        self.start_node_at(checkpoint2, NameTarget);
+                        self.set_unknown(name_marker, NameTarget);
                         self.end_node();
                         self.skip();
                         self.opt_token(Keyword(Kw::Guarded));
                         self.opt_delay_mechanism();
-                        let waveform_checkpoint = self.checkpoint();
+                        let waveforms_marker = self.start_unknown();
+                        let when_marker = self.start_unknown();
                         self.waveform();
                         if self.next_is(Keyword(Kw::When)) {
-                            self.start_node_at(checkpoint, ConcurrentConditionalSignalAssignment);
-                            self.start_node_at(waveform_checkpoint, ConditionalWaveforms);
-                            self.start_node_at(waveform_checkpoint, WhenWaveform);
+                            self.set_unknown(marker, ConcurrentConditionalSignalAssignment);
+                            self.set_unknown(waveforms_marker, ConditionalWaveforms);
+                            self.set_unknown(when_marker, WhenWaveform);
                             self.skip();
                             self.expression();
                             self.end_node();
                             self.conditional_else(Parser::waveform, ElseWhenWaveform, ElseWaveform);
                             self.end_node();
                         } else {
-                            self.start_node_at(checkpoint, ConcurrentSimpleSignalAssignment);
+                            self.set_unknown(marker, ConcurrentSimpleSignalAssignment);
                         }
                     }
                     Keyword(Kw::Port | Kw::Generic) => {
-                        self.start_node_at(checkpoint2, InstantiatedComponent);
+                        self.set_unknown(name_marker, InstantiatedComponent);
                         self.end_node();
-                        self.start_node_at(checkpoint, ComponentInstantiationStatement);
+                        self.set_unknown(marker, ComponentInstantiationStatement);
                         self.instantiation_statement_inner();
                     }
                     // Could be an instantiated unit without ports and generics
                     // or a procedure call
-                    _ => self.start_node_at(
-                        checkpoint,
+                    _ => self.set_unknown(
+                        marker,
                         ConcurrentProcedureCallOrComponentInstantiationStatement,
                     ),
                 }

@@ -21,23 +21,19 @@ impl Parser {
     }
 
     pub fn delay_mechanism(&mut self) {
-        let checkpoint = self.checkpoint();
-        match_next_token_consume!(self,
-            Keyword(Kw::Transport) => {
-                self.start_node_at(checkpoint, TransportDelayMechanism);
-            },
-            Keyword(Kw::Inertial) => {
-                self.start_node_at(checkpoint, InertialDelayMechanism);
-            },
+        match_next_token!(self,
+            Keyword(Kw::Transport) => self.skip_into_node(TransportDelayMechanism),
+            Keyword(Kw::Inertial) => self.skip_into_node(InertialDelayMechanism),
             Keyword(Kw::Reject) => {
-                self.start_node_at(checkpoint, InertialDelayMechanism);
-                self.start_node_at(checkpoint, RejectClause);
+                self.start_node(InertialDelayMechanism);
+                self.start_node(RejectClause);
+                self.skip(); // Kw::Reject
                 self.expression();
                 self.end_node();
                 self.expect_kw(Kw::Inertial);
+                self.end_node();
             }
-        );
-        self.end_node();
+        )
     }
 
     pub fn selected_waveforms(&mut self) {

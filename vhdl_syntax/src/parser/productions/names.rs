@@ -150,7 +150,7 @@ impl Parser {
 
     pub fn external_name(&mut self) {
         // LRM §8.7
-        let checkpoint = self.checkpoint();
+        let marker = self.start_unknown();
         self.expect_token(LtLt);
 
         let tok = self.expect_one_of_tokens([
@@ -159,9 +159,9 @@ impl Parser {
             Keyword(Kw::Variable),
         ]);
         match tok {
-            Some(Keyword(Kw::Signal)) => self.start_node_at(checkpoint, ExternalSignalName),
-            Some(Keyword(Kw::Variable)) => self.start_node_at(checkpoint, ExternalVariableName),
-            _ => self.start_node_at(checkpoint, ExternalConstantName),
+            Some(Keyword(Kw::Signal)) => self.set_unknown(marker, ExternalSignalName),
+            Some(Keyword(Kw::Variable)) => self.set_unknown(marker, ExternalVariableName),
+            _ => self.set_unknown(marker, ExternalConstantName),
         }
         self.external_pathname();
         self.expect_token(Colon);

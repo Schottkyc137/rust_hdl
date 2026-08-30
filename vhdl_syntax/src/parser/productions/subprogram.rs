@@ -113,15 +113,16 @@ impl Parser {
     }
 
     pub(crate) fn subprogram_declaration_or_body(&mut self) {
-        let checkpoint = self.checkpoint();
+        let marker = self.start_unknown();
+        let preamble_marker = self.start_unknown();
         self.subprogram_specification();
         if self.opt_token(SemiColon) {
-            self.start_node_at(checkpoint, SubprogramDeclaration);
+            self.set_unknown(marker, SubprogramDeclaration);
             self.end_node();
             return;
         }
-        self.start_node_at(checkpoint, SubprogramBody);
-        self.start_node_at(checkpoint, SubprogramBodyPreamble);
+        self.set_unknown(marker, SubprogramBody);
+        self.set_unknown(preamble_marker, SubprogramBodyPreamble);
         self.expect_kw(Kw::Is);
         self.end_node();
         self.subprogram_declarative_part();

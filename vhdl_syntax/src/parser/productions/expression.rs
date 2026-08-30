@@ -45,22 +45,22 @@ impl Parser {
     pub fn primary(&mut self) {
         match_next_token!(self,
             Identifier, LtLt => {
-              let checkpoint = self.checkpoint();
               self.name();
-              self.continue_primary_after_name(checkpoint);
+              self.continue_primary_after_name();
             },
             BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Kw::Null) => self.skip_into_node(LiteralExpression),
             AbstractLiteral => {
-                let checkpoint = self.checkpoint();
+                let literal_marker = self.start_unknown();
+                let expression_marker = self.start_unknown();
                 self.skip();
                 if self.next_is(Identifier) {
-                    self.start_node_at(checkpoint, PhysicalLiteral);
+                    self.set_unknown(literal_marker, PhysicalLiteral);
                     self.name();
                     self.end_node();
-                    self.start_node_at(checkpoint, PhysicalLiteralExpression);
+                    self.set_unknown(expression_marker, PhysicalLiteralExpression);
                     self.end_node();
                 } else {
-                    self.start_node_at(checkpoint, LiteralExpression);
+                    self.set_unknown(literal_marker, LiteralExpression);
                     self.end_node();
                 }
             },
@@ -79,21 +79,18 @@ impl Parser {
         self.end_node();
     }
 
-    /// Finalize a primary whose leading `Name` was already parsed and starts
-    /// at `checkpoint`. If a `Tick` follows, the name is the type mark of a
+    /// Finalize a primary whose leading `Name` is the node that was just
+    /// completed. If a `Tick` follows, the name is the type mark of a
     /// `QualifiedExpression` and the `'(…)` is consumed here; otherwise the
     /// name is wrapped in `NameExpression`. Callers that need to continue
     /// with binary operators should follow up with `expression_from_primary`.
-    pub(crate) fn continue_primary_after_name(
-        &mut self,
-        checkpoint: crate::parser::builder::Checkpoint,
-    ) {
+    pub(crate) fn continue_primary_after_name(&mut self) {
         if self.next_is(Tick) {
-            self.start_node_at(checkpoint, QualifiedExpression);
+            self.precede(QualifiedExpression);
             self.skip();
             self.parenthesized_expression_or_aggregate();
         } else {
-            self.start_node_at(checkpoint, NameExpression);
+            self.precede(NameExpression);
         }
         self.end_node();
     }
@@ -117,13 +114,12 @@ impl Parser {
     }
 
     fn expression_inner(&mut self, min_precedence: u8) {
-        let checkpoint = self.checkpoint();
         self.unary_expression();
 
         while let Some(precedence) = binary_precedence(self.peek_token()) {
             let precedence: u8 = precedence.into();
             if precedence > min_precedence {
-                self.start_node_at(checkpoint, BinaryExpression);
+                self.precede(BinaryExpression);
                 self.skip();
                 self.expression_inner(precedence);
                 self.end_node();
@@ -137,16 +133,13 @@ impl Parser {
         self.expression_inner(0);
     }
 
-    /// Continue an expression parse from an already-emitted primary located at
-    /// `checkpoint`. The caller is responsible for having emitted the leading
-    /// primary node (e.g. `NameExpression`) starting at `checkpoint`.
-    pub(crate) fn expression_from_primary(
-        &mut self,
-        checkpoint: crate::parser::builder::Checkpoint,
-    ) {
+    /// Continue an expression parse from an already-emitted primary. The
+    /// caller is responsible for having emitted the leading primary node
+    /// (e.g. `NameExpression`) as the most recently completed node.
+    pub(crate) fn expression_from_primary(&mut self) {
         while let Some(precedence) = binary_precedence(self.peek_token()) {
             let precedence: u8 = precedence.into();
-            self.start_node_at(checkpoint, BinaryExpression);
+            self.precede(BinaryExpression);
             self.skip();
             self.expression_inner(precedence);
             self.end_node();

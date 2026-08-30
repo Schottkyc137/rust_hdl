@@ -66,13 +66,13 @@ impl Parser {
             self.name();
         } else {
             // Bare-name `resolution_indication` is only detectable when a
-            // second name follows. Take a checkpoint, parse the first name,
+            // second name follows. Mark the position, parse the first name,
             // and if another name follows wrap the first retroactively as a
             // `NameResolutionIndication`.
-            let checkpoint = self.checkpoint();
+            let marker = self.start_unknown();
             self.name();
             if is_start_of_name(self) {
-                self.start_node_at(checkpoint, NameResolutionIndication);
+                self.set_unknown(marker, NameResolutionIndication);
                 self.end_node();
                 self.name();
             }

@@ -14,15 +14,15 @@ use crate::tokens::TokenKind::*;
 
 impl Parser {
     pub fn type_declaration(&mut self) {
-        let checkpoint = self.checkpoint();
+        let marker = self.start_unknown();
         self.expect_kw(Kw::Type);
         self.identifier();
         if self.opt_token(SemiColon) {
-            self.start_node_at(checkpoint, IncompleteTypeDeclaration);
+            self.set_unknown(marker, IncompleteTypeDeclaration);
             self.end_node();
             return;
         }
-        self.start_node_at(checkpoint, FullTypeDeclaration);
+        self.set_unknown(marker, FullTypeDeclaration);
         self.expect_kw(Kw::Is);
         self.type_definition();
         self.expect_token(SemiColon);
@@ -47,24 +47,21 @@ impl Parser {
     }
 
     pub fn protected_type_definition(&mut self) {
-        let checkpoint = self.checkpoint();
         let is_body =
             self.next_is(Keyword(Kw::Protected)) && self.next_nth_is(Keyword(Kw::Body), 1);
-        // Build the preamble first so it owns the `protected [body]` keywords,
-        // then retroactively wrap it (and the rest) in the outer node.
         if is_body {
+            self.start_node(ProtectedTypeBody);
             self.start_node(ProtectedTypeBodyPreamble);
             self.expect_tokens([Keyword(Kw::Protected), Keyword(Kw::Body)]);
         } else {
+            self.start_node(ProtectedTypeDeclaration);
             self.start_node(ProtectedPreamble);
             self.expect_kw(Kw::Protected);
         }
         self.end_node();
         if is_body {
-            self.start_node_at(checkpoint, ProtectedTypeBody);
             self.protected_type_body_declarative_part();
         } else {
-            self.start_node_at(checkpoint, ProtectedTypeDeclaration);
             self.protected_type_declarative_part();
         }
         if is_body {

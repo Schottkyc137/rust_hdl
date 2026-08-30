@@ -328,31 +328,31 @@ impl Parser {
             Keyword(Kw::Return) => self.return_statement(),
             Keyword(Kw::Null) => self.null_statement(),
             Keyword(Kw::With) => {
-                let checkpoint = self.checkpoint();
+                let marker = self.start_unknown();
                 self.opt_label();
                 self.selected_assignment_preamble();
                 self.target();
                 match self.peek_token() {
                     LTE => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
-                            self.start_node_at(checkpoint, SelectedForceAssignment);
+                            self.set_unknown(marker, SelectedForceAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
                             self.selected_expressions();
                         } else {
-                            self.start_node_at(checkpoint, SelectedWaveformAssignment);
+                            self.set_unknown(marker, SelectedWaveformAssignment);
                             self.skip();
                             self.opt_delay_mechanism();
                             self.selected_waveforms();
                         }
                     }
                     ColonEq => {
-                        self.start_node_at(checkpoint, SelectedVariableAssignment);
+                        self.set_unknown(marker, SelectedVariableAssignment);
                         self.skip();
                         self.selected_expressions();
                     }
                     _ => {
-                        self.start_node_at(checkpoint, SelectedWaveformAssignment);
+                        self.set_unknown(marker, SelectedWaveformAssignment);
                         self.expect_tokens_recover([LTE, ColonEq]);
                     }
                 }
@@ -360,7 +360,7 @@ impl Parser {
                 self.end_node();
             }
             Identifier | LeftPar | LtLt => {
-                let checkpoint = self.checkpoint();
+                let marker = self.start_unknown();
                 self.opt_label();
                 // A procedure call's callee is a plain `Name`; an assignment's
                 // left-hand side is a `Target`. They are told apart by the
@@ -373,22 +373,23 @@ impl Parser {
                     self.aggregate();
                     self.end_node();
                 } else {
-                    let target_checkpoint = self.checkpoint();
+                    let target_marker = self.start_unknown();
                     self.name();
                     if self.next_is_one_of([ColonEq, LTE]) {
-                        self.start_node_at(target_checkpoint, NameTarget);
+                        self.set_unknown(target_marker, NameTarget);
                         self.end_node();
                     }
                 }
                 match self.peek_token() {
                     ColonEq => {
                         self.skip();
-                        let cond_expr_checkpoint = self.checkpoint();
+                        let expressions_marker = self.start_unknown();
+                        let when_marker = self.start_unknown();
                         self.expression();
                         if self.next_is(Keyword(Kw::When)) {
-                            self.start_node_at(checkpoint, ConditionalVariableAssignment);
-                            self.start_node_at(cond_expr_checkpoint, ConditionalExpressions);
-                            self.start_node_at(cond_expr_checkpoint, WhenExpression);
+                            self.set_unknown(marker, ConditionalVariableAssignment);
+                            self.set_unknown(expressions_marker, ConditionalExpressions);
+                            self.set_unknown(when_marker, WhenExpression);
                             self.skip();
                             self.expression();
                             self.end_node();
@@ -399,19 +400,20 @@ impl Parser {
                             );
                             self.end_node();
                         } else {
-                            self.start_node_at(checkpoint, SimpleVariableAssignment);
+                            self.set_unknown(marker, SimpleVariableAssignment);
                         }
                     }
                     LTE => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
                             self.skip_n(2);
                             self.opt_force_mode();
-                            let cond_expr_checkpoint = self.checkpoint();
+                            let expressions_marker = self.start_unknown();
+                            let when_marker = self.start_unknown();
                             self.expression();
                             if self.next_is(Keyword(Kw::When)) {
-                                self.start_node_at(checkpoint, ConditionalForceAssignment);
-                                self.start_node_at(cond_expr_checkpoint, ConditionalExpressions);
-                                self.start_node_at(cond_expr_checkpoint, WhenExpression);
+                                self.set_unknown(marker, ConditionalForceAssignment);
+                                self.set_unknown(expressions_marker, ConditionalExpressions);
+                                self.set_unknown(when_marker, WhenExpression);
                                 self.skip();
                                 self.expression();
                                 self.end_node();
@@ -422,21 +424,22 @@ impl Parser {
                                 );
                                 self.end_node();
                             } else {
-                                self.start_node_at(checkpoint, SimpleForceAssignment);
+                                self.set_unknown(marker, SimpleForceAssignment);
                             }
                         } else if self.next_nth_is(Keyword(Kw::Release), 1) {
-                            self.start_node_at(checkpoint, SimpleReleaseAssignment);
+                            self.set_unknown(marker, SimpleReleaseAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
                         } else {
                             self.skip();
                             self.opt_delay_mechanism();
-                            let wvfm_checkpoint = self.checkpoint();
+                            let waveforms_marker = self.start_unknown();
+                            let when_marker = self.start_unknown();
                             self.waveform();
                             if self.next_is(Keyword(Kw::When)) {
-                                self.start_node_at(checkpoint, ConditionalWaveformAssignment);
-                                self.start_node_at(wvfm_checkpoint, ConditionalWaveforms);
-                                self.start_node_at(wvfm_checkpoint, WhenWaveform);
+                                self.set_unknown(marker, ConditionalWaveformAssignment);
+                                self.set_unknown(waveforms_marker, ConditionalWaveforms);
+                                self.set_unknown(when_marker, WhenWaveform);
                                 self.skip();
                                 self.expression();
                                 self.end_node();
@@ -447,15 +450,15 @@ impl Parser {
                                 );
                                 self.end_node();
                             } else {
-                                self.start_node_at(checkpoint, SimpleWaveformAssignment);
+                                self.set_unknown(marker, SimpleWaveformAssignment);
                             }
                         }
                     }
                     SemiColon => {
-                        self.start_node_at(checkpoint, ProcedureCallStatement);
+                        self.set_unknown(marker, ProcedureCallStatement);
                     }
                     _ => {
-                        self.start_node_at(checkpoint, ProcedureCallStatement);
+                        self.set_unknown(marker, ProcedureCallStatement);
                         self.expect_tokens_recover([LTE, ColonEq, SemiColon]);
                     }
                 }
@@ -490,16 +493,16 @@ impl Parser {
         else_node: NodeKind,
     ) {
         while self.next_is(Keyword(Kw::Else)) {
-            let local_checkpoint = self.checkpoint();
+            let marker = self.start_unknown();
             self.skip();
             item(self);
             if self.next_is(Keyword(Kw::When)) {
-                self.start_node_at(local_checkpoint, else_when_node);
+                self.set_unknown(marker, else_when_node);
                 self.skip();
                 self.condition();
                 self.end_node();
             } else {
-                self.start_node_at(local_checkpoint, else_node);
+                self.set_unknown(marker, else_node);
                 self.end_node();
                 break;
             }

@@ -11,12 +11,12 @@ use crate::tokens::TokenKind::*;
 
 impl Parser {
     pub fn array_type_definition(&mut self) {
-        let checkpoint = self.checkpoint();
+        let marker = self.start_unknown();
         self.expect_kw(Kw::Array);
         let box_found = self.lookahead_skip_n(1, [BOX]).is_ok();
 
         if box_found {
-            self.start_node_at(checkpoint, UnboundedArrayDefinition);
+            self.set_unknown(marker, UnboundedArrayDefinition);
             self.expect_token(LeftPar);
             self.separated_list(
                 IndexSubtypeDefinitionList,
@@ -25,7 +25,7 @@ impl Parser {
             );
             self.expect_token(RightPar);
         } else {
-            self.start_node_at(checkpoint, ConstrainedArrayDefinition);
+            self.set_unknown(marker, ConstrainedArrayDefinition);
             self.index_constraint();
         }
         self.expect_kw(Kw::Of);

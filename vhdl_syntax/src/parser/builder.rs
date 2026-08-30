@@ -16,7 +16,7 @@ pub(crate) struct NodeBuilder {
     children: Vec<GreenChild>,
 }
 
-pub(crate) type Checkpoint = usize;
+pub(crate) struct Marker(usize);
 
 impl NodeBuilder {
     pub fn new() -> NodeBuilder {
@@ -61,24 +61,42 @@ impl NodeBuilder {
         }
     }
 
-    pub fn checkpoint(&self) -> Checkpoint {
-        self.children.len()
+    /// Start an unknown node that is later patched using `set_unknown`
+    pub fn start_unknown(&self) -> Marker {
+        Marker(self.children.len())
     }
 
-    pub fn start_node_at(&mut self, checkpoint: Checkpoint, kind: NodeKind) {
+    pub fn set_unknown(&mut self, marker: Marker, kind: NodeKind) {
         assert!(
-            checkpoint <= self.children.len(),
-            "checkpoint no longer valid, was finish_node called early?"
+            marker.0 <= self.children.len(),
+            "marker no longer valid, was end_node called early?"
         );
 
         if let Some(&(_, first_child)) = self.parents.last() {
             assert!(
-                checkpoint >= first_child,
-                "checkpoint no longer valid, was an unmatched start_node_at called?"
+                marker.0 >= first_child,
+                "marker no longer valid, was it taken in an already-closed node?"
             );
         }
 
-        self.parents.push((kind, checkpoint));
+        self.parents.push((kind, marker.0));
+    }
+
+    /// Insert a new parent above the node that was just completed.
+    pub fn precede(&mut self, kind: NodeKind) {
+        let first_child = self
+            .parents
+            .last()
+            .map_or(0, |&(_, first_child)| first_child);
+        assert!(
+            self.children.len() > first_child,
+            "precede: nothing has been built in the current node"
+        );
+        assert!(
+            matches!(self.children.last(), Some(GreenChild::Node(_))),
+            "precede: the last child is a token, not a completed node"
+        );
+        self.parents.push((kind, self.children.len() - 1));
     }
 
     pub fn current_pos(&self) -> usize {

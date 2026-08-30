@@ -108,7 +108,7 @@ impl Parser {
     }
 
     pub fn configuration_specification(&mut self) {
-        let checkpoint = self.checkpoint();
+        let marker = self.start_unknown();
         self.start_node(ComponentConfigurationPreamble);
         self.expect_kw(Kw::For);
         self.component_specification();
@@ -116,7 +116,7 @@ impl Parser {
         self.binding_indication();
         self.expect_token(SemiColon);
         if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-            self.start_node_at(checkpoint, NodeKind::CompoundConfigurationSpecification);
+            self.set_unknown(marker, NodeKind::CompoundConfigurationSpecification);
             while self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
                 self.start_node(VerificationUnitBinding);
                 self.verification_unit_binding_indication();
@@ -126,7 +126,7 @@ impl Parser {
             self.component_configuration_epilogue();
             self.end_node();
         } else {
-            self.start_node_at(checkpoint, NodeKind::SimpleConfigurationSpecification);
+            self.set_unknown(marker, NodeKind::SimpleConfigurationSpecification);
             if self.next_is(Keyword(Kw::End)) {
                 self.component_configuration_epilogue();
             }

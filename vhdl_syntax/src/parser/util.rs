@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 /// (private) utility functions used when parsing
-use crate::parser::builder::Checkpoint;
+use crate::parser::builder::Marker;
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
 use crate::syntax::child::ChildKind;
@@ -245,14 +245,18 @@ impl Parser {
         self.builder.end_node()
     }
 
-    pub(crate) fn checkpoint(&mut self) -> Checkpoint {
-        self.builder.checkpoint()
+    pub(crate) fn start_unknown(&mut self) -> Marker {
+        self.builder.start_unknown()
     }
 
-    /// Retroactively wrap children from `checkpoint` onward in a node of the
-    /// given kind.
-    pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: NodeKind) {
-        self.builder.start_node_at(checkpoint, kind);
+    pub(crate) fn set_unknown(&mut self, marker: Marker, kind: NodeKind) {
+        self.builder.set_unknown(marker, kind);
+        self.recovery.push(kind);
+    }
+
+    /// Insert a new parent above the node that was just completed.
+    pub(crate) fn precede(&mut self, kind: NodeKind) {
+        self.builder.precede(kind);
         self.recovery.push(kind);
     }
 
