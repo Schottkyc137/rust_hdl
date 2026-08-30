@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::error::{SyntaxErr, SyntaxErrKind};
+use crate::parser::error::SyntaxErrKind;
 use crate::parser::Parser;
 use crate::syntax::child::{Child, ChildKind};
 use crate::syntax::layout_of;
@@ -60,33 +60,18 @@ impl Parser {
             "should only be called on an error path"
         );
 
-        let start = self.builder.current_pos();
-
         // We're at EoF -> emit an EoF diagnostic
         if self.peek_token().is_eof() {
-            self.errors.push(SyntaxErr::new(
-                start..start,
-                SyntaxErrKind::Expected(Child::Token(expected.into())),
-            ));
+            self.push_err(SyntaxErrKind::Expected(Child::Token(expected.into())));
             return;
         }
-
-        let initial_trivia_len = self
-            .token_stream
-            .peek_next()
-            .map(|tok| tok.leading_trivia().byte_len())
-            .unwrap_or(0);
 
         let mut skipped_any = false;
         loop {
             let tok = self.peek_token();
-            // Expected contains the token before we hit recovery or EoF -> Assume garbage input
+            // Expected contains the token before we hit recovery or EoF -> Assume garbage input.
+            // Each skipped token has already reported itself.
             if expected.contains(&tok) {
-                let end = self.builder.current_pos();
-                self.errors.push(SyntaxErr::new(
-                    start + initial_trivia_len..end,
-                    SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
-                ));
                 return;
             }
 
@@ -99,24 +84,17 @@ impl Parser {
                 || self.recovery.is_in_continuation_set(&expected, tok)
             {
                 // We found a recovery token at the next position.
-                // This means the token is simply missing.
+                // This means the token is simply missing. If tokens were
+                // skipped they have already reported themselves as garbage.
                 if !skipped_any {
-                    self.errors.push(SyntaxErr::new(
-                        start..start,
-                        SyntaxErrKind::Expected(Child::Token(expected.into())),
-                    ));
-                // skipped tokens: Garbage input before recovery token.
-                } else {
-                    self.errors.push(SyntaxErr::new(
-                        start + initial_trivia_len..self.builder.current_pos(),
-                        SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
-                    ));
-                };
+                    self.push_err(SyntaxErrKind::Expected(Child::Token(expected.into())));
+                }
                 return;
             }
 
             // inconclusive. Skip and look at the next token.
             self.skip();
+            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Token(tok)));
             skipped_any = true;
         }
     }

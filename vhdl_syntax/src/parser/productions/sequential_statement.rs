@@ -277,12 +277,11 @@ impl Parser {
         self.start_node(node_kind);
         let mut guard = StallGuard::new();
         while guard.should_continue(self) {
-            let start = self.builder.current_pos();
             match self.peek_token() {
                 Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
                 _ => self.sequential_statement(),
             }
-            self.check_last_node_is_allowed(start, allowed_nodes);
+            self.check_last_node_is_allowed(allowed_nodes);
         }
         self.end_node();
     }

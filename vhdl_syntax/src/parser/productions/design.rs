@@ -6,7 +6,6 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::error::SyntaxErr;
 use crate::parser::error::SyntaxErrKind;
 use crate::parser::util::StallGuard;
 use crate::parser::Parser;
@@ -21,12 +20,9 @@ impl Parser {
     pub fn design_file(&mut self) {
         self.start_node(NodeKind::DesignFile);
         if self.next_is(Eof) {
-            self.errors.push(SyntaxErr::new(
-                0..0,
-                SyntaxErrKind::Expected(Child::<_, Box<[TokenKind]>>::Node(Box::new([
-                    NodeKind::DesignUnit,
-                ]))),
-            ));
+            self.push_err(SyntaxErrKind::Expected(Child::<_, Box<[TokenKind]>>::Node(
+                Box::new([NodeKind::DesignUnit]),
+            )));
             self.skip();
             self.end_node();
             return;

@@ -29,7 +29,6 @@ pub mod productions;
 pub struct Parser {
     token_stream: TokenStream,
     builder: builder::NodeBuilder,
-    errors: Vec<error::SyntaxErr>,
     standard: VHDLStandard,
     recovery: RecoveryState,
 }
@@ -39,7 +38,6 @@ impl Parser {
         Parser {
             token_stream,
             builder: builder::NodeBuilder::new(),
-            errors: Vec::default(),
             standard,
             recovery: RecoveryState::new(),
         }

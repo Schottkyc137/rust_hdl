@@ -13,4 +13,4 @@ PortClause
   SemiColon
 
 == diagnostics ==
-1:6 Expected(Token([Keyword(Signal), Keyword(Constant), Keyword(Variable), Identifier, Keyword(File), Keyword(Type), Keyword(Function), Keyword(Procedure), Keyword(Impure), Keyword(Pure), Keyword(Package)]))
+1:6 Expected(Node([InterfaceList]))

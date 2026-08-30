@@ -100,14 +100,13 @@ impl Parser {
     fn concurrent_statement_list(&mut self, allowed_nodes: &[NodeKind]) {
         let mut guard = StallGuard::new();
         while guard.should_continue(self) {
-            let start = self.builder.current_pos();
             match self.peek_token() {
                 Keyword(Kw::End | Kw::Elsif | Kw::Else | Kw::When) | Eof => {
                     break;
                 }
                 _ => self.concurrent_statement(),
             }
-            self.check_last_node_is_allowed(start, allowed_nodes);
+            self.check_last_node_is_allowed(allowed_nodes);
         }
     }
 

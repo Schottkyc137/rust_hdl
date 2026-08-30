@@ -21,6 +21,4 @@ CaseStatement
     SemiColon
 
 == diagnostics ==
-1:12 Expected(Token([Keyword(When)]))
-1:12 Expected(Token([Identifier, LtLt, BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Null), AbstractLiteral, LeftPar, Keyword(New)]))
-1:12 Expected(Token([RightArrow]))
+1:12 Expected(Node([CaseStatementAlternative]))

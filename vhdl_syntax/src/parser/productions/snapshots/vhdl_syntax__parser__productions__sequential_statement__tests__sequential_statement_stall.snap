@@ -24,6 +24,5 @@ SubprogramBody
     Keyword(Begin)
 
 == diagnostics ==
-2:6 Expected(Token([Keyword(Wait), Keyword(Assert), Keyword(Report), Keyword(If), Keyword(Case), Keyword(For), Keyword(Loop), Keyword(While), Keyword(Next), Keyword(Exit), Keyword(Return), Keyword(Null), Keyword(With), Identifier, LeftPar, LtLt]))
-2:6 Expected(Token([Keyword(End)]))
-2:6 Expected(Token([SemiColon]))
+2:6 Expected(Node([SubprogramStatementPart]))
+2:6 Expected(Node([SubprogramBodyEpilogue]))
