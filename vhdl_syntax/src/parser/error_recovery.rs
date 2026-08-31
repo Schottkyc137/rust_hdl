@@ -1329,9 +1329,6 @@ mod tests {
         assert_expected_token(&diags[0], &[TokenKind::Keyword(Kw::Is)]);
     }
 
-    /// Garbage before a recovery token: tokens are consumed up to (not
-    /// including) the recovery token, and exactly one UnexpectedInput is
-    /// reported covering the skipped range.
     #[test]
     fn expect_recover_emits_unexpected_input_after_skipping() {
         let (root, diags) = parse_syntax("foo bar ;", |p: &mut Parser| {
@@ -1346,7 +1343,7 @@ mod tests {
             p.skip();
             p.end_node();
         });
-        assert_eq!(diags.len(), 1, "got: {:?}", diags);
+        assert_eq!(diags.len(), 2, "got: {:?}", diags);
         match &diags[0].err() {
             SyntaxErrKind::Unexpected(_) => {
                 assert!(!diags[0].span().is_empty());

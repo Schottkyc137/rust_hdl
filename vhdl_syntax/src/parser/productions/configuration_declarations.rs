@@ -61,18 +61,11 @@ impl Parser {
     }
 
     pub fn configuration_item(&mut self) {
-        // A component configuration's instantiation list is
-        // `all`, `others`, or `identifier {, identifier} :`; a block
-        // configuration is a block specification (a name) that is never
-        // followed by `:`. Two tokens past the `for` decide which, so the kind
-        // is known before anything is consumed.
         match self.peek_nth_token(1) {
             Keyword(Kw::All | Kw::Others) => self.component_configuration(),
             Identifier if self.next_nth_is(Comma, 2) || self.next_nth_is(Colon, 2) => {
                 self.component_configuration()
             }
-            // A nested block configuration, matching
-            // `BlockConfigurationItem ::= BlockConfiguration`.
             Identifier => {
                 self.start_node(NodeKind::BlockConfigurationItem);
                 self.block_configuration();
