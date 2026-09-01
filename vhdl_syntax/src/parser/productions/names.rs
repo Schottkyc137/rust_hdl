@@ -5,6 +5,7 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::parser::Parser;
+use crate::parser::builder::CompletedMarker;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
@@ -41,7 +42,7 @@ fn is_start_of_attribute_name(parser: &mut Parser) -> bool {
 }
 
 impl Parser {
-    pub fn name(&mut self) {
+    pub fn name(&mut self) -> CompletedMarker {
         // (Based on) LRM §8.1
         // The LRM grammar rules for names were transformed to avoid left recursion.
 
@@ -66,10 +67,10 @@ impl Parser {
         if self.next_is(Keyword(Kw::Range)) && !self.next_nth_is(BOX, 1) {
             self.range_constraint();
         }
-        self.end_node();
+        self.end_node()
     }
 
-    pub fn type_mark(&mut self) {
+    pub fn type_mark(&mut self) -> CompletedMarker {
         self.name()
     }
 
@@ -96,8 +97,8 @@ impl Parser {
         }
     }
 
-    pub(crate) fn name_list(&mut self) {
-        self.separated_list(NameList, Parser::name, Comma);
+    pub(crate) fn name_list(&mut self) -> CompletedMarker {
+        self.separated_list(NameList, Parser::name, Comma)
     }
 
     fn suffix(&mut self) {

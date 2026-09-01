@@ -186,22 +186,22 @@ impl Parser {
                 let marker = self.start_unknown();
                 self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
-                self.name();
+                let name = self.name();
                 match self.peek_token() {
                     LTE => {
-                        self.precede(NameTarget);
+                        self.precede(NameTarget, name);
                         self.end_node();
                         self.skip();
                         self.opt_token(Keyword(Kw::Guarded));
                         self.opt_delay_mechanism();
-                        self.waveform();
+                        let waveform = self.waveform();
                         if self.next_is(Keyword(Kw::When)) {
                             self.set_unknown(marker, ConcurrentConditionalSignalAssignment);
-                            self.precede(WhenWaveform);
+                            self.precede(WhenWaveform, waveform);
                             self.skip();
                             self.expression();
-                            self.end_node();
-                            self.precede(ConditionalWaveforms);
+                            let when_waveform = self.end_node();
+                            self.precede(ConditionalWaveforms, when_waveform);
                             self.conditional_else(Parser::waveform, ElseWhenWaveform, ElseWaveform);
                             self.end_node();
                         } else {
@@ -209,7 +209,7 @@ impl Parser {
                         }
                     }
                     Keyword(Kw::Port | Kw::Generic) => {
-                        self.precede(InstantiatedComponent);
+                        self.precede(InstantiatedComponent, name);
                         self.end_node();
                         self.set_unknown(marker, ComponentInstantiationStatement);
                         self.instantiation_statement_inner();

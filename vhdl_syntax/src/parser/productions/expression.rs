@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::builder::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
@@ -42,110 +43,112 @@ fn unary_precedence(token: TokenKind) -> Option<NonZeroU8> {
 }
 
 impl Parser {
-    pub fn primary(&mut self) {
+    pub fn primary(&mut self) -> Option<CompletedMarker> {
         match_next_token!(self,
             Identifier, LtLt => {
-              self.name();
-              self.continue_primary_after_name();
+              let name = self.name();
+              Some(self.continue_primary_after_name(name))
             },
-            BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Kw::Null) => self.skip_into_node(LiteralExpression),
+            BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Kw::Null) => Some(self.skip_into_node(LiteralExpression)),
             AbstractLiteral => {
                 let literal_marker = self.start_unknown();
                 self.skip();
                 if self.next_is(Identifier) {
                     self.set_unknown(literal_marker, PhysicalLiteral);
                     self.name();
-                    self.end_node();
-                    self.precede(PhysicalLiteralExpression);
-                    self.end_node();
+                    let literal = self.end_node();
+                    self.precede(PhysicalLiteralExpression, literal);
+                    Some(self.end_node())
                 } else {
                     self.set_unknown(literal_marker, LiteralExpression);
-                    self.end_node();
+                    Some(self.end_node())
                 }
             },
             LeftPar => {
-                self.parenthesized_expression_or_aggregate();
+                Some(self.parenthesized_expression_or_aggregate())
             },
             Keyword(Kw::New) => {
-              self.allocator();
+              Some(self.allocator())
             }
-        );
+        )
     }
 
-    pub(crate) fn parenthesized_expression_or_aggregate(&mut self) {
+    pub(crate) fn parenthesized_expression_or_aggregate(&mut self) -> CompletedMarker {
         self.start_node(ParenthesizedExpressionOrAggregate);
         self.aggregate_inner();
-        self.end_node();
+        self.end_node()
     }
 
-    /// Finalize a primary whose leading `Name` is the node that was just
-    /// completed. If a `Tick` follows, the name is the type mark of a
+    /// Finalize a primary.
+    /// If a `Tick` follows, the name is the type mark of a
     /// `QualifiedExpression` and the `'(…)` is consumed here; otherwise the
     /// name is wrapped in `NameExpression`. Callers that need to continue
-    /// with binary operators should follow up with `expression_from_primary`.
-    pub(crate) fn continue_primary_after_name(&mut self) {
+    /// with binary operators should follow up with `expression_from_primary`
+    pub(crate) fn continue_primary_after_name(&mut self, name: CompletedMarker) -> CompletedMarker {
         if self.next_is(Tick) {
-            self.precede(QualifiedExpression);
+            self.precede(QualifiedExpression, name);
             self.skip();
             self.parenthesized_expression_or_aggregate();
         } else {
-            self.precede(NameExpression);
+            self.precede(NameExpression, name);
         }
-        self.end_node();
+        self.end_node()
     }
 
-    pub fn allocator(&mut self) {
+    pub fn allocator(&mut self) -> CompletedMarker {
         self.start_node(Allocator);
         self.expect_kw(Kw::New);
         self.expression();
-        self.end_node();
+        self.end_node()
     }
 
-    fn unary_expression(&mut self) {
+    fn unary_expression(&mut self) -> Option<CompletedMarker> {
         if let Some(precedence) = unary_precedence(self.peek_token()) {
             self.start_node(UnaryExpression);
             self.skip();
             self.expression_inner(precedence.into());
-            self.end_node();
+            Some(self.end_node())
         } else {
             self.primary()
         }
     }
 
-    fn expression_inner(&mut self, min_precedence: u8) {
-        self.unary_expression();
+    fn expression_inner(&mut self, min_precedence: u8) -> Option<CompletedMarker> {
+        let mut expression = self.unary_expression();
 
         while let Some(precedence) = binary_precedence(self.peek_token()) {
             let precedence: u8 = precedence.into();
             if precedence > min_precedence {
-                self.precede(BinaryExpression);
+                self.precede(BinaryExpression, expression);
                 self.skip();
                 self.expression_inner(precedence);
-                self.end_node();
+                expression = Some(self.end_node());
             } else {
                 break;
             }
         }
+
+        expression
     }
 
-    pub fn expression(&mut self) {
-        self.expression_inner(0);
+    pub fn expression(&mut self) -> Option<CompletedMarker> {
+        self.expression_inner(0)
     }
 
-    /// Continue an expression parse from an already-emitted primary. The
-    /// caller is responsible for having emitted the leading primary node
-    /// (e.g. `NameExpression`) as the most recently completed node.
-    pub(crate) fn expression_from_primary(&mut self) {
+    /// Continue an expression parse from an already-emitted primary
+    pub(crate) fn expression_from_primary(&mut self, primary: CompletedMarker) -> CompletedMarker {
+        let mut expression = primary;
         while let Some(precedence) = binary_precedence(self.peek_token()) {
             let precedence: u8 = precedence.into();
-            self.precede(BinaryExpression);
+            self.precede(BinaryExpression, expression);
             self.skip();
             self.expression_inner(precedence);
-            self.end_node();
+            expression = self.end_node();
         }
+        expression
     }
 
-    pub fn condition(&mut self) {
+    pub fn condition(&mut self) -> Option<CompletedMarker> {
         self.expression()
     }
 }

@@ -298,22 +298,22 @@ impl Parser {
             // second name follows, the first was a `resolution_function_name`
             // and we promote to subtype_indication retroactively. Otherwise
             // the name is the leading primary of an expression.
-            self.name();
+            let name = self.name();
             if matches!(
                 self.peek_token(),
                 Identifier | StringLiteral | CharacterLiteral | LtLt
             ) {
-                self.precede(NameResolutionIndication);
-                self.end_node();
-                self.precede(SubtypeIndication);
+                self.precede(NameResolutionIndication, name);
+                let resolution_indication = self.end_node();
+                self.precede(SubtypeIndication, resolution_indication);
                 self.name(); // type_mark
-                self.end_node();
-                self.precede(ActualPartSubtypeIndication);
+                let subtype_indication = self.end_node();
+                self.precede(ActualPartSubtypeIndication, subtype_indication);
                 self.end_node();
             } else {
-                self.precede(ActualPartExpression);
-                self.continue_primary_after_name();
-                self.expression_from_primary();
+                self.precede(ActualPartExpression, name);
+                let primary = self.continue_primary_after_name(name);
+                self.expression_from_primary(primary);
                 self.end_node();
             }
         } else {

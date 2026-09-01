@@ -5,6 +5,7 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::parser::Parser;
+use crate::parser::builder::CompletedMarker;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
@@ -30,14 +31,14 @@ impl Parser {
         self.end_node();
     }
 
-    pub fn entity_name_list(&mut self) {
+    pub fn entity_name_list(&mut self) -> Option<CompletedMarker> {
         match_next_token!(self,
-            Keyword(Kw::All) => self.skip_into_node(EntityNameListAll),
-            Keyword(Kw::Others) => self.skip_into_node(EntityNameListOthers),
+            Keyword(Kw::All) => Some(self.skip_into_node(EntityNameListAll)),
+            Keyword(Kw::Others) => Some(self.skip_into_node(EntityNameListOthers)),
             Identifier, StringLiteral, CharacterLiteral => {
-                self.separated_list(EntityDesignatorList, Parser::entity_designator, Comma);
+                Some(self.separated_list(EntityDesignatorList, Parser::entity_designator, Comma))
             }
-        );
+        )
     }
 
     pub fn entity_class(&mut self) {

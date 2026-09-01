@@ -117,7 +117,7 @@ impl Parser {
             Keyword(Kw::All) => self.skip_into_node(NodeKind::InstantiationListAll),
             Keyword(Kw::Others) => self.skip_into_node(NodeKind::InstantiationListOthers),
             _ => self.separated_list(NodeKind::InstantiationListList, Parser::identifier, Comma),
-        }
+        };
         self.expect_token(Colon);
         self.name();
         self.end_node(); // ComponentSpecification

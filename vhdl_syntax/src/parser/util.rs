@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 /// (private) utility functions used when parsing
-use crate::parser::builder::Marker;
+use crate::parser::builder::{CompletedMarker, Marker};
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::Parser;
 use crate::syntax::child::ChildKind;
@@ -38,7 +38,10 @@ macro_rules! match_next_token {
     (@inner $parser:expr, [[ $($($pattern:pat_param),+ => $action:expr),+ $(,)? ]], [[ $($($pattern_expr:expr),+ => $_action_expr:expr),+ $(,)? ]]) => {
         match $parser.peek_token() {
             $($($pattern)|+ => $action),+,
-            _ => $parser.expect_tokens_recover([$($($pattern_expr),+),+]),
+            _ => {
+                $parser.expect_tokens_recover([$($($pattern_expr),+),+]);
+                Default::default()
+            }
         }
     };
 }
@@ -57,7 +60,10 @@ macro_rules! match_next_token_consume {
                 $parser.skip();
                 $action
             }),+
-            _ => $parser.expect_tokens_recover([$($($pattern_expr),+),+]),
+            _ => {
+                $parser.expect_tokens_recover([$($($pattern_expr),+),+]);
+                Default::default()
+            }
         }
     };
 }
@@ -229,7 +235,7 @@ impl Parser {
         self.recovery.push(kind);
     }
 
-    pub(crate) fn end_node(&mut self) {
+    pub(crate) fn end_node(&mut self) -> CompletedMarker {
         self.recovery.pop();
         self.builder.end_node()
     }
@@ -244,8 +250,8 @@ impl Parser {
     }
 
     /// Insert a new parent above the node that was just completed.
-    pub(crate) fn precede(&mut self, kind: NodeKind) {
-        self.builder.precede(kind);
+    pub(crate) fn precede(&mut self, kind: NodeKind, marker: impl Into<Option<CompletedMarker>>) {
+        self.builder.precede(kind, marker.into());
         self.recovery.push(kind);
     }
 
@@ -261,10 +267,10 @@ impl Parser {
         self.lookahead_max_token_index_skip_n(maximum_index, 0, kinds)
     }
 
-    pub(crate) fn skip_into_node(&mut self, node: NodeKind) {
+    pub(crate) fn skip_into_node(&mut self, node: NodeKind) -> CompletedMarker {
         self.start_node(node);
         self.skip();
-        self.end_node();
+        self.end_node()
     }
 
     pub(crate) fn lookahead_skip_n<const N: usize>(

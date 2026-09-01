@@ -5,6 +5,7 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::parser::Parser;
+use crate::parser::builder::CompletedMarker;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{Comma, Keyword};
@@ -20,10 +21,10 @@ impl Parser {
         }
     }
 
-    pub fn delay_mechanism(&mut self) {
+    pub fn delay_mechanism(&mut self) -> Option<CompletedMarker> {
         match_next_token!(self,
-            Keyword(Kw::Transport) => self.skip_into_node(TransportDelayMechanism),
-            Keyword(Kw::Inertial) => self.skip_into_node(InertialDelayMechanism),
+            Keyword(Kw::Transport) => Some(self.skip_into_node(TransportDelayMechanism)),
+            Keyword(Kw::Inertial) => Some(self.skip_into_node(InertialDelayMechanism)),
             Keyword(Kw::Reject) => {
                 self.start_node(InertialDelayMechanism);
                 self.start_node(RejectClause);
@@ -31,7 +32,7 @@ impl Parser {
                 self.expression();
                 self.end_node();
                 self.expect_kw(Kw::Inertial);
-                self.end_node();
+                Some(self.end_node())
             }
         )
     }
@@ -48,15 +49,15 @@ impl Parser {
         self.end_node();
     }
 
-    pub fn waveform_elements(&mut self) {
-        self.separated_list(WaveformElements, Parser::waveform_element, Comma);
+    pub fn waveform_elements(&mut self) -> CompletedMarker {
+        self.separated_list(WaveformElements, Parser::waveform_element, Comma)
     }
 
-    pub fn waveform(&mut self) {
+    pub fn waveform(&mut self) -> CompletedMarker {
         if self.next_is(Keyword(Kw::Unaffected)) {
-            self.skip_into_node(UnaffectedWaveform);
+            self.skip_into_node(UnaffectedWaveform)
         } else {
-            self.waveform_elements();
+            self.waveform_elements()
         }
     }
 

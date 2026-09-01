@@ -372,23 +372,23 @@ impl Parser {
                     self.aggregate();
                     self.end_node();
                 } else {
-                    self.name();
+                    let name = self.name();
                     if self.next_is_one_of([ColonEq, LTE]) {
-                        self.precede(NameTarget);
+                        self.precede(NameTarget, name);
                         self.end_node();
                     }
                 }
                 match self.peek_token() {
                     ColonEq => {
                         self.skip();
-                        self.expression();
+                        let expression = self.expression();
                         if self.next_is(Keyword(Kw::When)) {
                             self.set_unknown(marker, ConditionalVariableAssignment);
-                            self.precede(WhenExpression);
+                            self.precede(WhenExpression, expression);
                             self.skip();
                             self.expression();
-                            self.end_node();
-                            self.precede(ConditionalExpressions);
+                            let when_expression = self.end_node();
+                            self.precede(ConditionalExpressions, when_expression);
                             self.conditional_else(
                                 Parser::expression,
                                 ElseWhenExpression,
@@ -403,14 +403,14 @@ impl Parser {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
                             self.skip_n(2);
                             self.opt_force_mode();
-                            self.expression();
+                            let expression = self.expression();
                             if self.next_is(Keyword(Kw::When)) {
                                 self.set_unknown(marker, ConditionalForceAssignment);
-                                self.precede(WhenExpression);
+                                self.precede(WhenExpression, expression);
                                 self.skip();
                                 self.expression();
-                                self.end_node();
-                                self.precede(ConditionalExpressions);
+                                let when_expression = self.end_node();
+                                self.precede(ConditionalExpressions, when_expression);
                                 self.conditional_else(
                                     Parser::expression,
                                     ElseWhenExpression,
@@ -427,14 +427,14 @@ impl Parser {
                         } else {
                             self.skip();
                             self.opt_delay_mechanism();
-                            self.waveform();
+                            let waveform = self.waveform();
                             if self.next_is(Keyword(Kw::When)) {
                                 self.set_unknown(marker, ConditionalWaveformAssignment);
-                                self.precede(WhenWaveform);
+                                self.precede(WhenWaveform, waveform);
                                 self.skip();
                                 self.expression();
-                                self.end_node();
-                                self.precede(ConditionalWaveforms);
+                                let when_waveform = self.end_node();
+                                self.precede(ConditionalWaveforms, when_waveform);
                                 self.conditional_else(
                                     Parser::waveform,
                                     ElseWhenWaveform,
@@ -478,9 +478,9 @@ impl Parser {
         }
     }
 
-    pub(crate) fn conditional_else(
+    pub(crate) fn conditional_else<T>(
         &mut self,
-        item: impl Fn(&mut Parser),
+        item: impl Fn(&mut Parser) -> T,
         else_when_node: NodeKind,
         else_node: NodeKind,
     ) {

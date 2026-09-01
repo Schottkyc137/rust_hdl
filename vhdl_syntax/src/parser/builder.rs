@@ -38,6 +38,7 @@ pub(crate) struct NodeBuilder {
     events: Vec<Event>,
 }
 
+#[must_use]
 pub(crate) struct Marker {
     pos: usize,
     #[cfg(debug_assertions)]
@@ -72,6 +73,10 @@ impl Drop for Marker {
     }
 }
 
+/// Reference to a completed node
+#[derive(Debug, Clone, Copy)]
+pub struct CompletedMarker(usize);
+
 impl NodeBuilder {
     pub fn new() -> NodeBuilder {
         NodeBuilder {
@@ -93,8 +98,10 @@ impl NodeBuilder {
         self.push_event(Event::Start(Some(kind)));
     }
 
-    pub fn end_node(&mut self) {
+    pub fn end_node(&mut self) -> CompletedMarker {
+        let marker = CompletedMarker(self.events.len());
         self.push_event(Event::End);
+        marker
     }
 
     pub fn end(self) -> (GreenNode, Vec<SyntaxErr>) {
@@ -214,7 +221,11 @@ impl NodeBuilder {
     }
 
     /// Insert a new parent above the node that was just completed.
-    pub fn precede(&mut self, kind: NodeKind) {
+    pub fn precede(&mut self, kind: NodeKind, marker: Option<CompletedMarker>) {
+        debug_assert!(
+            marker.is_none_or(|marker| matches!(self.events.get(marker.0), Some(Event::End))),
+            "marker does not reference a completed node"
+        );
         self.push_event(Event::Precede(kind));
     }
 
@@ -390,7 +401,7 @@ mod tests {
         let mut builder = NodeBuilder::new();
         builder.start_node(ROOT);
         builder.push(tok(b"ab", 0), None);
-        builder.precede(WRAPPER);
+        builder.precede(WRAPPER, None);
         builder.push(tok(b"cd", 1), None);
         builder.end_node(); // WRAPPER
         builder.end_node(); // ROOT
@@ -418,7 +429,7 @@ mod tests {
         builder.push(tok(b"ab", 0), None);
         builder.end_node();
         builder.start_node(OUTER);
-        builder.precede(WRAPPER);
+        builder.precede(WRAPPER, None);
         builder.push(tok(b"cd", 1), None);
         builder.end_node(); // WRAPPER
         builder.end_node(); // OUTER

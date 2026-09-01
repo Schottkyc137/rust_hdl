@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::builder::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::syntax::{
@@ -40,7 +41,7 @@ impl Parser {
         self.end_node();
     }
 
-    pub fn subprogram_specification(&mut self) {
+    pub fn subprogram_specification(&mut self) -> Option<CompletedMarker> {
         let is_function = if matches!(
             self.peek_token(),
             Keyword(Kw::Pure | Kw::Impure | Kw::Function)
@@ -60,7 +61,7 @@ impl Parser {
                 Keyword(Kw::Function),
                 Keyword(Kw::Procedure),
             ]);
-            return;
+            return None;
         };
         self.designator();
         self.subprogram_header();
@@ -69,7 +70,7 @@ impl Parser {
             self.expect_kw(Kw::Return);
             self.type_mark();
         }
-        self.end_node();
+        Some(self.end_node())
     }
 
     pub(crate) fn opt_parameter_list(&mut self) {
@@ -114,13 +115,13 @@ impl Parser {
 
     pub(crate) fn subprogram_declaration_or_body(&mut self) {
         let marker = self.start_unknown();
-        self.subprogram_specification();
+        let specification = self.subprogram_specification();
         if self.opt_token(SemiColon) {
             self.set_unknown(marker, SubprogramDeclaration);
             self.end_node();
             return;
         }
-        self.precede(SubprogramBodyPreamble);
+        self.precede(SubprogramBodyPreamble, specification);
         self.expect_kw(Kw::Is);
         self.end_node();
         self.set_unknown(marker, SubprogramBody);
