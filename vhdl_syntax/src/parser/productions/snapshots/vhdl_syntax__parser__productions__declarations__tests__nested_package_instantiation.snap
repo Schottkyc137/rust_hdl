@@ -1,0 +1,36 @@
+---
+source: vhdl_syntax/src/parser/productions/declarations.rs
+expression: "to_test_text(Parser::package_declarative_item,\n\"package pkg is new work.gen_pkg generic map (x => y);\",)"
+---
+PackageInstantiationDeclarationItem
+  PackageInstantiationDeclaration
+    PackageInstantiationPreamble
+      Keyword(Package)
+      Identifier 'pkg'
+      Keyword(Is)
+      Keyword(New)
+      Name
+        NameDesignatorPrefix
+          Identifier 'work'
+        SelectedName
+          Dot
+          Identifier 'gen_pkg'
+    GenericMapAspect
+      Keyword(Generic)
+      Keyword(Map)
+      LeftPar
+      AssociationList
+        AssociationElement
+          Formal
+            Name
+              NameDesignatorPrefix
+                Identifier 'x'
+            RightArrow
+          ActualPart
+            ActualPartExpression
+              NameExpression
+                Name
+                  NameDesignatorPrefix
+                    Identifier 'y'
+      RightPar
+    SemiColon

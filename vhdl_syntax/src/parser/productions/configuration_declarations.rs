@@ -45,13 +45,58 @@ impl Parser {
         self.end_node();
     }
 
+    pub fn group_declaration_or_template_declaration(&mut self) {
+        if self.next_nth_is(Keyword(Kw::Is), 2) {
+            self.group_template_declaration();
+        } else {
+            self.group_declaration();
+        }
+    }
+
+    pub fn group_template_declaration(&mut self) {
+        self.start_node(NodeKind::GroupTemplateDeclaration);
+        self.expect_kw(Kw::Group);
+        self.identifier();
+        self.expect_kw(Kw::Is);
+        self.expect_token(LeftPar);
+        self.entity_class_entry_list();
+        self.expect_token(RightPar);
+        self.expect_token(SemiColon);
+        self.end_node();
+    }
+
+    pub fn group_declaration(&mut self) {
+        self.start_node(NodeKind::GroupDeclaration);
+        self.expect_kw(Kw::Group);
+        self.identifier();
+        self.expect_token(Colon);
+        self.name();
+        self.expect_token(SemiColon);
+        self.end_node();
+    }
+
+    pub fn entity_class_entry(&mut self) {
+        self.start_node(NodeKind::EntityClassEntry);
+        self.entity_class();
+        self.opt_token(BOX);
+        self.end_node();
+    }
+
+    pub fn entity_class_entry_list(&mut self) {
+        self.separated_list(
+            NodeKind::EntityClassEntryList,
+            Parser::entity_class_entry,
+            Comma,
+        );
+    }
+
     pub fn configuration_declarative_part(&mut self) {
         self.start_node(ConfigurationDeclarativePart);
         loop {
             if self.next_is(Keyword(Kw::Use)) && !self.next_nth_is(Keyword(Kw::Vunit), 1) {
                 self.use_clause_declaration();
             } else if self.next_is(Keyword(Kw::Group)) {
-                unimplemented!("Group declarations");
+                self.group_declaration_or_template_declaration();
             } else if self.next_is(Keyword(Kw::Attribute)) {
                 self.attribute_specification();
             } else {
@@ -377,6 +422,46 @@ end configuration cfg;",
         insta::assert_snapshot!(to_test_text(
             Parser::configuration_specification,
             "for all : lib.pkg.comp use entity work.foo(rtl); use vunit bar, baz; end for;",
+        ));
+    }
+
+    #[test]
+    fn simple_group_template_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group resource is (label);",
+        ));
+    }
+
+    #[test]
+    fn group_template_declaration_with_multiple_entries() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group pin2pin is (signal, signal);",
+        ));
+    }
+
+    #[test]
+    fn group_template_declaration_with_infinite_entry() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group dependency is (label, signal <>);",
+        ));
+    }
+
+    #[test]
+    fn simple_group_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group g1 : resource (l1);",
+        ));
+    }
+
+    #[test]
+    fn group_declaration_with_multiple_constituents() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group g2 : pin2pin (sig_a, sig_b);",
         ));
     }
 }

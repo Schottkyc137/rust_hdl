@@ -1,0 +1,18 @@
+---
+source: vhdl_syntax/src/parser/productions/configuration_declarations.rs
+expression: "to_test_text(Parser::group_declaration_or_template_declaration,\n\"group dependency is (label, signal <>);\",)"
+---
+GroupTemplateDeclaration
+  Keyword(Group)
+  Identifier 'dependency'
+  Keyword(Is)
+  LeftPar
+  EntityClassEntryList
+    EntityClassEntry
+      Keyword(Label)
+    Comma
+    EntityClassEntry
+      Keyword(Signal)
+      BOX
+  RightPar
+  SemiColon

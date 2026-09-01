@@ -1,0 +1,31 @@
+---
+source: vhdl_syntax/src/parser/productions/configuration_declarations.rs
+expression: "to_test_text(Parser::group_declaration_or_template_declaration,\n\"group g2 : pin2pin (sig_a, sig_b);\",)"
+---
+GroupDeclaration
+  Keyword(Group)
+  Identifier 'g2'
+  Colon
+  Name
+    NameDesignatorPrefix
+      Identifier 'pin2pin'
+    ParenthesizedName
+      LeftPar
+      AssociationList
+        AssociationElement
+          ActualPart
+            ActualPartExpression
+              NameExpression
+                Name
+                  NameDesignatorPrefix
+                    Identifier 'sig_a'
+        Comma
+        AssociationElement
+          ActualPart
+            ActualPartExpression
+              NameExpression
+                Name
+                  NameDesignatorPrefix
+                    Identifier 'sig_b'
+      RightPar
+  SemiColon
