@@ -1,0 +1,14 @@
+---
+source: vhdl_syntax/src/parser/productions/declarations.rs
+expression: "to_test_text(Parser::package_declarative_item, \"package pkg is end package;\",)"
+---
+PackageDeclarationItem
+  PackageDeclaration
+    PackagePreamble
+      Keyword(Package)
+      Identifier 'pkg'
+      Keyword(Is)
+    PackageEpilogue
+      Keyword(End)
+      Keyword(Package)
+      SemiColon
