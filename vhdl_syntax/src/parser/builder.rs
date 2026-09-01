@@ -152,17 +152,12 @@ impl NodeBuilder {
                 }
                 Event::Precede(kind) => {
                     let first_child = parents.last().map_or(0, |parent| parent.first_child);
-                    assert!(
-                        children.len() > first_child,
-                        "precede: nothing has been built in the current node"
-                    );
-                    assert!(
-                        matches!(children.last(), Some(GreenChild::Node(_))),
-                        "precede: the last child is a token, not a completed node"
-                    );
+                    // Error path: `precede` was called after a non-node
+                    let wraps_a_node = children.len() > first_child
+                        && matches!(children.last(), Some(GreenChild::Node(_)));
                     parents.push(Parent {
                         kind,
-                        first_child: children.len() - 1,
+                        first_child: children.len() - usize::from(wraps_a_node),
                         first_error: errors.len(),
                     });
                 }
@@ -240,6 +235,7 @@ impl NodeBuilder {
                 Event::Start(Some(kind)) | Event::Precede(kind) if depth == 1 => {
                     return Some(*kind)
                 }
+                Event::Start(None) if depth == 1 => return None,
                 Event::Start(_) | Event::Precede(_) => depth -= 1,
                 Event::End => depth += 1,
                 Event::Push(..) | Event::Error(_) => continue,
@@ -261,6 +257,7 @@ mod tests {
     const ROOT: NodeKind = NodeKind::DesignFile;
     const OUTER: NodeKind = NodeKind::DesignUnit;
     const INNER: NodeKind = NodeKind::Name;
+    const WRAPPER: NodeKind = NodeKind::BinaryExpression;
 
     /// A token preceded by `spaces` spaces of leading trivia.
     fn tok(text: &'static [u8], spaces: usize) -> Token {
@@ -383,6 +380,55 @@ mod tests {
         assert!(
             matches!(errors[0].err(), SyntaxErrKind::Expected(Child::Node(kinds)) if **kinds == [OUTER])
         );
+    }
+
+    #[test]
+    fn precede_after_a_token_starts_a_node_rather_than_wrapping_it() {
+        // Recovery can return without having produced a node, so `precede` may
+        // find a token last. That token belongs to the enclosing node; the new
+        // one simply starts here, with its first child missing.
+        let mut builder = NodeBuilder::new();
+        builder.start_node(ROOT);
+        builder.push(tok(b"ab", 0), None);
+        builder.precede(WRAPPER);
+        builder.push(tok(b"cd", 1), None);
+        builder.end_node(); // WRAPPER
+        builder.end_node(); // ROOT
+
+        let (root, _) = builder.end();
+        let mut children = root.children();
+        assert!(matches!(children.next(), Some(GreenChild::Token(_))));
+        assert!(matches!(
+            children.next(),
+            Some(GreenChild::Node(node))
+                if node.kind() == WRAPPER && node.children().count() == 1
+        ));
+        assert!(children.next().is_none());
+    }
+
+    #[test]
+    fn precede_at_the_start_of_a_node_does_not_steal_the_enclosing_nodes_child() {
+        // `children` holds the enclosing node's children too, so the node last
+        // pushed is not necessarily one the current node owns: here `INNER` is
+        // a sibling of `OUTER`, and the node opened inside `OUTER` must leave
+        // it alone rather than wrap it.
+        let mut builder = NodeBuilder::new();
+        builder.start_node(ROOT);
+        builder.start_node(INNER);
+        builder.push(tok(b"ab", 0), None);
+        builder.end_node();
+        builder.start_node(OUTER);
+        builder.precede(WRAPPER);
+        builder.push(tok(b"cd", 1), None);
+        builder.end_node(); // WRAPPER
+        builder.end_node(); // OUTER
+        builder.end_node(); // ROOT
+
+        let (root, _) = builder.end();
+        let mut children = root.children();
+        assert!(matches!(children.next(), Some(GreenChild::Node(node)) if node.kind() == INNER));
+        assert!(matches!(children.next(), Some(GreenChild::Node(node)) if node.kind() == OUTER));
+        assert!(children.next().is_none());
     }
 
     #[test]
