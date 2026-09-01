@@ -1,0 +1,17 @@
+---
+source: vhdl_syntax/src/parser/productions/configuration_declarations.rs
+expression: "to_test_text(Parser::group_declaration_or_template_declaration,\n\"group pin2pin is (signal, signal);\",)"
+---
+GroupTemplateDeclaration
+  Keyword(Group)
+  Identifier 'pin2pin'
+  Keyword(Is)
+  LeftPar
+  EntityClassEntryList
+    EntityClassEntry
+      Keyword(Signal)
+    Comma
+    EntityClassEntry
+      Keyword(Signal)
+  RightPar
+  SemiColon

@@ -67,6 +67,7 @@ impl Parser {
                 Keyword(Kw::Attribute) => self.attribute_declaration_or_specification(),
                 Keyword(Kw::Use) => self.use_clause_declaration(),
                 Keyword(Kw::Alias) => self.alias_declaration(),
+                Keyword(Kw::Group) => self.group_declaration_or_template_declaration(),
                 _ => {
                     self.expect_tokens_recover([
                         Keyword(Kw::Type),
@@ -86,6 +87,7 @@ impl Parser {
                         Keyword(Kw::Attribute),
                         Keyword(Kw::Use),
                         Keyword(Kw::Alias),
+                        Keyword(Kw::Group),
                     ]);
                     continue;
                 }

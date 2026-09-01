@@ -1,0 +1,23 @@
+---
+source: vhdl_syntax/src/parser/productions/configuration_declarations.rs
+expression: "to_test_text(Parser::group_declaration_or_template_declaration,\n\"group g1 : resource (l1);\",)"
+---
+GroupDeclaration
+  Keyword(Group)
+  Identifier 'g1'
+  Colon
+  Name
+    NameDesignatorPrefix
+      Identifier 'resource'
+    ParenthesizedName
+      LeftPar
+      AssociationList
+        AssociationElement
+          ActualPart
+            ActualPartExpression
+              NameExpression
+                Name
+                  NameDesignatorPrefix
+                    Identifier 'l1'
+      RightPar
+  SemiColon
