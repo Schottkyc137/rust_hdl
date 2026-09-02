@@ -1,0 +1,14 @@
+---
+source: vhdl_syntax/src/parser/productions/configuration_declarations.rs
+expression: "to_test_text(Parser::group_declaration_or_template_declaration,\n\"group resource is (label);\",)"
+---
+GroupTemplateDeclaration
+  Keyword(Group)
+  Identifier 'resource'
+  Keyword(Is)
+  LeftPar
+  EntityClassEntryList
+    EntityClassEntry
+      Keyword(Label)
+  RightPar
+  SemiColon

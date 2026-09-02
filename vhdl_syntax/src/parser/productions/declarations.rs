@@ -26,6 +26,8 @@ pub(crate) fn is_start_of_declarative_part(token_kind: TokenKind) -> bool {
                 | Kw::Component
                 | Kw::Attribute
                 | Kw::Alias
+                | Kw::Group
+                | Kw::Disconnect
                 | Kw::Impure
                 | Kw::Pure
                 | Kw::Function
@@ -57,7 +59,7 @@ impl Parser {
                             p.subprogram_declaration_or_body()
                         }
                     }
-                    Keyword(Kw::Package) => p.package_instantiation_declaration(),
+                    Keyword(Kw::Package) => p.package_declarative_item(),
                     Keyword(Kw::For) => p.configuration_specification(),
                     Keyword(Kw::File) => p.file_declaration(),
                     Keyword(Kw::Shared | Kw::Variable) => p.variable_declaration(),
@@ -66,6 +68,8 @@ impl Parser {
                     Keyword(Kw::Attribute) => p.attribute_declaration_or_specification(),
                     Keyword(Kw::Use) => p.use_clause_declaration(),
                     Keyword(Kw::Alias) => p.alias_declaration(),
+                    Keyword(Kw::Group) => p.group_declaration_or_template_declaration(),
+                    Keyword(Kw::Disconnect) => p.disconnection_specification(),
                     _ => {
                         p.expect_tokens_recover([
                             Keyword(Kw::Type),
@@ -85,6 +89,8 @@ impl Parser {
                             Keyword(Kw::Attribute),
                             Keyword(Kw::Use),
                             Keyword(Kw::Alias),
+                            Keyword(Kw::Group),
+                            Keyword(Kw::Disconnect),
                         ]);
                         continue;
                     }
@@ -100,10 +106,54 @@ impl Parser {
         });
     }
 
+    pub fn package_declarative_item(&mut self) {
+        if self.next_nth_is(Keyword(Kw::Body), 1) {
+            self.package_body_declaration();
+        } else if self.next_nth_is(Keyword(Kw::New), 3) {
+            self.package_instantiation_declaration();
+        } else {
+            self.package_declaration();
+        }
+    }
+
     pub fn package_declaration(&mut self) {
-        self.node(PackageDeclarationItem, |p| {
-            p.package();
+        self.node(PackageDeclarationItem, Parser::package);
+    }
+
+    pub fn package_body_declaration(&mut self) {
+        self.node(PackageBodyDeclaration, Parser::package_body);
+    }
+
+    pub fn disconnection_specification(&mut self) {
+        self.node(DisconnectionSpecification, |p| {
+            p.expect_kw(Kw::Disconnect);
+            p.guarded_signal_specification();
+            p.expect_kw(Kw::After);
+            p.expression();
+            p.expect_token(SemiColon);
         });
+    }
+
+    pub fn guarded_signal_specification(&mut self) {
+        self.node(GuardedSignalSpecification, |p| {
+            p.signal_list();
+            p.expect_token(Colon);
+            p.type_mark();
+        });
+    }
+
+    pub fn signal_list(&mut self) {
+        match_next_token!(self,
+            Keyword(Kw::All) => {
+                self.skip_into_node(SignalListAll);
+            },
+            Keyword(Kw::Others) => {
+                self.skip_into_node(SignalListOthers);
+            },
+            Identifier => {
+                self.separated_list(SignalListList, Parser::name, Comma);
+            }
+        );
     }
 
     pub fn configuration_specification(&mut self) {
@@ -180,5 +230,84 @@ package ident is new lib.foo.bar
     foo => bar
   );",
         ));
+    }
+
+    #[test]
+    fn simple_disconnection_specification() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::disconnection_specification,
+            "disconnect s : bit after 10 ns;",
+        ));
+    }
+
+    #[test]
+    fn disconnection_specification_with_multiple_signals() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::disconnection_specification,
+            "disconnect s1, s2 : work.pkg.bit_t after 10 ns;",
+        ));
+    }
+
+    #[test]
+    fn disconnection_specification_others() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::disconnection_specification,
+            "disconnect others : bit after 10 ns;",
+        ));
+    }
+
+    #[test]
+    fn disconnection_specification_all() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::disconnection_specification,
+            "disconnect all : bit after 10 ns;",
+        ));
+    }
+
+    #[test]
+    fn nested_package_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::package_declarative_item,
+            "package pkg is end package;",
+        ));
+    }
+
+    #[test]
+    fn nested_package_body() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::package_declarative_item,
+            "package body pkg is end package body;",
+        ));
+    }
+
+    #[test]
+    fn nested_package_instantiation() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::package_declarative_item,
+            "package pkg is new work.gen_pkg generic map (x => y);",
+        ));
+    }
+
+    #[test]
+    fn disconnection_specification_is_not_allowed_in_a_package_body() {
+        assert_recovery_snapshot!(
+            "\
+package body pkg is
+  disconnect s : bit after 10 ns;
+end package body;",
+            Parser::package_body
+        );
+    }
+
+    #[test]
+    fn package_body_is_not_allowed_in_a_package_declaration() {
+        assert_recovery_snapshot!(
+            "\
+package pkg is
+  package body inner is
+  end package body;
+end package;",
+            Parser::package
+        );
     }
 }

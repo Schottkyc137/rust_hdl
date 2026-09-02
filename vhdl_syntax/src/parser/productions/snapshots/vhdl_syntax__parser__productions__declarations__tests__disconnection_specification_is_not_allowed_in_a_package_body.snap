@@ -1,0 +1,45 @@
+---
+source: vhdl_syntax/src/parser/productions/declarations.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+package body pkg is
+  disconnect s : bit after 10 ns;
+end package body;
+
+== tree ==
+PackageBody
+  PackageBodyPreamble
+    Keyword(Package)
+    Keyword(Body)
+    Identifier 'pkg'
+    Keyword(Is)
+  PackageBodyDeclarativePart
+    DisconnectionSpecification
+      Keyword(Disconnect)
+      GuardedSignalSpecification
+        SignalListList
+          Name
+            NameDesignatorPrefix
+              Identifier 's'
+        Colon
+        Name
+          NameDesignatorPrefix
+            Identifier 'bit'
+      Keyword(After)
+      PhysicalLiteralExpression
+        PhysicalLiteral
+          AbstractLiteral '10'
+          Name
+            NameDesignatorPrefix
+              Identifier 'ns'
+      SemiColon
+  PackageBodyEpilogue
+    Keyword(End)
+    EndPackageBody
+      Keyword(Package)
+      Keyword(Body)
+    SemiColon
+
+== diagnostics ==
+2:3..2:34 Unexpected(Node(DisconnectionSpecification))

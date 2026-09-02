@@ -1,0 +1,37 @@
+---
+source: vhdl_syntax/src/parser/productions/declarations.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+package pkg is
+  package body inner is
+  end package body;
+end package;
+
+== tree ==
+PackageDeclaration
+  PackagePreamble
+    Keyword(Package)
+    Identifier 'pkg'
+    Keyword(Is)
+  PackageDeclarativePart
+    PackageBodyDeclaration
+      PackageBody
+        PackageBodyPreamble
+          Keyword(Package)
+          Keyword(Body)
+          Identifier 'inner'
+          Keyword(Is)
+        PackageBodyEpilogue
+          Keyword(End)
+          EndPackageBody
+            Keyword(Package)
+            Keyword(Body)
+          SemiColon
+  PackageEpilogue
+    Keyword(End)
+    Keyword(Package)
+    SemiColon
+
+== diagnostics ==
+2:3..3:20 Unexpected(Node(PackageBodyDeclaration))

@@ -78,8 +78,7 @@ impl Parser {
     }
 
     pub(crate) fn designator(&mut self) {
-        // TODO: That designator is not fully LRM compliant
-        self.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
+        self.expect_one_of_tokens([Identifier, StringLiteral]);
     }
 
     pub(crate) fn label(&mut self) {

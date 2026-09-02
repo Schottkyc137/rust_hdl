@@ -44,12 +44,57 @@ impl Parser {
         });
     }
 
+    pub fn group_declaration_or_template_declaration(&mut self) {
+        if self.next_nth_is(Keyword(Kw::Is), 2) {
+            self.group_template_declaration();
+        } else {
+            self.group_declaration();
+        }
+    }
+
+    pub fn group_template_declaration(&mut self) {
+        self.node(NodeKind::GroupTemplateDeclaration, |p| {
+            p.expect_kw(Kw::Group);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+            p.expect_token(LeftPar);
+            p.entity_class_entry_list();
+            p.expect_token(RightPar);
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub fn group_declaration(&mut self) {
+        self.node(NodeKind::GroupDeclaration, |p| {
+            p.expect_kw(Kw::Group);
+            p.identifier();
+            p.expect_token(Colon);
+            p.name();
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub fn entity_class_entry(&mut self) {
+        self.node(NodeKind::EntityClassEntry, |p| {
+            p.entity_class();
+            p.opt_token(BOX);
+        });
+    }
+
+    pub fn entity_class_entry_list(&mut self) {
+        self.separated_list(
+            NodeKind::EntityClassEntryList,
+            Parser::entity_class_entry,
+            Comma,
+        );
+    }
+
     pub fn configuration_declarative_part(&mut self) {
         self.node(ConfigurationDeclarativePart, |p| loop {
             if p.next_is(Keyword(Kw::Use)) && !p.next_nth_is(Keyword(Kw::Vunit), 1) {
                 p.use_clause_declaration();
             } else if p.next_is(Keyword(Kw::Group)) {
-                unimplemented!("Group declarations");
+                p.group_declaration_or_template_declaration();
             } else if p.next_is(Keyword(Kw::Attribute)) {
                 p.attribute_specification();
             } else {
@@ -353,6 +398,46 @@ end configuration cfg;",
         insta::assert_snapshot!(to_test_text(
             Parser::configuration_specification,
             "for all : lib.pkg.comp use entity work.foo(rtl); use vunit bar, baz; end for;",
+        ));
+    }
+
+    #[test]
+    fn simple_group_template_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group resource is (label);",
+        ));
+    }
+
+    #[test]
+    fn group_template_declaration_with_multiple_entries() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group pin2pin is (signal, signal);",
+        ));
+    }
+
+    #[test]
+    fn group_template_declaration_with_infinite_entry() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group dependency is (label, signal <>);",
+        ));
+    }
+
+    #[test]
+    fn simple_group_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group g1 : resource (l1);",
+        ));
+    }
+
+    #[test]
+    fn group_declaration_with_multiple_constituents() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group g2 : pin2pin (sig_a, sig_b);",
         ));
     }
 }
