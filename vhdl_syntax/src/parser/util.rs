@@ -4,8 +4,8 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 /// (private) utility functions used when parsing
-use crate::parser::builder::{CompletedMarker, Marker};
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
+use crate::parser::marker::{CompletedMarker, Marker, UnknownMarker};
 use crate::parser::Parser;
 use crate::syntax::child::ChildKind;
 use crate::syntax::green::GreenNode;
@@ -230,29 +230,24 @@ impl Parser {
         }
     }
 
-    pub(crate) fn start_node(&mut self, kind: NodeKind) {
-        self.builder.start_node(kind);
+    pub(crate) fn start_node(&mut self, kind: NodeKind) -> Marker {
+        let marker = self.builder.start_node(kind);
         self.recovery.push(kind);
+        marker
     }
 
-    pub(crate) fn end_node(&mut self) -> CompletedMarker {
-        self.recovery.pop();
-        self.builder.end_node()
+    pub(crate) fn node(
+        &mut self,
+        kind: NodeKind,
+        builder: impl FnOnce(&mut Parser),
+    ) -> CompletedMarker {
+        let marker = self.start_node(kind);
+        builder(self);
+        marker.complete(self)
     }
 
-    pub(crate) fn start_unknown(&mut self) -> Marker {
+    pub(crate) fn start_unknown(&mut self) -> UnknownMarker {
         self.builder.start_unknown()
-    }
-
-    pub(crate) fn set_unknown(&mut self, marker: Marker, kind: NodeKind) {
-        self.builder.set_unknown(marker, kind);
-        self.recovery.push(kind);
-    }
-
-    /// Insert a new parent above the node that was just completed.
-    pub(crate) fn precede(&mut self, kind: NodeKind, marker: impl Into<Option<CompletedMarker>>) {
-        self.builder.precede(kind, marker.into());
-        self.recovery.push(kind);
     }
 
     pub(crate) fn end(self) -> (GreenNode, Vec<SyntaxErr>) {
@@ -268,9 +263,7 @@ impl Parser {
     }
 
     pub(crate) fn skip_into_node(&mut self, node: NodeKind) -> CompletedMarker {
-        self.start_node(node);
-        self.skip();
-        self.end_node()
+        self.node(node, Parser::skip)
     }
 
     pub(crate) fn lookahead_skip_n<const N: usize>(

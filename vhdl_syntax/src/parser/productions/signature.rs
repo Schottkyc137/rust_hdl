@@ -13,22 +13,22 @@ impl Parser {
     pub fn signature(&mut self) {
         // LRM §4.5.3
         // signature ::= `[` [ name { `,` name } ] [ `return` name ] `]`;
-        self.start_node(Signature);
-        self.expect_token(LeftSquare);
+        self.node(Signature, |p| {
+            p.expect_token(LeftSquare);
 
-        if !self.next_is_one_of([Keyword(Kw::Return), RightSquare]) {
-            self.separated_list(TypeMarkList, Parser::name, Comma);
-        }
+            if !p.next_is_one_of([Keyword(Kw::Return), RightSquare]) {
+                p.separated_list(TypeMarkList, Parser::name, Comma);
+            }
 
-        if self.next_is(Keyword(Kw::Return)) {
-            self.start_node(ReturnType);
-            self.skip(); // Kw::Return
-            self.name();
-            self.end_node();
-        }
+            if p.next_is(Keyword(Kw::Return)) {
+                p.node(ReturnType, |p| {
+                    p.skip(); // Kw::Return
+                    p.name();
+                });
+            }
 
-        self.expect_token(RightSquare);
-        self.end_node();
+            p.expect_token(RightSquare);
+        });
     }
 }
 

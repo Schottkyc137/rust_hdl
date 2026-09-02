@@ -1318,12 +1318,12 @@ mod tests {
     fn expect_recover_emits_missing_token_when_recovery_point_is_next() {
         let (_, diags) = parse_syntax(";", |p: &mut Parser| {
             // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            // The recovery token must NOT have been consumed.
-            assert_eq!(p.peek_token(), TokenKind::SemiColon);
-            p.skip(); // consume so the tree is non-empty
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                // The recovery token must NOT have been consumed.
+                assert_eq!(p.peek_token(), TokenKind::SemiColon);
+                p.skip(); // consume so the tree is non-empty
+            });
         });
         assert_eq!(diags.len(), 1);
         assert_expected_token(&diags[0], &[TokenKind::Keyword(Kw::Is)]);
@@ -1333,15 +1333,15 @@ mod tests {
     fn expect_recover_emits_unexpected_input_after_skipping() {
         let (root, diags) = parse_syntax("foo bar ;", |p: &mut Parser| {
             // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            assert_eq!(
-                p.peek_token(),
-                TokenKind::SemiColon,
-                "recovery token must remain unconsumed"
-            );
-            p.skip();
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                assert_eq!(
+                    p.peek_token(),
+                    TokenKind::SemiColon,
+                    "recovery token must remain unconsumed"
+                );
+                p.skip();
+            });
         });
         assert_eq!(diags.len(), 2, "got: {:?}", diags);
         match &diags[0].err() {
@@ -1365,12 +1365,12 @@ mod tests {
     #[test]
     fn expect_recover_stops_when_expected_token_appears() {
         let (_, diags) = parse_syntax("garbage is", |p: &mut Parser| {
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            // expected token kept for the caller to consume.
-            assert_eq!(p.peek_token(), TokenKind::Keyword(Kw::Is));
-            p.skip();
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                // expected token kept for the caller to consume.
+                assert_eq!(p.peek_token(), TokenKind::Keyword(Kw::Is));
+                p.skip();
+            });
         });
         assert_eq!(diags.len(), 1);
         match diags[0].err() {
@@ -1393,10 +1393,10 @@ mod tests {
         let src = "\n\n;";
         let (_, diags) = parse_syntax(src, |p: &mut Parser| {
             // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            p.skip();
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                p.skip();
+            });
         });
         assert_eq!(diags.len(), 1);
         // The insertion locus sits before the leading trivia of `;`, i.e. at the

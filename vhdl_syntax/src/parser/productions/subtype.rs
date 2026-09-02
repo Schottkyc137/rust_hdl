@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::Precede;
 use crate::parser::Parser;
 use crate::syntax::NodeKind::*;
 use crate::tokens::Keyword as Kw;
@@ -16,40 +17,40 @@ fn is_start_of_name(parser: &Parser) -> bool {
 impl Parser {
     fn resolution_indication(&mut self) {
         if self.next_is(LeftPar) {
-            self.start_node(ParenthesizedElementResolution);
-            self.skip();
-            self.element_resolution();
-            self.expect_token(RightPar);
-            self.end_node();
+            self.node(ParenthesizedElementResolution, |p| {
+                p.skip();
+                p.element_resolution();
+                p.expect_token(RightPar);
+            });
         } else {
-            self.start_node(NameResolutionIndication);
-            self.name();
-            self.end_node();
+            self.node(NameResolutionIndication, |p| {
+                p.name();
+            });
         }
     }
 
     pub fn element_resolution(&mut self) {
-        self.start_node(ElementResolutionResolutionIndication);
-        if self.next_is(Identifier)
-            && (matches!(
-                self.peek_nth_token(1),
-                LtLt | Identifier | StringLiteral | CharacterLiteral | LeftPar
-            ))
-        {
-            self.start_node(RecordResolutionElementResolution);
-            self.record_resolution();
-            self.end_node();
-        } else {
-            self.resolution_indication();
-        }
-        self.end_node();
+        self.node(ElementResolutionResolutionIndication, |p| {
+            if p.next_is(Identifier)
+                && (matches!(
+                    p.peek_nth_token(1),
+                    LtLt | Identifier | StringLiteral | CharacterLiteral | LeftPar
+                ))
+            {
+                p.node(RecordResolutionElementResolution, |p| {
+                    p.record_resolution();
+                });
+            } else {
+                p.resolution_indication();
+            }
+        });
     }
 
     pub fn record_element_resolution(&mut self) {
-        self.start_node(RecordElementResolution);
-        self.identifier();
-        self.resolution_indication();
-        self.end_node();
+        self.node(RecordElementResolution, |p| {
+            p.identifier();
+            p.resolution_indication();
+        });
     }
 
     pub fn record_resolution(&mut self) {
@@ -60,33 +61,32 @@ impl Parser {
         // subtype_indication ::= [resolution_indication] name
         // Constraints (range/index/record) are now `NameTail`s on the type-mark
         // `Name`, so no separate constraint slot is needed here.
-        self.start_node(SubtypeIndication);
-        if self.next_is(LeftPar) {
-            self.resolution_indication();
-            self.name();
-        } else {
-            // Bare-name `resolution_indication` is only detectable when a
-            // second name follows. Mark the position, parse the first name,
-            // and if another name follows wrap the first retroactively as a
-            // `NameResolutionIndication`.
-            let name = self.name();
-            if is_start_of_name(self) {
-                self.precede(NameResolutionIndication, name);
-                self.end_node();
-                self.name();
+        self.node(SubtypeIndication, |p| {
+            if p.next_is(LeftPar) {
+                p.resolution_indication();
+                p.name();
+            } else {
+                // Bare-name `resolution_indication` is only detectable when a
+                // second name follows. Mark the position, parse the first name,
+                // and if another name follows wrap the first retroactively as a
+                // `NameResolutionIndication`.
+                let name = p.name();
+                if is_start_of_name(p) {
+                    name.precede(p, NameResolutionIndication).complete(p);
+                    p.name();
+                }
             }
-        }
-        self.end_node();
+        });
     }
 
     /// `range_constraint ::= "range" expression`. `to`/`downto` are binary
     /// operators in the expression grammar, so the old `range` production is
     /// gone and the constraint body is just an expression.
     pub fn range_constraint(&mut self) {
-        self.start_node(RangeConstraint);
-        self.expect_kw(Kw::Range);
-        self.expression();
-        self.end_node();
+        self.node(RangeConstraint, |p| {
+            p.expect_kw(Kw::Range);
+            p.expression();
+        });
     }
 }
 

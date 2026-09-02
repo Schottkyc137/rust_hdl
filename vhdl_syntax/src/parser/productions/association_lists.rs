@@ -11,15 +11,16 @@ use crate::tokens::TokenKind::*;
 
 impl Parser {
     fn map_aspect(&mut self, kind: Kw) {
-        match kind {
-            Kw::Generic => self.start_node(GenericMapAspect),
-            Kw::Port => self.start_node(PortMapAspect),
+        let aspect = match kind {
+            Kw::Generic => GenericMapAspect,
+            Kw::Port => PortMapAspect,
             _ => unreachable!(),
-        }
-        self.expect_tokens([Keyword(kind), Keyword(Kw::Map), LeftPar]);
-        self.association_list();
-        self.expect_token(RightPar);
-        self.end_node();
+        };
+        self.node(aspect, |p| {
+            p.expect_tokens([Keyword(kind), Keyword(Kw::Map), LeftPar]);
+            p.association_list();
+            p.expect_token(RightPar);
+        });
     }
 
     fn opt_map_aspect(&mut self, kind: Kw) -> bool {

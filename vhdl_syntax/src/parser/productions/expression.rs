@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::builder::CompletedMarker;
+use crate::parser::marker::{CompletedMarker, Precede};
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
@@ -54,14 +54,12 @@ impl Parser {
                 let literal_marker = self.start_unknown();
                 self.skip();
                 if self.next_is(Identifier) {
-                    self.set_unknown(literal_marker, PhysicalLiteral);
+                    let literal = literal_marker.resolve(self, PhysicalLiteral);
                     self.name();
-                    let literal = self.end_node();
-                    self.precede(PhysicalLiteralExpression, literal);
-                    Some(self.end_node())
+                    let literal = literal.complete(self);
+                    Some(literal.precede(self, PhysicalLiteralExpression).complete(self))
                 } else {
-                    self.set_unknown(literal_marker, LiteralExpression);
-                    Some(self.end_node())
+                    Some(literal_marker.complete(self, LiteralExpression))
                 }
             },
             LeftPar => {
@@ -74,9 +72,7 @@ impl Parser {
     }
 
     pub(crate) fn parenthesized_expression_or_aggregate(&mut self) -> CompletedMarker {
-        self.start_node(ParenthesizedExpressionOrAggregate);
-        self.aggregate_inner();
-        self.end_node()
+        self.node(ParenthesizedExpressionOrAggregate, Parser::aggregate_inner)
     }
 
     /// Finalize a primary.
@@ -86,28 +82,28 @@ impl Parser {
     /// with binary operators should follow up with `expression_from_primary`
     pub(crate) fn continue_primary_after_name(&mut self, name: CompletedMarker) -> CompletedMarker {
         if self.next_is(Tick) {
-            self.precede(QualifiedExpression, name);
+            let marker = name.precede(self, QualifiedExpression);
             self.skip();
             self.parenthesized_expression_or_aggregate();
+            marker.complete(self)
         } else {
-            self.precede(NameExpression, name);
+            name.precede(self, NameExpression).complete(self)
         }
-        self.end_node()
     }
 
     pub fn allocator(&mut self) -> CompletedMarker {
-        self.start_node(Allocator);
-        self.expect_kw(Kw::New);
-        self.expression();
-        self.end_node()
+        self.node(Allocator, |p| {
+            p.expect_kw(Kw::New);
+            p.expression();
+        })
     }
 
     fn unary_expression(&mut self) -> Option<CompletedMarker> {
         if let Some(precedence) = unary_precedence(self.peek_token()) {
-            self.start_node(UnaryExpression);
-            self.skip();
-            self.expression_inner(precedence.into());
-            Some(self.end_node())
+            Some(self.node(UnaryExpression, |p| {
+                p.skip();
+                p.expression_inner(precedence.into());
+            }))
         } else {
             self.primary()
         }
@@ -119,10 +115,10 @@ impl Parser {
         while let Some(precedence) = binary_precedence(self.peek_token()) {
             let precedence: u8 = precedence.into();
             if precedence > min_precedence {
-                self.precede(BinaryExpression, expression);
+                let marker = expression.precede(self, BinaryExpression);
                 self.skip();
                 self.expression_inner(precedence);
-                expression = Some(self.end_node());
+                expression = Some(marker.complete(self));
             } else {
                 break;
             }
@@ -140,10 +136,10 @@ impl Parser {
         let mut expression = primary;
         while let Some(precedence) = binary_precedence(self.peek_token()) {
             let precedence: u8 = precedence.into();
-            self.precede(BinaryExpression, expression);
+            let marker = expression.precede(self, BinaryExpression);
             self.skip();
             self.expression_inner(precedence);
-            expression = self.end_node();
+            expression = marker.complete(self);
         }
         expression
     }

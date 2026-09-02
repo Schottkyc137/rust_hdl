@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::builder::CompletedMarker;
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::NodeKind;
 use crate::tokens::TokenKind;
@@ -16,11 +16,11 @@ impl Parser {
         element: impl Fn(&mut Parser) -> T,
         separator: TokenKind,
     ) -> CompletedMarker {
-        self.start_node(node);
-        element(self);
-        while self.opt_token(separator) {
-            element(self);
-        }
-        self.end_node()
+        self.node(node, |p| {
+            element(p);
+            while p.opt_token(separator) {
+                element(p);
+            }
+        })
     }
 }

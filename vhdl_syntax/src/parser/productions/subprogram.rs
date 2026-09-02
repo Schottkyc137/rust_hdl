@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::builder::CompletedMarker;
+use crate::parser::marker::{CompletedMarker, Precede};
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::syntax::{
@@ -15,45 +15,45 @@ use crate::tokens::TokenKind::*;
 
 impl Parser {
     pub fn subprogram_declaration(&mut self) {
-        self.start_node(SubprogramDeclaration);
-        self.subprogram_specification();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(SubprogramDeclaration, |p| {
+            p.subprogram_specification();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn subprogram_instantiation_declaration(&mut self) {
-        self.start_node(SubprogramInstantiationDeclaration);
-        self.subprogram_instantiation_declaration_preamble();
-        self.opt_generic_map_aspect();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(SubprogramInstantiationDeclaration, |p| {
+            p.subprogram_instantiation_declaration_preamble();
+            p.opt_generic_map_aspect();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn subprogram_instantiation_declaration_preamble(&mut self) {
-        self.start_node(SubprogramInstantiationDeclarationPreamble);
-        self.expect_one_of_tokens([Keyword(Kw::Function), Keyword(Kw::Procedure)]);
-        self.identifier();
-        self.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
-        self.name();
-        if self.next_is(LeftSquare) {
-            self.signature();
-        }
-        self.end_node();
+        self.node(SubprogramInstantiationDeclarationPreamble, |p| {
+            p.expect_one_of_tokens([Keyword(Kw::Function), Keyword(Kw::Procedure)]);
+            p.identifier();
+            p.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
+            p.name();
+            if p.next_is(LeftSquare) {
+                p.signature();
+            }
+        });
     }
 
     pub fn subprogram_specification(&mut self) -> Option<CompletedMarker> {
-        let is_function = if matches!(
+        let (marker, is_function) = if matches!(
             self.peek_token(),
             Keyword(Kw::Pure | Kw::Impure | Kw::Function)
         ) {
-            self.start_node(FunctionSpecification);
+            let marker = self.start_node(FunctionSpecification);
             self.opt_tokens([Keyword(Kw::Pure), Keyword(Kw::Impure)]);
             self.expect_token(Keyword(Kw::Function));
-            true
+            (marker, true)
         } else if self.next_is(Keyword(Kw::Procedure)) {
-            self.start_node(ProcedureSpecification);
+            let marker = self.start_node(ProcedureSpecification);
             self.expect_token(Keyword(Kw::Procedure));
-            false
+            (marker, false)
         } else {
             self.expect_tokens_recover([
                 Keyword(Kw::Pure),
@@ -70,7 +70,7 @@ impl Parser {
             self.expect_kw(Kw::Return);
             self.type_mark();
         }
-        Some(self.end_node())
+        Some(marker.complete(self))
     }
 
     pub(crate) fn opt_parameter_list(&mut self) {
@@ -80,33 +80,33 @@ impl Parser {
     }
 
     pub fn parameter_list(&mut self) {
-        self.start_node(NodeKind::ParameterList);
-        self.opt_token(Keyword(Kw::Parameter));
-        self.start_node(ParenthesizedInterfaceList);
-        self.expect_token(LeftPar);
-        self.interface_list();
-        self.expect_token(RightPar);
-        self.end_node();
-        self.end_node();
+        self.node(NodeKind::ParameterList, |p| {
+            p.opt_token(Keyword(Kw::Parameter));
+            p.node(ParenthesizedInterfaceList, |p| {
+                p.expect_token(LeftPar);
+                p.interface_list();
+                p.expect_token(RightPar);
+            });
+        });
     }
 
     pub fn subprogram_header(&mut self) {
         if !self.next_is(Keyword(Kw::Generic)) {
             return;
         }
-        self.start_node(SubprogramHeader);
-        self.subprogram_header_generic_clause();
-        self.opt_generic_map_aspect();
-        self.end_node();
+        self.node(SubprogramHeader, |p| {
+            p.subprogram_header_generic_clause();
+            p.opt_generic_map_aspect();
+        });
     }
 
     pub fn subprogram_header_generic_clause(&mut self) {
-        self.start_node(SubprogramHeaderGenericClause);
-        self.expect_kw(Kw::Generic);
-        self.expect_token(LeftPar);
-        self.interface_list();
-        self.expect_token(RightPar);
-        self.end_node();
+        self.node(SubprogramHeaderGenericClause, |p| {
+            p.expect_kw(Kw::Generic);
+            p.expect_token(LeftPar);
+            p.interface_list();
+            p.expect_token(RightPar);
+        });
     }
 
     pub fn subprogram_body(&mut self) {
@@ -114,24 +114,23 @@ impl Parser {
     }
 
     pub(crate) fn subprogram_declaration_or_body(&mut self) {
-        let marker = self.start_unknown();
+        let unknown = self.start_unknown();
         let specification = self.subprogram_specification();
         if self.opt_token(SemiColon) {
-            self.set_unknown(marker, SubprogramDeclaration);
-            self.end_node();
+            unknown.complete(self, SubprogramDeclaration);
             return;
         }
-        self.precede(SubprogramBodyPreamble, specification);
+        let preamble = specification.precede(self, SubprogramBodyPreamble);
         self.expect_kw(Kw::Is);
-        self.end_node();
-        self.set_unknown(marker, SubprogramBody);
+        preamble.complete(self);
+        let marker = unknown.resolve(self, SubprogramBody);
         self.subprogram_declarative_part();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
+        self.node(DeclarationStatementSeparator, |p| {
+            p.expect_kw(Kw::Begin);
+        });
         self.subprogram_statement_part();
         self.subprogram_body_epilogue();
-        self.end_node();
+        marker.complete(self);
     }
 
     pub fn subprogram_declarative_part(&mut self) {
@@ -146,12 +145,12 @@ impl Parser {
     }
 
     pub fn subprogram_body_epilogue(&mut self) {
-        self.start_node(SubprogramBodyEpilogue);
-        self.expect_kw(Kw::End);
-        self.subprogram_kind();
-        self.opt_designator();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(SubprogramBodyEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.subprogram_kind();
+            p.opt_designator();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn subprogram_kind(&mut self) {

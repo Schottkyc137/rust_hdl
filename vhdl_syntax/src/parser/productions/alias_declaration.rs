@@ -11,22 +11,22 @@ use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
     pub fn alias_declaration(&mut self) {
-        self.start_node(AliasDeclaration);
-        self.expect_kw(Kw::Alias);
-        self.alias_designator();
-        if self.next_is(Colon) {
-            self.start_node(AliasSubtype);
-            self.skip(); // Colon
-            self.subtype_indication();
-            self.end_node();
-        }
-        self.expect_token(Keyword(Kw::Is));
-        self.name();
-        if self.next_is(LeftSquare) {
-            self.signature();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(AliasDeclaration, |p| {
+            p.expect_kw(Kw::Alias);
+            p.alias_designator();
+            if p.next_is(Colon) {
+                p.node(AliasSubtype, |p| {
+                    p.skip(); // Colon
+                    p.subtype_indication();
+                });
+            }
+            p.expect_token(Keyword(Kw::Is));
+            p.name();
+            if p.next_is(LeftSquare) {
+                p.signature();
+            }
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn alias_designator(&mut self) {

@@ -11,27 +11,24 @@ use crate::tokens::TokenKind::{SemiColon, *};
 
 impl Parser {
     pub fn package_instantiation_declaration(&mut self) {
-        self.start_node(PackageInstantiationDeclarationItem);
-        self.package_instantiation();
-        self.end_node();
+        self.node(PackageInstantiationDeclarationItem, Parser::package_instantiation);
     }
 
     pub fn package_instantiation(&mut self) {
-        self.start_node(PackageInstantiationDeclaration);
-        self.package_instantiation_preamble();
-        self.opt_generic_map_aspect();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(PackageInstantiationDeclaration, |p| {
+            p.package_instantiation_preamble();
+            p.opt_generic_map_aspect();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn package_instantiation_preamble(&mut self) {
-        self.start_node(PackageInstantiationPreamble);
-        self.expect_kw(Kw::Package);
-        self.identifier();
-        self.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
-        self.name();
-
-        self.end_node();
+        self.node(PackageInstantiationPreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.identifier();
+            p.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
+            p.name();
+        });
     }
 }
 

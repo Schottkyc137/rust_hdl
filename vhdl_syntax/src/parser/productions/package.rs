@@ -6,12 +6,12 @@ use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
     pub fn package(&mut self) {
-        self.start_node(PackageDeclaration);
-        self.package_preamble();
-        self.package_header();
-        self.package_declarative_part();
-        self.package_epilogue();
-        self.end_node();
+        self.node(PackageDeclaration, |p| {
+            p.package_preamble();
+            p.package_header();
+            p.package_declarative_part();
+            p.package_epilogue();
+        });
     }
 
     pub fn package_declarative_part(&mut self) {
@@ -19,43 +19,43 @@ impl Parser {
     }
 
     pub fn package_preamble(&mut self) {
-        self.start_node(PackagePreamble);
-        self.expect_kw(Kw::Package);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+        self.node(PackagePreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
     }
 
     pub fn package_epilogue(&mut self) {
-        self.start_node(PackageEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Package));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(PackageEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Package));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn package_header(&mut self) {
         if !self.next_is(Keyword(Kw::Generic)) {
             return;
         }
-        self.start_node(PackageHeader);
-        self.generic_clause();
-        if self.next_is(Keyword(Kw::Generic)) {
-            self.start_node(GenericMap);
-            self.opt_generic_map_aspect();
-            self.expect_token(SemiColon);
-            self.end_node();
-        }
-        self.end_node();
+        self.node(PackageHeader, |p| {
+            p.generic_clause();
+            if p.next_is(Keyword(Kw::Generic)) {
+                p.node(GenericMap, |p| {
+                    p.opt_generic_map_aspect();
+                    p.expect_token(SemiColon);
+                });
+            }
+        });
     }
 
     pub fn package_body(&mut self) {
-        self.start_node(PackageBody);
-        self.package_body_preamble();
-        self.package_body_declarative_part();
-        self.package_body_epilogue();
-        self.end_node();
+        self.node(PackageBody, |p| {
+            p.package_body_preamble();
+            p.package_body_declarative_part();
+            p.package_body_epilogue();
+        });
     }
 
     pub fn package_body_declarative_part(&mut self) {
@@ -66,26 +66,26 @@ impl Parser {
     }
 
     pub fn package_body_preamble(&mut self) {
-        self.start_node(PackageBodyPreamble);
-        self.expect_kw(Kw::Package);
-        self.expect_kw(Kw::Body);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+        self.node(PackageBodyPreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.expect_kw(Kw::Body);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
     }
 
     pub fn package_body_epilogue(&mut self) {
-        self.start_node(PackageBodyEpilogue);
-        self.expect_kw(Kw::End);
-        if self.next_is(Keyword(Kw::Package)) {
-            self.start_node(EndPackageBody);
-            self.skip(); // Kw::Package
-            self.expect_kw(Kw::Body);
-            self.end_node();
-        }
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(PackageBodyEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            if p.next_is(Keyword(Kw::Package)) {
+                p.node(EndPackageBody, |p| {
+                    p.skip(); // Kw::Package
+                    p.expect_kw(Kw::Body);
+                });
+            }
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 }
 

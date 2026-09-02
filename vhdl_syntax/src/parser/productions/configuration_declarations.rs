@@ -11,53 +11,51 @@ use crate::tokens::{Keyword as Kw, TokenKind};
 
 impl Parser {
     pub fn configuration_declaration(&mut self) {
-        self.start_node(NodeKind::ConfigurationDeclaration);
-        self.configuration_declaration_preamble();
-        self.configuration_declarative_part();
-        if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-            self.start_node(NodeKind::VerificationUnitBinding);
-            self.verification_unit_binding_indication();
-            self.expect_token(SemiColon);
-            self.end_node();
-        }
-        self.block_configuration();
-        self.configuration_declaration_epilogue();
-        self.end_node();
+        self.node(NodeKind::ConfigurationDeclaration, |p| {
+            p.configuration_declaration_preamble();
+            p.configuration_declarative_part();
+            if p.next_is(Keyword(Kw::Use)) && p.next_nth_is(Keyword(Kw::Vunit), 1) {
+                p.node(NodeKind::VerificationUnitBinding, |p| {
+                    p.verification_unit_binding_indication();
+                    p.expect_token(SemiColon);
+                });
+            }
+            p.block_configuration();
+            p.configuration_declaration_epilogue();
+        });
     }
 
     pub fn configuration_declaration_preamble(&mut self) {
-        self.start_node(NodeKind::ConfigurationDeclarationPreamble);
-        self.expect_kw(Kw::Configuration);
-        self.identifier();
-        self.expect_kw(Kw::Of);
-        self.name();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+        self.node(NodeKind::ConfigurationDeclarationPreamble, |p| {
+            p.expect_kw(Kw::Configuration);
+            p.identifier();
+            p.expect_kw(Kw::Of);
+            p.name();
+            p.expect_kw(Kw::Is);
+        });
     }
 
     pub fn configuration_declaration_epilogue(&mut self) {
-        self.start_node(NodeKind::ConfigurationDeclarationEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Configuration));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(NodeKind::ConfigurationDeclarationEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Configuration));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn configuration_declarative_part(&mut self) {
-        self.start_node(ConfigurationDeclarativePart);
-        loop {
-            if self.next_is(Keyword(Kw::Use)) && !self.next_nth_is(Keyword(Kw::Vunit), 1) {
-                self.use_clause_declaration();
-            } else if self.next_is(Keyword(Kw::Group)) {
+        self.node(ConfigurationDeclarativePart, |p| loop {
+            if p.next_is(Keyword(Kw::Use)) && !p.next_nth_is(Keyword(Kw::Vunit), 1) {
+                p.use_clause_declaration();
+            } else if p.next_is(Keyword(Kw::Group)) {
                 unimplemented!("Group declarations");
-            } else if self.next_is(Keyword(Kw::Attribute)) {
-                self.attribute_specification();
+            } else if p.next_is(Keyword(Kw::Attribute)) {
+                p.attribute_specification();
             } else {
                 break;
             }
-        }
-        self.end_node();
+        });
     }
 
     pub fn configuration_item(&mut self) {
@@ -67,9 +65,9 @@ impl Parser {
                 self.component_configuration()
             }
             Identifier => {
-                self.start_node(NodeKind::BlockConfigurationItem);
-                self.block_configuration();
-                self.end_node();
+                self.node(NodeKind::BlockConfigurationItem, |p| {
+                    p.block_configuration();
+                });
             }
             _ => {
                 self.expect_kw(Kw::For);
@@ -79,17 +77,17 @@ impl Parser {
     }
 
     pub fn block_configuration(&mut self) {
-        self.start_node(NodeKind::BlockConfiguration);
-        self.block_configuration_preamble();
-        self.block_configuration_known_spec();
-        self.end_node();
+        self.node(NodeKind::BlockConfiguration, |p| {
+            p.block_configuration_preamble();
+            p.block_configuration_known_spec();
+        });
     }
 
     pub fn block_configuration_preamble(&mut self) {
-        self.start_node(NodeKind::BlockConfigurationPreamble);
-        self.expect_kw(Kw::For);
-        self.name();
-        self.end_node();
+        self.node(NodeKind::BlockConfigurationPreamble, |p| {
+            p.expect_kw(Kw::For);
+            p.name();
+        });
     }
 
     fn block_configuration_known_spec(&mut self) {
@@ -103,49 +101,53 @@ impl Parser {
     }
 
     pub fn block_configuration_epilogue(&mut self) {
-        self.start_node(NodeKind::BlockConfigurationEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
-        self.end_node();
+        self.node(NodeKind::BlockConfigurationEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
+        });
     }
 
     fn component_configuration(&mut self) {
-        self.start_node(NodeKind::ComponentConfiguration);
-        self.start_node(NodeKind::ComponentConfigurationPreamble);
-        self.expect_kw(Kw::For);
-        self.start_node(NodeKind::ComponentSpecification);
-        match self.peek_token() {
-            Keyword(Kw::All) => self.skip_into_node(NodeKind::InstantiationListAll),
-            Keyword(Kw::Others) => self.skip_into_node(NodeKind::InstantiationListOthers),
-            _ => self.separated_list(NodeKind::InstantiationListList, Parser::identifier, Comma),
-        };
-        self.expect_token(Colon);
-        self.name();
-        self.end_node(); // ComponentSpecification
-        self.end_node(); // ComponentConfigurationPreamble
-        self.component_configuration_known_spec();
-        self.end_node(); // ComponentConfiguration
+        self.node(NodeKind::ComponentConfiguration, |p| {
+            p.node(NodeKind::ComponentConfigurationPreamble, |p| {
+                p.expect_kw(Kw::For);
+                p.node(NodeKind::ComponentSpecification, |p| {
+                    match p.peek_token() {
+                        Keyword(Kw::All) => p.skip_into_node(NodeKind::InstantiationListAll),
+                        Keyword(Kw::Others) => p.skip_into_node(NodeKind::InstantiationListOthers),
+                        _ => p.separated_list(
+                            NodeKind::InstantiationListList,
+                            Parser::identifier,
+                            Comma,
+                        ),
+                    };
+                    p.expect_token(Colon);
+                    p.name();
+                });
+            });
+            p.component_configuration_known_spec();
+        });
     }
 
     pub fn component_configuration_epilogue(&mut self) {
-        self.start_node(NodeKind::ComponentConfigurationEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
-        self.end_node();
+        self.node(NodeKind::ComponentConfigurationEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
+        });
     }
 
     fn component_configuration_known_spec(&mut self) {
         if self.next_is_one_of([Keyword(Kw::Use), Keyword(Kw::Generic), Keyword(Kw::Port)])
             && !self.next_nth_is(Keyword(Kw::Vunit), 1)
         {
-            self.start_node(NodeKind::Binding);
-            self.binding_indication();
-            self.expect_token(TokenKind::SemiColon);
-            self.end_node();
+            self.node(NodeKind::Binding, |p| {
+                p.binding_indication();
+                p.expect_token(TokenKind::SemiColon);
+            });
         }
         if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-            self.start_node(NodeKind::VerificationUnitBinding);
-            self.verification_unit_binding_indication();
-            self.expect_token(SemiColon);
-            self.end_node();
+            self.node(NodeKind::VerificationUnitBinding, |p| {
+                p.verification_unit_binding_indication();
+                p.expect_token(SemiColon);
+            });
         }
         if self.next_is(Keyword(Kw::For)) {
             self.block_configuration();

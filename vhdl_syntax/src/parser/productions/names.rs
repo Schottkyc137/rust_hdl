@@ -4,8 +4,8 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
-use crate::parser::builder::CompletedMarker;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
@@ -48,26 +48,25 @@ impl Parser {
 
         // In contrast to the LRM, this parsing routine is greedy. Meaning, it will consume trailing parenthesized
         // expressions even if the belong to an outer grammar rule!
-        self.start_node(Name);
+        self.node(Name, |p| {
+            if p.next_is(LtLt) {
+                p.external_name();
+            } else {
+                p.node(NameDesignatorPrefix, |p| {
+                    p.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
+                });
+            }
 
-        if self.next_is(LtLt) {
-            self.external_name();
-        } else {
-            self.start_node(NameDesignatorPrefix);
-            self.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
-            self.end_node();
-        }
+            while p.opt_name_tail() {}
 
-        while self.opt_name_tail() {}
-
-        // Ambiguity: `range <>` is the tail of an index subtype definition.
-        // This wires through name due to the starting `type_mark`.
-        // TODO: consider alternative: broaden language to make "<>" a valid expression.
-        // Creates less ambiguity here.
-        if self.next_is(Keyword(Kw::Range)) && !self.next_nth_is(BOX, 1) {
-            self.range_constraint();
-        }
-        self.end_node()
+            // Ambiguity: `range <>` is the tail of an index subtype definition.
+            // This wires through name due to the starting `type_mark`.
+            // TODO: consider alternative: broaden language to make "<>" a valid expression.
+            // Creates less ambiguity here.
+            if p.next_is(Keyword(Kw::Range)) && !p.next_nth_is(BOX, 1) {
+                p.range_constraint();
+            }
+        })
     }
 
     pub fn type_mark(&mut self) -> CompletedMarker {
@@ -84,16 +83,16 @@ impl Parser {
     }
 
     pub(crate) fn label(&mut self) {
-        self.start_node(StmtLabel);
-        self.expect_tokens([Identifier, Colon]);
-        self.end_node();
+        self.node(StmtLabel, |p| {
+            p.expect_tokens([Identifier, Colon]);
+        });
     }
 
     pub(crate) fn opt_label(&mut self) {
         if self.next_is(Identifier) && self.next_nth_is(Colon, 1) {
-            self.start_node(StmtLabel);
-            self.skip_n(2);
-            self.end_node();
+            self.node(StmtLabel, |p| {
+                p.skip_n(2);
+            });
         }
     }
 
@@ -115,32 +114,32 @@ impl Parser {
     fn opt_name_tail(&mut self) -> bool {
         match self.peek_token() {
             Dot => {
-                self.start_node(SelectedName);
-                self.expect_token(Dot);
-                self.suffix();
-                self.end_node();
+                self.node(SelectedName, |p| {
+                    p.expect_token(Dot);
+                    p.suffix();
+                });
                 true
             }
             LeftPar => {
-                self.start_node(ParenthesizedName);
-                self.expect_token(LeftPar);
-                self.association_list();
-                self.expect_token(RightPar);
-                self.end_node();
+                self.node(ParenthesizedName, |p| {
+                    p.expect_token(LeftPar);
+                    p.association_list();
+                    p.expect_token(RightPar);
+                });
                 true
             }
             _ => {
                 if is_start_of_attribute_name(self) {
-                    self.start_node(AttributeName);
-                    if self.next_is(LeftSquare) {
-                        self.signature();
-                    }
-                    self.expect_token(Tick);
-                    // Either an identifier or a keyword (e.g., `range`, `subtype`).
-                    if matches!(self.peek_token(), Keyword(_) | Identifier) {
-                        self.skip();
-                    }
-                    self.end_node();
+                    self.node(AttributeName, |p| {
+                        if p.next_is(LeftSquare) {
+                            p.signature();
+                        }
+                        p.expect_token(Tick);
+                        // Either an identifier or a keyword (e.g., `range`, `subtype`).
+                        if matches!(p.peek_token(), Keyword(_) | Identifier) {
+                            p.skip();
+                        }
+                    });
                     true
                 } else {
                     false
@@ -151,7 +150,7 @@ impl Parser {
 
     pub fn external_name(&mut self) {
         // LRM §8.7
-        let marker = self.start_unknown();
+        let unknown = self.start_unknown();
         self.expect_token(LtLt);
 
         let tok = self.expect_one_of_tokens([
@@ -159,43 +158,52 @@ impl Parser {
             Keyword(Kw::Signal),
             Keyword(Kw::Variable),
         ]);
-        match tok {
-            Some(Keyword(Kw::Signal)) => self.set_unknown(marker, ExternalSignalName),
-            Some(Keyword(Kw::Variable)) => self.set_unknown(marker, ExternalVariableName),
-            _ => self.set_unknown(marker, ExternalConstantName),
-        }
+        let marker = unknown.resolve(
+            self,
+            match tok {
+                Some(Keyword(Kw::Signal)) => ExternalSignalName,
+                Some(Keyword(Kw::Variable)) => ExternalVariableName,
+                _ => ExternalConstantName,
+            },
+        );
         self.external_pathname();
         self.expect_token(Colon);
         self.subtype_indication();
 
         self.expect_token(GtGt);
-        self.end_node();
+        marker.complete(self);
     }
 
     fn external_pathname(&mut self) {
         // LRM §8.7
-        match_next_token!(self,
+        // No node is opened on the recovery path, hence the `Option`.
+        let marker = match_next_token!(self,
         CommAt => {
-            self.start_node(PackagePathname);
+            let marker = self.start_node(PackagePathname);
             self.skip();
             self.separated_list(PackagePath, Parser::identifier, Dot);
+            Some(marker)
         },
         Dot => {
-            self.start_node(AbsolutePathname);
+            let marker = self.start_node(AbsolutePathname);
             self.skip();
             self.partial_pathname();
+            Some(marker)
         },
         Circ, Identifier => {
-            self.start_node(RelativePathname);
+            let marker = self.start_node(RelativePathname);
             while self.next_is(Circ) {
-                self.start_node(UpLevel);
-                self.skip(); // Circ
-                self.expect_token(Dot);
-                self.end_node();
+                self.node(UpLevel, |p| {
+                    p.skip(); // Circ
+                    p.expect_token(Dot);
+                });
             }
             self.partial_pathname();
+            Some(marker)
         });
-        self.end_node();
+        if let Some(marker) = marker {
+            marker.complete(self);
+        }
     }
 
     fn partial_pathname(&mut self) {
@@ -205,16 +213,16 @@ impl Parser {
     }
 
     fn pathname_element(&mut self) {
-        self.start_node(PathnameElement);
-        self.identifier();
-        if self.next_is(LeftPar) {
-            self.start_node(ParenthesizedExpression);
-            self.expect_token(LeftPar);
-            self.expression();
-            self.expect_token(RightPar);
-            self.end_node();
-        }
-        self.end_node();
+        self.node(PathnameElement, |p| {
+            p.identifier();
+            if p.next_is(LeftPar) {
+                p.node(ParenthesizedExpression, |p| {
+                    p.expect_token(LeftPar);
+                    p.expression();
+                    p.expect_token(RightPar);
+                });
+            }
+        });
     }
 
     pub fn choices(&mut self) {
@@ -223,17 +231,17 @@ impl Parser {
 
     pub fn choice(&mut self) {
         if self.next_is(Keyword(Kw::Others)) {
-            self.start_node(OthersChoice);
-            self.skip();
-            self.end_node();
+            self.node(OthersChoice, |p| {
+                p.skip();
+            });
             return;
         }
         // `expression` now subsumes the old `range` (`to`/`downto` are binary
         // operators); `choice = expression | discrete_range | others` collapses
         // to "either an expression or `others`" at the parser level.
-        self.start_node(ExpressionChoice);
-        self.expression();
-        self.end_node();
+        self.node(ExpressionChoice, |p| {
+            p.expression();
+        });
     }
 }
 

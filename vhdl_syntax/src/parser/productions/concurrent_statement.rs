@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::Precede;
 use crate::parser::productions::declarations::is_start_of_declarative_part;
 use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
@@ -18,39 +19,39 @@ use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
     pub fn block_statement(&mut self) {
-        self.start_node(BlockStatement);
-        self.label();
-        self.block_preamble();
-        self.block_header();
-        self.block_declarative_part();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.block_statement_part();
-        self.block_epilogue();
-        self.end_node();
+        self.node(BlockStatement, |p| {
+            p.label();
+            p.block_preamble();
+            p.block_header();
+            p.block_declarative_part();
+            p.node(DeclarationStatementSeparator, |p| {
+                p.expect_kw(Kw::Begin);
+            });
+            p.block_statement_part();
+            p.block_epilogue();
+        });
     }
 
     pub fn block_preamble(&mut self) {
-        self.start_node(BlockPreamble);
-        self.expect_kw(Kw::Block);
-        if self.next_is(LeftPar) {
-            self.start_node(ParenthesizedCondition);
-            self.skip(); // LeftPar
-            self.expression();
-            self.expect_token(RightPar);
-            self.end_node();
-        }
-        self.opt_token(Keyword(Kw::Is));
-        self.end_node();
+        self.node(BlockPreamble, |p| {
+            p.expect_kw(Kw::Block);
+            if p.next_is(LeftPar) {
+                p.node(ParenthesizedCondition, |p| {
+                    p.skip(); // LeftPar
+                    p.expression();
+                    p.expect_token(RightPar);
+                });
+            }
+            p.opt_token(Keyword(Kw::Is));
+        });
     }
 
     pub fn block_epilogue(&mut self) {
-        self.start_node(BlockEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Block)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(BlockEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Block)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn block_declarative_part(&mut self) {
@@ -62,39 +63,37 @@ impl Parser {
     }
 
     pub fn block_header(&mut self) {
-        self.start_node(BlockHeader);
-
-        if self.next_is(Keyword(Kw::Generic)) {
-            self.start_node(GenericPart);
-            self.generic_clause();
-            if self.next_is(Keyword(Kw::Generic)) {
-                self.start_node(GenericMap);
-                self.opt_generic_map_aspect();
-                self.expect_token(SemiColon);
-                self.end_node();
+        self.node(BlockHeader, |p| {
+            if p.next_is(Keyword(Kw::Generic)) {
+                p.node(GenericPart, |p| {
+                    p.generic_clause();
+                    if p.next_is(Keyword(Kw::Generic)) {
+                        p.node(GenericMap, |p| {
+                            p.opt_generic_map_aspect();
+                            p.expect_token(SemiColon);
+                        });
+                    }
+                });
             }
-            self.end_node();
-        }
 
-        if self.next_is(Keyword(Kw::Port)) {
-            self.start_node(PortPart);
-            self.port_clause();
-            if self.next_is(Keyword(Kw::Port)) {
-                self.start_node(PortMap);
-                self.opt_port_map_aspect();
-                self.expect_token(SemiColon);
-                self.end_node();
+            if p.next_is(Keyword(Kw::Port)) {
+                p.node(PortPart, |p| {
+                    p.port_clause();
+                    if p.next_is(Keyword(Kw::Port)) {
+                        p.node(PortMap, |p| {
+                            p.opt_port_map_aspect();
+                            p.expect_token(SemiColon);
+                        });
+                    }
+                });
             }
-            self.end_node();
-        }
-
-        self.end_node();
+        });
     }
 
     pub(crate) fn concurrent_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
-        self.start_node(node_kind);
-        self.concurrent_statement_list(choice_options(layout));
-        self.end_node();
+        self.node(node_kind, |p| {
+            p.concurrent_statement_list(choice_options(layout));
+        });
     }
 
     fn concurrent_statement_list(&mut self, allowed_nodes: &[NodeKind]) {
@@ -111,24 +110,24 @@ impl Parser {
     }
 
     pub fn component_instantiated_unit(&mut self) {
-        self.start_node(InstantiatedComponent);
-        self.opt_token(Keyword(Kw::Component));
-        self.name();
-        self.end_node();
+        self.node(InstantiatedComponent, |p| {
+            p.opt_token(Keyword(Kw::Component));
+            p.name();
+        });
     }
 
     pub fn entity_instantiated_unit(&mut self) {
-        self.start_node(InstantiatedEntity);
-        self.expect_kw(Kw::Entity);
-        self.name();
-        self.end_node();
+        self.node(InstantiatedEntity, |p| {
+            p.expect_kw(Kw::Entity);
+            p.name();
+        });
     }
 
     pub fn configuration_instantiated_unit(&mut self) {
-        self.start_node(InstantiatedConfiguration);
-        self.expect_kw(Kw::Configuration);
-        self.name();
-        self.end_node();
+        self.node(InstantiatedConfiguration, |p| {
+            p.expect_kw(Kw::Configuration);
+            p.name();
+        });
     }
 
     fn peek_concurrent_statement_kind(&mut self) -> TokenKind {
@@ -153,21 +152,21 @@ impl Parser {
     }
 
     pub fn component_instantiation_statement(&mut self) {
-        self.start_node(ComponentInstantiationStatement);
-        self.label();
-        self.instantiated_unit();
-        self.instantiation_statement_inner();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ComponentInstantiationStatement, |p| {
+            p.label();
+            p.instantiated_unit();
+            p.instantiation_statement_inner();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn concurrent_assertion_statement(&mut self) {
-        self.start_node(ConcurrentAssertionStatement);
-        self.opt_label();
-        self.opt_token(Keyword(Kw::Postponed));
-        self.assertion();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ConcurrentAssertionStatement, |p| {
+            p.opt_label();
+            p.opt_token(Keyword(Kw::Postponed));
+            p.assertion();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub(crate) fn concurrent_statement(&mut self) {
@@ -183,46 +182,47 @@ impl Parser {
             Keyword(Kw::Assert) => self.concurrent_assertion_statement(),
             Keyword(Kw::With) => self.concurrent_selected_signal_assignment(),
             Identifier | LtLt | StringLiteral | CharacterLiteral => {
-                let marker = self.start_unknown();
+                let unknown = self.start_unknown();
                 self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
                 let name = self.name();
-                match self.peek_token() {
+                let marker = match self.peek_token() {
                     LTE => {
-                        self.precede(NameTarget, name);
-                        self.end_node();
+                        name.precede(self, NameTarget).complete(self);
                         self.skip();
                         self.opt_token(Keyword(Kw::Guarded));
                         self.opt_delay_mechanism();
                         let waveform = self.waveform();
                         if self.next_is(Keyword(Kw::When)) {
-                            self.set_unknown(marker, ConcurrentConditionalSignalAssignment);
-                            self.precede(WhenWaveform, waveform);
+                            let marker =
+                                unknown.resolve(self, ConcurrentConditionalSignalAssignment);
+                            let when = waveform.precede(self, WhenWaveform);
                             self.skip();
                             self.expression();
-                            let when_waveform = self.end_node();
-                            self.precede(ConditionalWaveforms, when_waveform);
+                            let when_waveform = when.complete(self);
+                            let waveforms = when_waveform.precede(self, ConditionalWaveforms);
                             self.conditional_else(Parser::waveform, ElseWhenWaveform, ElseWaveform);
-                            self.end_node();
+                            waveforms.complete(self);
+                            marker
                         } else {
-                            self.set_unknown(marker, ConcurrentSimpleSignalAssignment);
+                            unknown.resolve(self, ConcurrentSimpleSignalAssignment)
                         }
                     }
                     Keyword(Kw::Port | Kw::Generic) => {
-                        self.precede(InstantiatedComponent, name);
-                        self.end_node();
-                        self.set_unknown(marker, ComponentInstantiationStatement);
+                        name.precede(self, InstantiatedComponent).complete(self);
+                        let marker = unknown.resolve(self, ComponentInstantiationStatement);
                         self.instantiation_statement_inner();
+                        marker
                     }
                     // Could be an instantiated unit without ports and generics
                     // or a procedure call
-                    _ => self.set_unknown(
-                        marker,
+                    _ => unknown.resolve(
+                        self,
                         ConcurrentProcedureCallOrComponentInstantiationStatement,
                     ),
-                }
+                };
                 self.expect_token(SemiColon);
-                self.end_node();
+                marker.complete(self);
             }
             _ => {
                 self.expect_tokens_recover([
@@ -246,188 +246,188 @@ impl Parser {
     }
 
     pub fn concurrent_selected_signal_assignment(&mut self) {
-        self.start_node(ConcurrentSelectedSignalAssignment);
-        self.opt_label();
-        self.opt_token(Keyword(Kw::Postponed));
-        self.selected_assignment_preamble();
-        self.target();
-        self.expect_token(LTE);
-        self.opt_token(Keyword(Kw::Guarded));
-        self.opt_delay_mechanism();
-        self.selected_waveforms();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ConcurrentSelectedSignalAssignment, |p| {
+            p.opt_label();
+            p.opt_token(Keyword(Kw::Postponed));
+            p.selected_assignment_preamble();
+            p.target();
+            p.expect_token(LTE);
+            p.opt_token(Keyword(Kw::Guarded));
+            p.opt_delay_mechanism();
+            p.selected_waveforms();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn selected_assignment_preamble(&mut self) {
-        self.start_node(SelectedAssignmentPreamble);
-        self.expect_kw(Kw::With);
-        self.expression();
-        self.expect_kw(Kw::Select);
-        self.opt_token(Que);
-        self.end_node();
+        self.node(SelectedAssignmentPreamble, |p| {
+            p.expect_kw(Kw::With);
+            p.expression();
+            p.expect_kw(Kw::Select);
+            p.opt_token(Que);
+        });
     }
 
     pub fn target(&mut self) {
         if self.next_is(LeftPar) {
-            self.start_node(AggregateTarget);
-            self.aggregate();
-            self.end_node();
+            self.node(AggregateTarget, |p| {
+                p.aggregate();
+            });
         } else {
-            self.start_node(NameTarget);
-            self.name();
-            self.end_node();
+            self.node(NameTarget, |p| {
+                p.name();
+            });
         }
     }
 
     pub fn assertion(&mut self) {
-        self.start_node(Assertion);
-        self.expect_kw(Kw::Assert);
-        self.condition();
-        if self.next_is(Keyword(Kw::Report)) {
-            self.start_node(ReportClause);
-            self.skip(); // Kw::Report
-            self.expression();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::Severity)) {
-            self.start_node(SeverityClause);
-            self.skip(); // Kw::Severity
-            self.expression();
-            self.end_node();
-        }
-        self.end_node();
+        self.node(Assertion, |p| {
+            p.expect_kw(Kw::Assert);
+            p.condition();
+            if p.next_is(Keyword(Kw::Report)) {
+                p.node(ReportClause, |p| {
+                    p.skip(); // Kw::Report
+                    p.expression();
+                });
+            }
+            if p.next_is(Keyword(Kw::Severity)) {
+                p.node(SeverityClause, |p| {
+                    p.skip(); // Kw::Severity
+                    p.expression();
+                });
+            }
+        });
     }
 
     pub fn case_generate_statement(&mut self) {
-        self.start_node(CaseGenerateStatement);
-        self.label();
-        self.case_generate_preamble();
-        self.case_generate_alternative();
-        while self.next_is(Keyword(Kw::When)) {
-            self.case_generate_alternative();
-        }
-        self.generate_epilogue();
-        self.end_node();
+        self.node(CaseGenerateStatement, |p| {
+            p.label();
+            p.case_generate_preamble();
+            p.case_generate_alternative();
+            while p.next_is(Keyword(Kw::When)) {
+                p.case_generate_alternative();
+            }
+            p.generate_epilogue();
+        });
     }
 
     pub fn case_generate_preamble(&mut self) {
-        self.start_node(CaseGeneratePreamble);
-        self.expect_kw(Kw::Case);
-        self.expression();
-        self.expect_kw(Kw::Generate);
-        self.end_node();
+        self.node(CaseGeneratePreamble, |p| {
+            p.expect_kw(Kw::Case);
+            p.expression();
+            p.expect_kw(Kw::Generate);
+        });
     }
 
     pub fn case_generate_alternative(&mut self) {
-        self.start_node(CaseGenerateAlternative);
-        self.expect_kw(Kw::When);
-        self.opt_label();
-        self.choices();
-        self.expect_token(RightArrow);
-        self.generate_statement_body();
-        self.end_node();
+        self.node(CaseGenerateAlternative, |p| {
+            p.expect_kw(Kw::When);
+            p.opt_label();
+            p.choices();
+            p.expect_token(RightArrow);
+            p.generate_statement_body();
+        });
     }
 
     pub fn for_generate_statement(&mut self) {
-        self.start_node(ForGenerateStatement);
-        self.label();
-        self.for_generate_preamble();
-        self.generate_statement_body();
-        self.generate_epilogue();
-        self.end_node();
+        self.node(ForGenerateStatement, |p| {
+            p.label();
+            p.for_generate_preamble();
+            p.generate_statement_body();
+            p.generate_epilogue();
+        });
     }
 
     pub fn for_generate_preamble(&mut self) {
-        self.start_node(ForGeneratePreamble);
-        self.expect_kw(Kw::For);
-        self.parameter_specification();
-        self.expect_kw(Kw::Generate);
-        self.end_node();
+        self.node(ForGeneratePreamble, |p| {
+            p.expect_kw(Kw::For);
+            p.parameter_specification();
+            p.expect_kw(Kw::Generate);
+        });
     }
 
     pub fn generate_epilogue(&mut self) {
-        self.start_node(GenerateEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(GenerateEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn if_generate_if(&mut self) {
-        self.start_node(IfGenerateIf);
-        self.expect_kw(Kw::If);
-        self.opt_label();
-        self.expression();
-        self.expect_kw(Kw::Generate);
-        self.generate_statement_body();
-        self.end_node();
+        self.node(IfGenerateIf, |p| {
+            p.expect_kw(Kw::If);
+            p.opt_label();
+            p.expression();
+            p.expect_kw(Kw::Generate);
+            p.generate_statement_body();
+        });
     }
 
     pub fn if_generate_elsif(&mut self) {
-        self.start_node(IfGenerateElsif);
-        self.skip();
-        self.opt_label();
-        self.condition();
-        self.expect_kw(Kw::Generate);
-        self.generate_statement_body();
-        self.end_node();
+        self.node(IfGenerateElsif, |p| {
+            p.skip();
+            p.opt_label();
+            p.condition();
+            p.expect_kw(Kw::Generate);
+            p.generate_statement_body();
+        });
     }
 
     pub fn if_generate_else(&mut self) {
-        self.start_node(IfGenerateElse);
-        self.skip();
-        self.opt_label();
-        self.expect_kw(Kw::Generate);
-        self.generate_statement_body();
-        self.end_node();
+        self.node(IfGenerateElse, |p| {
+            p.skip();
+            p.opt_label();
+            p.expect_kw(Kw::Generate);
+            p.generate_statement_body();
+        });
     }
 
     pub fn if_generate_statement(&mut self) {
-        self.start_node(IfGenerateStatement);
-        self.label();
-        self.if_generate_if();
-        while self.next_is(Keyword(Kw::Elsif)) {
-            self.if_generate_elsif();
-        }
-        if self.next_is(Keyword(Kw::Else)) {
-            self.if_generate_else();
-        }
-        self.generate_epilogue();
-        self.end_node();
+        self.node(IfGenerateStatement, |p| {
+            p.label();
+            p.if_generate_if();
+            while p.next_is(Keyword(Kw::Elsif)) {
+                p.if_generate_elsif();
+            }
+            if p.next_is(Keyword(Kw::Else)) {
+                p.if_generate_else();
+            }
+            p.generate_epilogue();
+        });
     }
 
     pub fn generate_statement_body(&mut self) {
-        self.start_node(GenerateStatementBody);
-        if is_start_of_declarative_part(self.peek_token()) || self.next_is(Keyword(Kw::Begin)) {
-            self.start_node(GenerateBodyDeclarations);
-            self.block_declarative_part();
-            self.start_node(DeclarationStatementSeparator);
-            self.expect_kw(Kw::Begin);
-            self.end_node();
-            self.end_node();
-        }
-        self.concurrent_statement_list(choice_options(ConcurrentStatementSyntax::META));
-        if self.next_is(Keyword(Kw::End)) && !self.next_nth_is(Keyword(Kw::Generate), 1) {
-            self.generate_statement_body_epilogue();
-        }
-        self.end_node();
+        self.node(GenerateStatementBody, |p| {
+            if is_start_of_declarative_part(p.peek_token()) || p.next_is(Keyword(Kw::Begin)) {
+                p.node(GenerateBodyDeclarations, |p| {
+                    p.block_declarative_part();
+                    p.node(DeclarationStatementSeparator, |p| {
+                        p.expect_kw(Kw::Begin);
+                    });
+                });
+            }
+            p.concurrent_statement_list(choice_options(ConcurrentStatementSyntax::META));
+            if p.next_is(Keyword(Kw::End)) && !p.next_nth_is(Keyword(Kw::Generate), 1) {
+                p.generate_statement_body_epilogue();
+            }
+        });
     }
 
     pub fn generate_statement_body_epilogue(&mut self) {
-        self.start_node(GenerateBodyEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(GenerateBodyEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn parameter_specification(&mut self) {
-        self.start_node(ParameterSpecification);
-        self.identifier();
-        self.expect_kw(Kw::In);
-        self.expression();
-        self.end_node();
+        self.node(ParameterSpecification, |p| {
+            p.identifier();
+            p.expect_kw(Kw::In);
+            p.expression();
+        });
     }
 
     fn instantiation_statement_inner(&mut self) {
@@ -436,16 +436,16 @@ impl Parser {
     }
 
     pub fn process_statement(&mut self) {
-        self.start_node(ProcessStatement);
-        self.opt_label();
-        self.process_preamble();
-        self.process_declarative_part();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.process_statement_part();
-        self.process_epilogue();
-        self.end_node();
+        self.node(ProcessStatement, |p| {
+            p.opt_label();
+            p.process_preamble();
+            p.process_declarative_part();
+            p.node(DeclarationStatementSeparator, |p| {
+                p.expect_kw(Kw::Begin);
+            });
+            p.process_statement_part();
+            p.process_epilogue();
+        });
     }
 
     pub fn process_declarative_part(&mut self) {
@@ -457,36 +457,36 @@ impl Parser {
     }
 
     pub fn process_preamble(&mut self) {
-        self.start_node(ProcessPreamble);
-        self.opt_token(Keyword(Kw::Postponed));
-        self.expect_token(Keyword(Kw::Process));
-        if self.next_is(LeftPar) {
-            self.process_sensitivity_list();
-        }
-        self.opt_token(Keyword(Kw::Is));
-        self.end_node();
+        self.node(ProcessPreamble, |p| {
+            p.opt_token(Keyword(Kw::Postponed));
+            p.expect_token(Keyword(Kw::Process));
+            if p.next_is(LeftPar) {
+                p.process_sensitivity_list();
+            }
+            p.opt_token(Keyword(Kw::Is));
+        });
     }
 
     pub fn process_epilogue(&mut self) {
-        self.start_node(ProcessEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Postponed));
-        self.expect_token(Keyword(Kw::Process));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ProcessEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Postponed));
+            p.expect_token(Keyword(Kw::Process));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn process_sensitivity_list(&mut self) {
-        self.start_node(ParenthesizedProcessSensitivityList);
-        self.expect_token(LeftPar);
-        if self.next_is(Keyword(Kw::All)) {
-            self.skip_into_node(AllSensitivityList);
-        } else {
-            self.sensitivity_list();
-        }
-        self.expect_token(RightPar);
-        self.end_node();
+        self.node(ParenthesizedProcessSensitivityList, |p| {
+            p.expect_token(LeftPar);
+            if p.next_is(Keyword(Kw::All)) {
+                p.skip_into_node(AllSensitivityList);
+            } else {
+                p.sensitivity_list();
+            }
+            p.expect_token(RightPar);
+        });
     }
 
     pub fn sensitivity_list(&mut self) {

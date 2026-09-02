@@ -4,8 +4,8 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
-use crate::parser::builder::CompletedMarker;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{Comma, Keyword};
@@ -26,13 +26,13 @@ impl Parser {
             Keyword(Kw::Transport) => Some(self.skip_into_node(TransportDelayMechanism)),
             Keyword(Kw::Inertial) => Some(self.skip_into_node(InertialDelayMechanism)),
             Keyword(Kw::Reject) => {
-                self.start_node(InertialDelayMechanism);
-                self.start_node(RejectClause);
-                self.skip(); // Kw::Reject
-                self.expression();
-                self.end_node();
-                self.expect_kw(Kw::Inertial);
-                Some(self.end_node())
+                Some(self.node(InertialDelayMechanism, |p| {
+                    p.node(RejectClause, |p| {
+                        p.skip(); // Kw::Reject
+                        p.expression();
+                    });
+                    p.expect_kw(Kw::Inertial);
+                }))
             }
         )
     }
@@ -42,11 +42,11 @@ impl Parser {
     }
 
     fn selected_waveform(&mut self) {
-        self.start_node(SelectedWaveformItem);
-        self.waveform();
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.end_node();
+        self.node(SelectedWaveformItem, |p| {
+            p.waveform();
+            p.expect_kw(Kw::When);
+            p.choices();
+        });
     }
 
     pub fn waveform_elements(&mut self) -> CompletedMarker {
@@ -62,15 +62,15 @@ impl Parser {
     }
 
     pub fn waveform_element(&mut self) {
-        self.start_node(WaveformElement);
-        self.expression();
-        if self.next_is(Keyword(Kw::After)) {
-            self.start_node(AfterClause);
-            self.skip(); // Kw::After
-            self.expression();
-            self.end_node();
-        }
-        self.end_node();
+        self.node(WaveformElement, |p| {
+            p.expression();
+            if p.next_is(Keyword(Kw::After)) {
+                p.node(AfterClause, |p| {
+                    p.skip(); // Kw::After
+                    p.expression();
+                });
+            }
+        });
     }
 }
 

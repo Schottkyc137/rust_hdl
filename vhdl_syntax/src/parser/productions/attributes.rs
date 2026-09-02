@@ -4,31 +4,31 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
-use crate::parser::builder::CompletedMarker;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
     pub fn attribute_specification(&mut self) {
-        self.start_node(AttributeSpecification);
-        self.expect_kw(Kw::Attribute);
-        self.identifier();
-        self.expect_token(Keyword(Kw::Of));
-        self.entity_specification();
-        self.expect_token(Keyword(Kw::Is));
-        self.expression();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(AttributeSpecification, |p| {
+            p.expect_kw(Kw::Attribute);
+            p.identifier();
+            p.expect_token(Keyword(Kw::Of));
+            p.entity_specification();
+            p.expect_token(Keyword(Kw::Is));
+            p.expression();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn entity_specification(&mut self) {
-        self.start_node(EntitySpecification);
-        self.entity_name_list();
-        self.expect_token(Colon);
-        self.entity_class();
-        self.end_node();
+        self.node(EntitySpecification, |p| {
+            p.entity_name_list();
+            p.expect_token(Colon);
+            p.entity_class();
+        });
     }
 
     pub fn entity_name_list(&mut self) -> Option<CompletedMarker> {
@@ -66,12 +66,12 @@ impl Parser {
     }
 
     pub fn entity_designator(&mut self) {
-        self.start_node(EntityDesignator);
-        self.entity_tag();
-        if self.peek_token() == LeftSquare {
-            self.signature();
-        }
-        self.end_node();
+        self.node(EntityDesignator, |p| {
+            p.entity_tag();
+            if p.peek_token() == LeftSquare {
+                p.signature();
+            }
+        });
     }
 
     pub fn entity_tag(&mut self) {
@@ -87,13 +87,13 @@ impl Parser {
     }
 
     pub(crate) fn attribute_declaration(&mut self) {
-        self.start_node(AttributeDeclaration);
-        self.expect_kw(Kw::Attribute);
-        self.identifier();
-        self.expect_token(Colon);
-        self.type_mark();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(AttributeDeclaration, |p| {
+            p.expect_kw(Kw::Attribute);
+            p.identifier();
+            p.expect_token(Colon);
+            p.type_mark();
+            p.expect_token(SemiColon);
+        });
     }
 }
 

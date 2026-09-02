@@ -41,120 +41,120 @@ pub(crate) fn is_start_of_declarative_part(token_kind: TokenKind) -> bool {
 impl Parser {
     pub(crate) fn declarations(&mut self, node_kind: NodeKind, layout: &Layout) {
         let allowed_nodes = choice_options(layout);
-        self.start_node(node_kind);
-        let mut guard = StallGuard::new();
-        while guard.should_continue(self) {
-            match self.peek_token() {
-                Keyword(Kw::Begin | Kw::End) | Eof => break,
-                Keyword(Kw::Type) => self.type_declaration(),
-                Keyword(Kw::Subtype) => self.subtype_declaration(),
-                Keyword(Kw::Component) => self.component_declaration(),
-                Keyword(Kw::Impure | Kw::Pure | Kw::Function | Kw::Procedure) => {
-                    // TODO: Brittle
-                    if self.next_nth_is(Keyword(Kw::New), 3) {
-                        self.subprogram_instantiation_declaration();
-                    } else {
-                        self.subprogram_declaration_or_body()
+        self.node(node_kind, |p| {
+            let mut guard = StallGuard::new();
+            while guard.should_continue(p) {
+                match p.peek_token() {
+                    Keyword(Kw::Begin | Kw::End) | Eof => break,
+                    Keyword(Kw::Type) => p.type_declaration(),
+                    Keyword(Kw::Subtype) => p.subtype_declaration(),
+                    Keyword(Kw::Component) => p.component_declaration(),
+                    Keyword(Kw::Impure | Kw::Pure | Kw::Function | Kw::Procedure) => {
+                        // TODO: Brittle
+                        if p.next_nth_is(Keyword(Kw::New), 3) {
+                            p.subprogram_instantiation_declaration();
+                        } else {
+                            p.subprogram_declaration_or_body()
+                        }
+                    }
+                    Keyword(Kw::Package) => p.package_instantiation_declaration(),
+                    Keyword(Kw::For) => p.configuration_specification(),
+                    Keyword(Kw::File) => p.file_declaration(),
+                    Keyword(Kw::Shared | Kw::Variable) => p.variable_declaration(),
+                    Keyword(Kw::Constant) => p.constant_declaration(),
+                    Keyword(Kw::Signal) => p.signal_declaration(),
+                    Keyword(Kw::Attribute) => p.attribute_declaration_or_specification(),
+                    Keyword(Kw::Use) => p.use_clause_declaration(),
+                    Keyword(Kw::Alias) => p.alias_declaration(),
+                    _ => {
+                        p.expect_tokens_recover([
+                            Keyword(Kw::Type),
+                            Keyword(Kw::Subtype),
+                            Keyword(Kw::Component),
+                            Keyword(Kw::Impure),
+                            Keyword(Kw::Pure),
+                            Keyword(Kw::Function),
+                            Keyword(Kw::Procedure),
+                            Keyword(Kw::Package),
+                            Keyword(Kw::For),
+                            Keyword(Kw::File),
+                            Keyword(Kw::Shared),
+                            Keyword(Kw::Variable),
+                            Keyword(Kw::Constant),
+                            Keyword(Kw::Signal),
+                            Keyword(Kw::Attribute),
+                            Keyword(Kw::Use),
+                            Keyword(Kw::Alias),
+                        ]);
+                        continue;
                     }
                 }
-                Keyword(Kw::Package) => self.package_instantiation_declaration(),
-                Keyword(Kw::For) => self.configuration_specification(),
-                Keyword(Kw::File) => self.file_declaration(),
-                Keyword(Kw::Shared | Kw::Variable) => self.variable_declaration(),
-                Keyword(Kw::Constant) => self.constant_declaration(),
-                Keyword(Kw::Signal) => self.signal_declaration(),
-                Keyword(Kw::Attribute) => self.attribute_declaration_or_specification(),
-                Keyword(Kw::Use) => self.use_clause_declaration(),
-                Keyword(Kw::Alias) => self.alias_declaration(),
-                _ => {
-                    self.expect_tokens_recover([
-                        Keyword(Kw::Type),
-                        Keyword(Kw::Subtype),
-                        Keyword(Kw::Component),
-                        Keyword(Kw::Impure),
-                        Keyword(Kw::Pure),
-                        Keyword(Kw::Function),
-                        Keyword(Kw::Procedure),
-                        Keyword(Kw::Package),
-                        Keyword(Kw::For),
-                        Keyword(Kw::File),
-                        Keyword(Kw::Shared),
-                        Keyword(Kw::Variable),
-                        Keyword(Kw::Constant),
-                        Keyword(Kw::Signal),
-                        Keyword(Kw::Attribute),
-                        Keyword(Kw::Use),
-                        Keyword(Kw::Alias),
-                    ]);
-                    continue;
-                }
+                p.check_last_node_is_allowed(allowed_nodes);
             }
-            self.check_last_node_is_allowed(allowed_nodes);
-        }
-        self.end_node();
+        });
     }
 
     pub fn use_clause_declaration(&mut self) {
-        self.start_node(UseClauseDeclaration);
-        self.use_clause();
-        self.end_node();
+        self.node(UseClauseDeclaration, |p| {
+            p.use_clause();
+        });
     }
 
     pub fn package_declaration(&mut self) {
-        self.start_node(PackageDeclarationItem);
-        self.package();
-        self.end_node();
+        self.node(PackageDeclarationItem, |p| {
+            p.package();
+        });
     }
 
     pub fn configuration_specification(&mut self) {
-        let marker = self.start_unknown();
-        self.start_node(ComponentConfigurationPreamble);
-        self.expect_kw(Kw::For);
-        self.component_specification();
-        self.end_node();
+        let unknown = self.start_unknown();
+        self.node(ComponentConfigurationPreamble, |p| {
+            p.expect_kw(Kw::For);
+            p.component_specification();
+        });
         self.binding_indication();
         self.expect_token(SemiColon);
         if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-            self.set_unknown(marker, NodeKind::CompoundConfigurationSpecification);
+            let marker = unknown.resolve(self, NodeKind::CompoundConfigurationSpecification);
             while self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-                self.start_node(VerificationUnitBinding);
-                self.verification_unit_binding_indication();
-                self.expect_token(SemiColon);
-                self.end_node();
+                self.node(VerificationUnitBinding, |p| {
+                    p.verification_unit_binding_indication();
+                    p.expect_token(SemiColon);
+                });
             }
             self.component_configuration_epilogue();
-            self.end_node();
+            marker.complete(self);
         } else {
-            self.set_unknown(marker, NodeKind::SimpleConfigurationSpecification);
+            let marker = unknown.resolve(self, NodeKind::SimpleConfigurationSpecification);
             if self.next_is(Keyword(Kw::End)) {
                 self.component_configuration_epilogue();
             }
-            self.end_node();
+            marker.complete(self);
         }
     }
 
     pub fn component_specification(&mut self) {
-        self.start_node(NodeKind::ComponentSpecification);
-        match_next_token!(self,
-            Keyword(Kw::All) => {
-                self.skip_into_node(NodeKind::InstantiationListAll);
-            },
-            Keyword(Kw::Others) => {
-                self.skip_into_node(NodeKind::InstantiationListOthers);
-            },
-            Identifier => {
-                self.start_node(NodeKind::InstantiationListList);
-                self.skip();
-                while self.next_is(Comma) {
-                    self.skip();
-                    self.identifier();
+        self.node(NodeKind::ComponentSpecification, |p| {
+            match_next_token!(p,
+                Keyword(Kw::All) => {
+                    p.skip_into_node(NodeKind::InstantiationListAll);
+                },
+                Keyword(Kw::Others) => {
+                    p.skip_into_node(NodeKind::InstantiationListOthers);
+                },
+                Identifier => {
+                    p.node(NodeKind::InstantiationListList, |p| {
+                        p.skip();
+                        while p.next_is(Comma) {
+                            p.skip();
+                            p.identifier();
+                        }
+                    });
                 }
-                self.end_node();
-            }
-        );
-        self.expect_token(Colon);
-        self.name();
-        self.end_node();
+            );
+            p.expect_token(Colon);
+            p.name();
+        });
     }
 }
 

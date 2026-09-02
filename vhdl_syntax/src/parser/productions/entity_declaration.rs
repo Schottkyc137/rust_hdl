@@ -13,42 +13,42 @@ use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
     pub fn entity_declaration(&mut self) {
-        self.start_node(EntityDeclaration);
-        self.entity_declaration_preamble();
-        self.entity_header();
-        self.entity_declarative_part();
-        if self.next_is(Keyword(Kw::Begin)) {
-            self.start_node(EntityStatements);
-            self.skip_into_node(DeclarationStatementSeparator);
-            self.entity_statement_part();
-            self.end_node();
-        }
-        self.entity_declaration_epilogue();
-        self.end_node();
+        self.node(EntityDeclaration, |p| {
+            p.entity_declaration_preamble();
+            p.entity_header();
+            p.entity_declarative_part();
+            if p.next_is(Keyword(Kw::Begin)) {
+                p.node(EntityStatements, |p| {
+                    p.skip_into_node(DeclarationStatementSeparator);
+                    p.entity_statement_part();
+                });
+            }
+            p.entity_declaration_epilogue();
+        });
     }
 
     pub fn entity_declaration_preamble(&mut self) {
-        self.start_node(EntityDeclarationPreamble);
-        self.expect_token(Keyword(Kw::Entity));
-        self.identifier();
-        self.expect_token(Keyword(Kw::Is));
-        self.end_node();
+        self.node(EntityDeclarationPreamble, |p| {
+            p.expect_token(Keyword(Kw::Entity));
+            p.identifier();
+            p.expect_token(Keyword(Kw::Is));
+        });
     }
 
     pub fn entity_declaration_epilogue(&mut self) {
-        self.start_node(EntityDeclarationEpilogue);
-        self.expect_token(Keyword(Kw::End));
-        self.opt_token(Keyword(Kw::Entity));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(EntityDeclarationEpilogue, |p| {
+            p.expect_token(Keyword(Kw::End));
+            p.opt_token(Keyword(Kw::Entity));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     fn entity_header(&mut self) {
-        self.start_node(EntityHeader);
-        self.opt_generic_clause();
-        self.opt_port_clause();
-        self.end_node();
+        self.node(EntityHeader, |p| {
+            p.opt_generic_clause();
+            p.opt_port_clause();
+        });
     }
 
     pub fn entity_declarative_part(&mut self) {

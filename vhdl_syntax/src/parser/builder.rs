@@ -4,23 +4,26 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
+use std::num::NonZeroUsize;
+
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
+use crate::parser::marker::{Marker, UnknownMarker};
 use crate::syntax::child::Child;
 use crate::syntax::green::{GreenChild, GreenNode, GreenNodeData, GreenToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::tokens::tokenizer::LexErr;
 use crate::tokens::{Token, TokenKind};
 
-enum Event {
-    /// Start(Some): Start a node
-    /// Start(None): record that a node could start here that is later overwritten
-    Start(Option<NodeKind>),
+pub(crate) enum Event {
+    Start {
+        kind: Option<NodeKind>,
+        forward_parent: Option<NonZeroUsize>,
+    },
     /// End a node
     End,
     /// Push a token with an optional associated lexer error
     Push(Token, Option<LexErr>),
-    /// Precede (retroactively wrap) a node that was just finished with the given node kind
-    Precede(NodeKind),
+    Ignore,
     /// Emit a syntax error that is associated to the last token or node pushed
     Error(SyntaxErrKind),
 }
@@ -38,45 +41,6 @@ pub(crate) struct NodeBuilder {
     events: Vec<Event>,
 }
 
-#[must_use]
-pub(crate) struct Marker {
-    pos: usize,
-    #[cfg(debug_assertions)]
-    fused: bool,
-}
-
-impl Marker {
-    pub fn new(pos: usize) -> Marker {
-        Marker {
-            pos,
-            #[cfg(debug_assertions)]
-            fused: true,
-        }
-    }
-
-    pub fn defuse(&mut self) {
-        #[cfg(debug_assertions)]
-        {
-            self.fused = false;
-        }
-    }
-}
-
-impl Drop for Marker {
-    fn drop(&mut self) {
-        #[cfg(debug_assertions)]
-        // Don't panic while another panic is unwinding: this aborts the process
-        // and hides the original failure
-        if self.fused && !std::thread::panicking() {
-            panic!("marker dropped without set_unknown");
-        }
-    }
-}
-
-/// Reference to a completed node
-#[derive(Debug, Clone, Copy)]
-pub struct CompletedMarker(usize);
-
 impl NodeBuilder {
     pub fn new() -> NodeBuilder {
         NodeBuilder {
@@ -85,8 +49,26 @@ impl NodeBuilder {
         }
     }
 
-    fn push_event(&mut self, event: Event) {
+    pub fn push_event(&mut self, event: Event) -> usize {
+        let len = self.events.len();
         self.events.push(event);
+        len
+    }
+
+    pub fn fix_node(&mut self, index: usize, node: NodeKind) {
+        match &mut self.events[index] {
+            Event::Start { kind, .. } => assert!(kind.replace(node).is_none()),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn fix_forward_parent(&mut self, index: usize, distance: NonZeroUsize) {
+        match &mut self.events[index] {
+            Event::Start { forward_parent, .. } => {
+                assert!(forward_parent.replace(distance).is_none())
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn push(&mut self, token: Token, err: Option<LexErr>) {
@@ -94,17 +76,18 @@ impl NodeBuilder {
         self.push_event(Event::Push(token, err));
     }
 
-    pub fn start_node(&mut self, kind: NodeKind) {
-        self.push_event(Event::Start(Some(kind)));
+    pub fn start_node(&mut self, kind: NodeKind) -> Marker {
+        Marker::new(self.push_event(Event::Start {
+            kind: Some(kind),
+            forward_parent: None,
+        }))
     }
 
-    pub fn end_node(&mut self) -> CompletedMarker {
-        let marker = CompletedMarker(self.events.len());
+    pub fn end_node(&mut self) {
         self.push_event(Event::End);
-        marker
     }
 
-    pub fn end(self) -> (GreenNode, Vec<SyntaxErr>) {
+    pub fn end(mut self) -> (GreenNode, Vec<SyntaxErr>) {
         struct Parent {
             kind: NodeKind,
             // index of its first child
@@ -119,16 +102,37 @@ impl NodeBuilder {
         // trivia of the next one. This is where a missing token would go.
         let mut text_pos = 0usize;
 
-        for event in self.events {
-            match event {
-                Event::Start(Some(kind)) => {
-                    parents.push(Parent {
-                        kind,
-                        first_child: children.len(),
-                        first_error: errors.len(),
-                    });
+        for index in 0..self.events.len() {
+            match std::mem::replace(&mut self.events[index], Event::Ignore) {
+                Event::Ignore => {}
+                Event::Start {
+                    kind,
+                    mut forward_parent,
+                } => {
+                    // This node plus every node retroactively inserted above
+                    // it, innermost first.
+                    let mut kinds = vec![kind.expect("start_unknown without resolve")];
+                    let mut parent_index = index;
+                    while let Some(distance) = forward_parent {
+                        parent_index += distance.get();
+                        let Event::Start {
+                            kind,
+                            forward_parent: next,
+                        } = std::mem::replace(&mut self.events[parent_index], Event::Ignore)
+                        else {
+                            unreachable!("a forward parent must be a node start")
+                        };
+                        kinds.push(kind.expect("start_unknown without resolve"));
+                        forward_parent = next;
+                    }
+                    for kind in kinds.into_iter().rev() {
+                        parents.push(Parent {
+                            kind,
+                            first_child: children.len(),
+                            first_error: errors.len(),
+                        });
+                    }
                 }
-                Event::Start(None) => unreachable!("start_unknown without set_unknown"),
                 Event::End => {
                     let Parent {
                         kind,
@@ -156,17 +160,6 @@ impl NodeBuilder {
                     }
                     text_pos += token.byte_len();
                     children.push(GreenChild::Token(GreenToken::new(token)));
-                }
-                Event::Precede(kind) => {
-                    let first_child = parents.last().map_or(0, |parent| parent.first_child);
-                    // Error path: `precede` was called after a non-node
-                    let wraps_a_node = children.len() > first_child
-                        && matches!(children.last(), Some(GreenChild::Node(_)));
-                    parents.push(Parent {
-                        kind,
-                        first_child: children.len() - usize::from(wraps_a_node),
-                        first_error: errors.len(),
-                    });
                 }
                 Event::Error(kind) => match kind {
                     SyntaxErrKind::Expected(_) => {
@@ -200,16 +193,11 @@ impl NodeBuilder {
         (root, errors)
     }
 
-    /// Start an unknown node that is later patched using `set_unknown`
-    pub fn start_unknown(&mut self) -> Marker {
-        let marker = Marker::new(self.events.len());
-        self.push_event(Event::Start(None));
-        marker
-    }
-
-    pub fn set_unknown(&mut self, mut marker: Marker, kind: NodeKind) {
-        self.events[marker.pos] = Event::Start(Some(kind));
-        marker.defuse();
+    pub fn start_unknown(&mut self) -> UnknownMarker {
+        UnknownMarker::new(self.push_event(Event::Start {
+            kind: None,
+            forward_parent: None,
+        }))
     }
 
     /// Record an error.
@@ -218,15 +206,6 @@ impl NodeBuilder {
     /// SyntaxErrKind::Expected is not attached and signifies that something was missing
     pub fn push_err(&mut self, kind: SyntaxErrKind) {
         self.push_event(Event::Error(kind));
-    }
-
-    /// Insert a new parent above the node that was just completed.
-    pub fn precede(&mut self, kind: NodeKind, marker: Option<CompletedMarker>) {
-        debug_assert!(
-            marker.is_none_or(|marker| matches!(self.events.get(marker.0), Some(Event::End))),
-            "marker does not reference a completed node"
-        );
-        self.push_event(Event::Precede(kind));
     }
 
     pub fn current_token_index(&self) -> usize {
@@ -242,18 +221,32 @@ impl NodeBuilder {
 
         for event in self.events.iter().rev().skip(1) {
             match event {
-                // `Precede` opens a node too, it is just written after its first child
-                Event::Start(Some(kind)) | Event::Precede(kind) if depth == 1 => {
-                    return Some(*kind)
-                }
-                Event::Start(None) if depth == 1 => return None,
-                Event::Start(_) | Event::Precede(_) => depth -= 1,
+                // A node inserted by `precede` opens here too: its `Start` sits
+                // where the parser asked for it, only its nesting is deferred.
+                Event::Start {
+                    kind: Some(kind), ..
+                } if depth == 1 => return Some(*kind),
+                Event::Start { kind: None, .. } if depth == 1 => return None,
+                Event::Start { .. } => depth -= 1,
                 Event::End => depth += 1,
-                Event::Push(..) | Event::Error(_) => continue,
+                Event::Push(..) | Event::Error(_) | Event::Ignore => continue,
             }
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+impl NodeBuilder {
+    /// Open a node and return the index of its `Start`, the way a [`Marker`]
+    /// records it. These tests drive the builder without a `Parser`, so there
+    /// is nothing to hand a marker to; forgetting it skips the drop bomb that
+    /// would otherwise report the node as never completed.
+    fn start(&mut self, kind: NodeKind) -> usize {
+        let pos = self.events.len();
+        std::mem::forget(self.start_node(kind));
+        pos
     }
 }
 
@@ -290,12 +283,21 @@ mod tests {
         errors.iter().map(|err| err.span().clone()).collect()
     }
 
+    /// Insert a node of kind `kind` above the node that starts at `child`, the
+    /// way [`Precede`](crate::parser::marker::Precede) does.
+    /// Returns the new parent's own index, so that it can be preceded in turn.
+    fn precede(builder: &mut NodeBuilder, child: usize, kind: NodeKind) -> usize {
+        let parent = builder.start(kind);
+        builder.fix_forward_parent(child, NonZeroUsize::new(parent - child).unwrap());
+        parent
+    }
+
     #[test]
     fn expected_is_zero_width_at_the_end_of_the_preceding_token() {
         // `ab cd`: the error sits between the two tokens and must hug `ab`
         // rather than point past the space.
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
+        builder.start(ROOT);
         builder.push(tok(b"ab", 0), None);
         builder.push_err(expected_token());
         builder.push(tok(b"cd", 1), None);
@@ -308,7 +310,7 @@ mod tests {
     #[test]
     fn expected_at_the_start_of_the_input_is_zero_width_at_zero() {
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
+        builder.start(ROOT);
         builder.push_err(expected_token());
         builder.push(tok(b"ab", 0), None);
         builder.end_node();
@@ -322,8 +324,8 @@ mod tests {
         // `  ab`: the node covers only the token's text, not the two spaces
         // that precede it.
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
-        builder.start_node(INNER);
+        builder.start(ROOT);
+        builder.start(INNER);
         builder.push(tok(b"ab", 2), None);
         builder.end_node();
         builder.push_err(SyntaxErrKind::Unexpected(ChildKind::Node(INNER)));
@@ -337,7 +339,7 @@ mod tests {
     fn separate_unexpected_runs_do_not_merge() {
         // A good token between two runs closes the first one.
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
+        builder.start(ROOT);
         builder.push(tok(b"ab", 0), None);
         builder.push_err(SyntaxErrKind::Unexpected(ChildKind::Token(
             TokenKind::Identifier,
@@ -356,9 +358,9 @@ mod tests {
     #[test]
     fn errors_in_an_empty_node_fold_into_one_naming_the_node() {
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
+        builder.start(ROOT);
         builder.push(tok(b"ab", 0), None);
-        builder.start_node(INNER);
+        builder.start(INNER);
         builder.push_err(expected_token());
         builder.push_err(expected_token());
         builder.end_node();
@@ -377,10 +379,10 @@ mod tests {
     #[test]
     fn nested_empty_nodes_fold_to_the_outermost() {
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
+        builder.start(ROOT);
         builder.push(tok(b"ab", 0), None);
-        builder.start_node(OUTER);
-        builder.start_node(INNER);
+        builder.start(OUTER);
+        builder.start(INNER);
         builder.push_err(expected_token());
         builder.end_node();
         builder.end_node();
@@ -394,59 +396,71 @@ mod tests {
     }
 
     #[test]
-    fn precede_after_a_token_starts_a_node_rather_than_wrapping_it() {
-        // Recovery can return without having produced a node, so `precede` may
-        // find a token last. That token belongs to the enclosing node; the new
-        // one simply starts here, with its first child missing.
+    fn precede_wraps_only_the_node_it_names() {
+        // `children` holds the enclosing node's children too, so the node
+        // pushed last is not necessarily the one being preceded. Here `INNER`
+        // is a sibling that the wrapper must leave alone.
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
-        builder.push(tok(b"ab", 0), None);
-        builder.precede(WRAPPER, None);
-        builder.push(tok(b"cd", 1), None);
-        builder.end_node(); // WRAPPER
-        builder.end_node(); // ROOT
-
-        let (root, _) = builder.end();
-        let mut children = root.children();
-        assert!(matches!(children.next(), Some(GreenChild::Token(_))));
-        assert!(matches!(
-            children.next(),
-            Some(GreenChild::Node(node))
-                if node.kind() == WRAPPER && node.children().count() == 1
-        ));
-        assert!(children.next().is_none());
-    }
-
-    #[test]
-    fn precede_at_the_start_of_a_node_does_not_steal_the_enclosing_nodes_child() {
-        // `children` holds the enclosing node's children too, so the node last
-        // pushed is not necessarily one the current node owns: here `INNER` is
-        // a sibling of `OUTER`, and the node opened inside `OUTER` must leave
-        // it alone rather than wrap it.
-        let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
-        builder.start_node(INNER);
+        builder.start(ROOT);
+        builder.start(INNER);
         builder.push(tok(b"ab", 0), None);
         builder.end_node();
-        builder.start_node(OUTER);
-        builder.precede(WRAPPER, None);
+        let inner = builder.start(INNER);
         builder.push(tok(b"cd", 1), None);
+        builder.end_node();
+        precede(&mut builder, inner, WRAPPER);
+        builder.push(tok(b"ef", 1), None);
         builder.end_node(); // WRAPPER
-        builder.end_node(); // OUTER
         builder.end_node(); // ROOT
 
         let (root, _) = builder.end();
         let mut children = root.children();
         assert!(matches!(children.next(), Some(GreenChild::Node(node)) if node.kind() == INNER));
-        assert!(matches!(children.next(), Some(GreenChild::Node(node)) if node.kind() == OUTER));
+        let Some(GreenChild::Node(wrapper)) = children.next() else {
+            panic!("the second child is the wrapper");
+        };
+        assert_eq!(wrapper.kind(), WRAPPER);
+        // The second `INNER` plus `ef`
+        assert_eq!(wrapper.children().count(), 2);
         assert!(children.next().is_none());
+    }
+
+    #[test]
+    fn a_chain_of_precedes_nests_outermost_last() {
+        // What `a + b + c` builds: the second `precede` wraps the node the
+        // first one produced.
+        let mut builder = NodeBuilder::new();
+        builder.start(ROOT);
+        let inner = builder.start(INNER);
+        builder.push(tok(b"a", 0), None);
+        builder.end_node();
+        let wrapper = precede(&mut builder, inner, WRAPPER);
+        builder.push(tok(b"b", 1), None);
+        builder.end_node();
+        precede(&mut builder, wrapper, OUTER);
+        builder.push(tok(b"c", 1), None);
+        builder.end_node();
+        builder.end_node(); // ROOT
+
+        let (root, _) = builder.end();
+        let Some(GreenChild::Node(outer)) = root.children().next() else {
+            panic!("the root holds the outermost wrapper");
+        };
+        assert_eq!(outer.kind(), OUTER);
+        let Some(GreenChild::Node(wrapper)) = outer.children().next() else {
+            panic!("the outermost wrapper holds the inner one");
+        };
+        assert_eq!(wrapper.kind(), WRAPPER);
+        assert!(
+            matches!(wrapper.children().next(), Some(GreenChild::Node(node)) if node.kind() == INNER)
+        );
     }
 
     #[test]
     fn a_node_that_holds_a_token_is_kept_with_its_errors_in_place() {
         let mut builder = NodeBuilder::new();
-        builder.start_node(ROOT);
-        builder.start_node(INNER);
+        builder.start(ROOT);
+        builder.start(INNER);
         builder.push_err(expected_token());
         builder.push(tok(b"ab", 1), None);
         builder.end_node();
