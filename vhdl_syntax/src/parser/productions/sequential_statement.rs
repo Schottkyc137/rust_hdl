@@ -263,16 +263,6 @@ impl Parser {
         }
     }
 
-    pub fn iteration_scheme(&mut self) {
-        if self
-            .opt_tokens([Keyword(Kw::While), Keyword(Kw::For)])
-            .is_none()
-        {
-            return;
-        }
-        self.opt_iteration_scheme();
-    }
-
     pub(crate) fn sequential_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
         let allowed_nodes = choice_options(layout);
         self.node(node_kind, |p| {
