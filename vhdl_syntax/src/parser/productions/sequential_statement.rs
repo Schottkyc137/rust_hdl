@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::marker::Precede;
+use crate::parser::marker::{CompletedMarker, Precede};
 use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
 use crate::syntax::meta::Layout;
@@ -15,7 +15,7 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
-    pub fn wait_statement(&mut self) {
+    pub fn wait_statement(&mut self) -> CompletedMarker {
         self.node(WaitStatement, |p| {
             p.opt_label();
             p.expect_kw(Kw::Wait);
@@ -38,18 +38,18 @@ impl Parser {
                 });
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn assert_statement(&mut self) {
+    pub fn assert_statement(&mut self) -> CompletedMarker {
         self.node(AssertionStatement, |p| {
             p.opt_label();
             p.assertion();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn report_statement(&mut self) {
+    pub fn report_statement(&mut self) -> CompletedMarker {
         self.node(ReportStatement, |p| {
             p.opt_label();
             p.expect_kw(Kw::Report);
@@ -61,10 +61,10 @@ impl Parser {
                 });
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn next_statement(&mut self) {
+    pub fn next_statement(&mut self) -> CompletedMarker {
         self.node(NextStatement, |p| {
             p.opt_label();
             p.expect_kw(Kw::Next);
@@ -76,10 +76,10 @@ impl Parser {
                 });
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn exit_statement(&mut self) {
+    pub fn exit_statement(&mut self) -> CompletedMarker {
         self.node(ExitStatement, |p| {
             p.opt_label();
             p.expect_kw(Kw::Exit);
@@ -91,10 +91,10 @@ impl Parser {
                 });
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn return_statement(&mut self) {
+    pub fn return_statement(&mut self) -> CompletedMarker {
         self.node(ReturnStatement, |p| {
             p.opt_label();
             p.expect_kw(Kw::Return);
@@ -102,18 +102,18 @@ impl Parser {
                 p.expression();
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn null_statement(&mut self) {
+    pub fn null_statement(&mut self) -> CompletedMarker {
         self.node(NullStatement, |p| {
             p.opt_label();
             p.expect_kw(Kw::Null);
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn if_statement(&mut self) {
+    pub fn if_statement(&mut self) -> CompletedMarker {
         self.node(IfStatement, |p| {
             p.if_statement_preamble();
             p.sequence_of_statements();
@@ -132,7 +132,7 @@ impl Parser {
                 });
             }
             p.if_statement_epilogue();
-        });
+        })
     }
 
     pub fn if_statement_preamble(&mut self) {
@@ -152,7 +152,7 @@ impl Parser {
         });
     }
 
-    pub fn case_statement(&mut self) {
+    pub fn case_statement(&mut self) -> CompletedMarker {
         self.node(CaseStatement, |p| {
             p.case_statement_preamble();
             p.case_statement_alternative();
@@ -160,7 +160,7 @@ impl Parser {
                 p.case_statement_alternative();
             }
             p.case_statement_epilogue();
-        });
+        })
     }
 
     pub fn case_statement_preamble(&mut self) {
@@ -225,12 +225,12 @@ impl Parser {
         });
     }
 
-    pub fn loop_statement(&mut self) {
+    pub fn loop_statement(&mut self) -> CompletedMarker {
         self.node(LoopStatement, |p| {
             p.loop_statement_preamble();
             p.sequence_of_statements();
             p.loop_statement_epilogue();
-        });
+        })
     }
 
     pub fn loop_statement_preamble(&mut self) {
@@ -270,9 +270,12 @@ impl Parser {
             while guard.should_continue(p) {
                 match p.peek_token() {
                     Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
-                    _ => p.sequential_statement(),
+                    _ => {
+                        if let Some(stmt) = p.sequential_statement() {
+                            p.check_node_is_allowed(&stmt, allowed_nodes);
+                        }
+                    }
                 }
-                p.check_last_node_is_allowed(allowed_nodes);
             }
         });
     }
@@ -305,18 +308,18 @@ impl Parser {
         }
     }
 
-    pub fn sequential_statement(&mut self) {
+    pub fn sequential_statement(&mut self) -> Option<CompletedMarker> {
         match self.sequential_statement_start() {
-            Keyword(Kw::Wait) => self.wait_statement(),
-            Keyword(Kw::Assert) => self.assert_statement(),
-            Keyword(Kw::Report) => self.report_statement(),
-            Keyword(Kw::If) => self.if_statement(),
-            Keyword(Kw::Case) => self.case_statement(),
-            Keyword(Kw::For | Kw::Loop | Kw::While) => self.loop_statement(),
-            Keyword(Kw::Next) => self.next_statement(),
-            Keyword(Kw::Exit) => self.exit_statement(),
-            Keyword(Kw::Return) => self.return_statement(),
-            Keyword(Kw::Null) => self.null_statement(),
+            Keyword(Kw::Wait) => Some(self.wait_statement()),
+            Keyword(Kw::Assert) => Some(self.assert_statement()),
+            Keyword(Kw::Report) => Some(self.report_statement()),
+            Keyword(Kw::If) => Some(self.if_statement()),
+            Keyword(Kw::Case) => Some(self.case_statement()),
+            Keyword(Kw::For | Kw::Loop | Kw::While) => Some(self.loop_statement()),
+            Keyword(Kw::Next) => Some(self.next_statement()),
+            Keyword(Kw::Exit) => Some(self.exit_statement()),
+            Keyword(Kw::Return) => Some(self.return_statement()),
+            Keyword(Kw::Null) => Some(self.null_statement()),
             Keyword(Kw::With) => {
                 let unknown = self.start_unknown();
                 self.opt_label();
@@ -351,7 +354,7 @@ impl Parser {
                     }
                 };
                 self.expect_token(SemiColon);
-                marker.complete(self);
+                Some(marker.complete(self))
             }
             Identifier | LeftPar | LtLt => {
                 let unknown = self.start_unknown();
@@ -453,26 +456,29 @@ impl Parser {
                     }
                 };
                 self.expect_token(SemiColon);
-                marker.complete(self);
+                Some(marker.complete(self))
             }
-            _ => self.expect_tokens_recover([
-                Keyword(Kw::Wait),
-                Keyword(Kw::Assert),
-                Keyword(Kw::Report),
-                Keyword(Kw::If),
-                Keyword(Kw::Case),
-                Keyword(Kw::For),
-                Keyword(Kw::Loop),
-                Keyword(Kw::While),
-                Keyword(Kw::Next),
-                Keyword(Kw::Exit),
-                Keyword(Kw::Return),
-                Keyword(Kw::Null),
-                Keyword(Kw::With),
-                Identifier,
-                LeftPar,
-                LtLt,
-            ]),
+            _ => {
+                self.expect_tokens_recover([
+                    Keyword(Kw::Wait),
+                    Keyword(Kw::Assert),
+                    Keyword(Kw::Report),
+                    Keyword(Kw::If),
+                    Keyword(Kw::Case),
+                    Keyword(Kw::For),
+                    Keyword(Kw::Loop),
+                    Keyword(Kw::While),
+                    Keyword(Kw::Next),
+                    Keyword(Kw::Exit),
+                    Keyword(Kw::Return),
+                    Keyword(Kw::Null),
+                    Keyword(Kw::With),
+                    Identifier,
+                    LeftPar,
+                    LtLt,
+                ]);
+                None
+            }
         }
     }
 

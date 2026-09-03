@@ -77,10 +77,13 @@ impl NodeBuilder {
     }
 
     pub fn start_node(&mut self, kind: NodeKind) -> Marker {
-        Marker::new(self.push_event(Event::Start {
-            kind: Some(kind),
-            forward_parent: None,
-        }))
+        Marker::new(
+            self.push_event(Event::Start {
+                kind: Some(kind),
+                forward_parent: None,
+            }),
+            kind,
+        )
     }
 
     pub fn end_node(&mut self) {

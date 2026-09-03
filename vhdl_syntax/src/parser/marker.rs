@@ -8,30 +8,19 @@ use std::num::NonZeroUsize;
 
 use crate::{parser::Parser, syntax::NodeKind};
 
-/// A node that has been started but not yet finished.
-#[must_use = "a started node must be completed"]
-pub struct Marker {
+struct _Marker {
     pos: usize,
     #[cfg(debug_assertions)]
     fused: bool,
 }
 
-impl Marker {
-    pub fn new(pos: usize) -> Marker {
-        Marker {
+impl _Marker {
+    fn new(pos: usize) -> _Marker {
+        _Marker {
             pos,
             #[cfg(debug_assertions)]
             fused: true,
         }
-    }
-
-    /// Finish the node. Everything pushed since the node was started becomes
-    /// one of its children.
-    pub fn complete(mut self, parser: &mut Parser) -> CompletedMarker {
-        self.defuse();
-        parser.recovery.pop();
-        parser.builder.end_node();
-        CompletedMarker { start: self.pos }
     }
 
     fn defuse(&mut self) {
@@ -42,7 +31,7 @@ impl Marker {
     }
 }
 
-impl Drop for Marker {
+impl Drop for _Marker {
     fn drop(&mut self) {
         #[cfg(debug_assertions)]
         // Don't panic while another panic is unwinding: this aborts the process
@@ -53,20 +42,55 @@ impl Drop for Marker {
     }
 }
 
+/// A node that has been started but not yet finished.
+#[must_use = "a started node must be completed"]
+pub struct Marker {
+    marker: _Marker,
+    kind: NodeKind,
+}
+
+impl Marker {
+    pub fn new(pos: usize, kind: NodeKind) -> Marker {
+        Marker {
+            marker: _Marker::new(pos),
+            kind,
+        }
+    }
+
+    fn pos(&self) -> usize {
+        self.marker.pos
+    }
+
+    /// Finish the node. Everything pushed since the node was started becomes
+    /// one of its children.
+    pub fn complete(mut self, parser: &mut Parser) -> CompletedMarker {
+        self.marker.defuse();
+        parser.recovery.pop();
+        parser.builder.end_node();
+        CompletedMarker {
+            start: self.marker.pos,
+            kind: self.kind,
+        }
+    }
+}
+
 /// A node that has been started before its kind was known.
 #[must_use = "an unknown node must be resolved"]
-pub struct UnknownMarker(Marker);
+pub struct UnknownMarker(_Marker);
 
 impl UnknownMarker {
     pub fn new(pos: usize) -> UnknownMarker {
-        UnknownMarker(Marker::new(pos))
+        UnknownMarker(_Marker::new(pos))
     }
 
     /// Resolve the node's type
     pub fn resolve(self, parser: &mut Parser, kind: NodeKind) -> Marker {
         parser.builder.fix_node(self.0.pos, kind);
         parser.recovery.push(kind);
-        self.0
+        Marker {
+            marker: self.0,
+            kind,
+        }
     }
 
     /// Name the node's kind and finish it in one step.
@@ -80,6 +104,13 @@ impl UnknownMarker {
 pub struct CompletedMarker {
     /// Index of the node's `Event::Start` in the event stream
     start: usize,
+    kind: NodeKind,
+}
+
+impl CompletedMarker {
+    pub fn kind(&self) -> NodeKind {
+        self.kind
+    }
 }
 
 pub trait Precede {
@@ -90,7 +121,7 @@ impl Precede for CompletedMarker {
     fn precede(self, parser: &mut Parser, kind: NodeKind) -> Marker {
         let marker = parser.start_node(kind);
         let distance =
-            NonZeroUsize::new(marker.pos - self.start).expect("a node cannot precede itself");
+            NonZeroUsize::new(marker.pos() - self.start).expect("a node cannot precede itself");
         parser.builder.fix_forward_parent(self.start, distance);
         marker
     }

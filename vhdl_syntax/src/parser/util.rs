@@ -128,6 +128,12 @@ impl Parser {
         }
     }
 
+    pub(crate) fn check_node_is_allowed(&mut self, marker: &CompletedMarker, allowed: &[NodeKind]) {
+        if !allowed.contains(&marker.kind()) {
+            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Node(marker.kind())));
+        }
+    }
+
     pub(crate) fn skip(&mut self) {
         if let Some((token, err)) = self.token_stream.next() {
             self.builder.push(token, err);
