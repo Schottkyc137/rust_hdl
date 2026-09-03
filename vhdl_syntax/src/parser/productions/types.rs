@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::syntax::{
@@ -13,19 +14,18 @@ use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
-    pub fn type_declaration(&mut self) {
+    pub fn type_declaration(&mut self) -> CompletedMarker {
         let unknown = self.start_unknown();
         self.expect_kw(Kw::Type);
         self.identifier();
         if self.opt_token(SemiColon) {
-            unknown.complete(self, IncompleteTypeDeclaration);
-            return;
+            return unknown.complete(self, IncompleteTypeDeclaration);
         }
         let marker = unknown.resolve(self, FullTypeDeclaration);
         self.expect_kw(Kw::Is);
         self.type_definition();
         self.expect_token(SemiColon);
-        marker.complete(self);
+        marker.complete(self)
     }
 
     pub fn type_definition(&mut self) {
@@ -112,14 +112,14 @@ impl Parser {
         });
     }
 
-    pub fn subtype_declaration(&mut self) {
+    pub fn subtype_declaration(&mut self) -> CompletedMarker {
         self.node(SubtypeDeclaration, |p| {
             p.expect_kw(Kw::Subtype);
             p.identifier();
             p.expect_kw(Kw::Is);
             p.subtype_indication();
             p.expect_token(SemiColon);
-        });
+        })
     }
 }
 

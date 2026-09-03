@@ -119,15 +119,6 @@ impl Parser {
         self.builder.push_err(kind);
     }
 
-    pub(crate) fn check_last_node_is_allowed(&mut self, allowed: &[NodeKind]) {
-        let Some(parsed_node) = self.builder.last_node() else {
-            return;
-        };
-        if !allowed.contains(&parsed_node) {
-            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Node(parsed_node)));
-        }
-    }
-
     pub(crate) fn check_node_is_allowed(&mut self, marker: &CompletedMarker, allowed: &[NodeKind]) {
         if !allowed.contains(&marker.kind()) {
             self.push_err(SyntaxErrKind::Unexpected(ChildKind::Node(marker.kind())));

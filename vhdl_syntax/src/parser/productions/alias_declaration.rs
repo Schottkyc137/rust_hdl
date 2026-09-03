@@ -4,13 +4,14 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
-    pub fn alias_declaration(&mut self) {
+    pub fn alias_declaration(&mut self) -> CompletedMarker {
         self.node(AliasDeclaration, |p| {
             p.expect_kw(Kw::Alias);
             p.alias_designator();
@@ -26,7 +27,7 @@ impl Parser {
                 p.signature();
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     pub fn alias_designator(&mut self) {

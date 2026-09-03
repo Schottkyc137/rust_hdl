@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
 use crate::syntax::meta::Layout;
@@ -48,90 +49,100 @@ impl Parser {
             while guard.should_continue(p) {
                 match p.peek_token() {
                     Keyword(Kw::Begin | Kw::End) | Eof => break,
-                    Keyword(Kw::Type) => p.type_declaration(),
-                    Keyword(Kw::Subtype) => p.subtype_declaration(),
-                    Keyword(Kw::Component) => p.component_declaration(),
-                    Keyword(Kw::Impure | Kw::Pure | Kw::Function | Kw::Procedure) => {
-                        // TODO: Brittle
-                        if p.next_nth_is(Keyword(Kw::New), 3) {
-                            p.subprogram_instantiation_declaration();
-                        } else {
-                            p.subprogram_declaration_or_body()
+                    _ => {
+                        if let Some(declaration) = p.declaration() {
+                            p.check_node_is_allowed(&declaration, allowed_nodes);
                         }
                     }
-                    Keyword(Kw::Package) => p.package_declarative_item(),
-                    Keyword(Kw::For) => p.configuration_specification(),
-                    Keyword(Kw::File) => p.file_declaration(),
-                    Keyword(Kw::Shared | Kw::Variable) => p.variable_declaration(),
-                    Keyword(Kw::Constant) => p.constant_declaration(),
-                    Keyword(Kw::Signal) => p.signal_declaration(),
-                    Keyword(Kw::Attribute) => p.attribute_declaration_or_specification(),
-                    Keyword(Kw::Use) => p.use_clause_declaration(),
-                    Keyword(Kw::Alias) => p.alias_declaration(),
-                    Keyword(Kw::Group) => p.group_declaration_or_template_declaration(),
-                    Keyword(Kw::Disconnect) => p.disconnection_specification(),
-                    _ => {
-                        p.expect_tokens_recover([
-                            Keyword(Kw::Type),
-                            Keyword(Kw::Subtype),
-                            Keyword(Kw::Component),
-                            Keyword(Kw::Impure),
-                            Keyword(Kw::Pure),
-                            Keyword(Kw::Function),
-                            Keyword(Kw::Procedure),
-                            Keyword(Kw::Package),
-                            Keyword(Kw::For),
-                            Keyword(Kw::File),
-                            Keyword(Kw::Shared),
-                            Keyword(Kw::Variable),
-                            Keyword(Kw::Constant),
-                            Keyword(Kw::Signal),
-                            Keyword(Kw::Attribute),
-                            Keyword(Kw::Use),
-                            Keyword(Kw::Alias),
-                            Keyword(Kw::Group),
-                            Keyword(Kw::Disconnect),
-                        ]);
-                        continue;
-                    }
                 }
-                p.check_last_node_is_allowed(allowed_nodes);
             }
         });
     }
 
-    pub fn use_clause_declaration(&mut self) {
-        self.node(UseClauseDeclaration, |p| {
-            p.use_clause();
-        });
+    pub(crate) fn declaration(&mut self) -> Option<CompletedMarker> {
+        let marker = match self.peek_token() {
+            Keyword(Kw::Type) => self.type_declaration(),
+            Keyword(Kw::Subtype) => self.subtype_declaration(),
+            Keyword(Kw::Component) => self.component_declaration(),
+            Keyword(Kw::Impure | Kw::Pure | Kw::Function | Kw::Procedure) => {
+                // TODO: Brittle
+                if self.next_nth_is(Keyword(Kw::New), 3) {
+                    self.subprogram_instantiation_declaration()
+                } else {
+                    self.subprogram_declaration_or_body()
+                }
+            }
+            Keyword(Kw::Package) => self.package_declarative_item(),
+            Keyword(Kw::For) => self.configuration_specification(),
+            Keyword(Kw::File) => self.file_declaration(),
+            Keyword(Kw::Shared | Kw::Variable) => self.variable_declaration(),
+            Keyword(Kw::Constant) => self.constant_declaration(),
+            Keyword(Kw::Signal) => self.signal_declaration(),
+            Keyword(Kw::Attribute) => self.attribute_declaration_or_specification(),
+            Keyword(Kw::Use) => self.use_clause_declaration(),
+            Keyword(Kw::Alias) => self.alias_declaration(),
+            Keyword(Kw::Group) => self.group_declaration_or_template_declaration(),
+            Keyword(Kw::Disconnect) => self.disconnection_specification(),
+            _ => {
+                self.expect_tokens_recover([
+                    Keyword(Kw::Type),
+                    Keyword(Kw::Subtype),
+                    Keyword(Kw::Component),
+                    Keyword(Kw::Impure),
+                    Keyword(Kw::Pure),
+                    Keyword(Kw::Function),
+                    Keyword(Kw::Procedure),
+                    Keyword(Kw::Package),
+                    Keyword(Kw::For),
+                    Keyword(Kw::File),
+                    Keyword(Kw::Shared),
+                    Keyword(Kw::Variable),
+                    Keyword(Kw::Constant),
+                    Keyword(Kw::Signal),
+                    Keyword(Kw::Attribute),
+                    Keyword(Kw::Use),
+                    Keyword(Kw::Alias),
+                    Keyword(Kw::Group),
+                    Keyword(Kw::Disconnect),
+                ]);
+                return None;
+            }
+        };
+        Some(marker)
     }
 
-    pub fn package_declarative_item(&mut self) {
+    pub fn use_clause_declaration(&mut self) -> CompletedMarker {
+        self.node(UseClauseDeclaration, |p| {
+            p.use_clause();
+        })
+    }
+
+    pub fn package_declarative_item(&mut self) -> CompletedMarker {
         if self.next_nth_is(Keyword(Kw::Body), 1) {
-            self.package_body_declaration();
+            self.package_body_declaration()
         } else if self.next_nth_is(Keyword(Kw::New), 3) {
-            self.package_instantiation_declaration();
+            self.package_instantiation_declaration()
         } else {
-            self.package_declaration();
+            self.package_declaration()
         }
     }
 
-    pub fn package_declaration(&mut self) {
-        self.node(PackageDeclarationItem, Parser::package);
+    pub fn package_declaration(&mut self) -> CompletedMarker {
+        self.node(PackageDeclarationItem, Parser::package)
     }
 
-    pub fn package_body_declaration(&mut self) {
-        self.node(PackageBodyDeclaration, Parser::package_body);
+    pub fn package_body_declaration(&mut self) -> CompletedMarker {
+        self.node(PackageBodyDeclaration, Parser::package_body)
     }
 
-    pub fn disconnection_specification(&mut self) {
+    pub fn disconnection_specification(&mut self) -> CompletedMarker {
         self.node(DisconnectionSpecification, |p| {
             p.expect_kw(Kw::Disconnect);
             p.guarded_signal_specification();
             p.expect_kw(Kw::After);
             p.expression();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     pub fn guarded_signal_specification(&mut self) {
@@ -156,7 +167,7 @@ impl Parser {
         );
     }
 
-    pub fn configuration_specification(&mut self) {
+    pub fn configuration_specification(&mut self) -> CompletedMarker {
         let unknown = self.start_unknown();
         self.node(ComponentConfigurationPreamble, |p| {
             p.expect_kw(Kw::For);
@@ -173,13 +184,13 @@ impl Parser {
                 });
             }
             self.component_configuration_epilogue();
-            marker.complete(self);
+            marker.complete(self)
         } else {
             let marker = unknown.resolve(self, NodeKind::SimpleConfigurationSpecification);
             if self.next_is(Keyword(Kw::End)) {
                 self.component_configuration_epilogue();
             }
-            marker.complete(self);
+            marker.complete(self)
         }
     }
 

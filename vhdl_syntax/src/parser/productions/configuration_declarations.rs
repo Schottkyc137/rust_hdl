@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::NodeKind::{self, ConfigurationDeclarativePart};
 use crate::tokens::TokenKind::*;
@@ -44,15 +45,15 @@ impl Parser {
         });
     }
 
-    pub fn group_declaration_or_template_declaration(&mut self) {
+    pub fn group_declaration_or_template_declaration(&mut self) -> CompletedMarker {
         if self.next_nth_is(Keyword(Kw::Is), 2) {
-            self.group_template_declaration();
+            self.group_template_declaration()
         } else {
-            self.group_declaration();
+            self.group_declaration()
         }
     }
 
-    pub fn group_template_declaration(&mut self) {
+    pub fn group_template_declaration(&mut self) -> CompletedMarker {
         self.node(NodeKind::GroupTemplateDeclaration, |p| {
             p.expect_kw(Kw::Group);
             p.identifier();
@@ -61,17 +62,17 @@ impl Parser {
             p.entity_class_entry_list();
             p.expect_token(RightPar);
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn group_declaration(&mut self) {
+    pub fn group_declaration(&mut self) -> CompletedMarker {
         self.node(NodeKind::GroupDeclaration, |p| {
             p.expect_kw(Kw::Group);
             p.identifier();
             p.expect_token(Colon);
             p.name();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     pub fn entity_class_entry(&mut self) {

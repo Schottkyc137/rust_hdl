@@ -4,17 +4,18 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::{SemiColon, *};
 
 impl Parser {
-    pub fn package_instantiation_declaration(&mut self) {
+    pub fn package_instantiation_declaration(&mut self) -> CompletedMarker {
         self.node(
             PackageInstantiationDeclarationItem,
             Parser::package_instantiation,
-        );
+        )
     }
 
     pub fn package_instantiation(&mut self) {

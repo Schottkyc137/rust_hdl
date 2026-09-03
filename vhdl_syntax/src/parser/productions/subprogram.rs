@@ -21,12 +21,12 @@ impl Parser {
         });
     }
 
-    pub fn subprogram_instantiation_declaration(&mut self) {
+    pub fn subprogram_instantiation_declaration(&mut self) -> CompletedMarker {
         self.node(SubprogramInstantiationDeclaration, |p| {
             p.subprogram_instantiation_declaration_preamble();
             p.opt_generic_map_aspect();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     pub fn subprogram_instantiation_declaration_preamble(&mut self) {
@@ -113,12 +113,11 @@ impl Parser {
         self.subprogram_declaration_or_body();
     }
 
-    pub(crate) fn subprogram_declaration_or_body(&mut self) {
+    pub(crate) fn subprogram_declaration_or_body(&mut self) -> CompletedMarker {
         let unknown = self.start_unknown();
         let specification = self.subprogram_specification();
         if self.opt_token(SemiColon) {
-            unknown.complete(self, SubprogramDeclaration);
-            return;
+            return unknown.complete(self, SubprogramDeclaration);
         }
         let preamble = specification.precede(self, SubprogramBodyPreamble);
         self.expect_kw(Kw::Is);
@@ -130,7 +129,7 @@ impl Parser {
         });
         self.subprogram_statement_part();
         self.subprogram_body_epilogue();
-        marker.complete(self);
+        marker.complete(self)
     }
 
     pub fn subprogram_declarative_part(&mut self) {

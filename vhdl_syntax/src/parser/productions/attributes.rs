@@ -11,7 +11,7 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
-    pub fn attribute_specification(&mut self) {
+    pub fn attribute_specification(&mut self) -> CompletedMarker {
         self.node(AttributeSpecification, |p| {
             p.expect_kw(Kw::Attribute);
             p.identifier();
@@ -20,7 +20,7 @@ impl Parser {
             p.expect_token(Keyword(Kw::Is));
             p.expression();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     pub fn entity_specification(&mut self) {
@@ -78,22 +78,22 @@ impl Parser {
         self.expect_one_of_tokens([Identifier, CharacterLiteral, StringLiteral]);
     }
 
-    pub(crate) fn attribute_declaration_or_specification(&mut self) {
+    pub(crate) fn attribute_declaration_or_specification(&mut self) -> CompletedMarker {
         if self.next_nth_is(Keyword(Kw::Of), 2) {
-            self.attribute_specification();
+            self.attribute_specification()
         } else {
-            self.attribute_declaration();
+            self.attribute_declaration()
         }
     }
 
-    pub(crate) fn attribute_declaration(&mut self) {
+    pub(crate) fn attribute_declaration(&mut self) -> CompletedMarker {
         self.node(AttributeDeclaration, |p| {
             p.expect_kw(Kw::Attribute);
             p.identifier();
             p.expect_token(Colon);
             p.type_mark();
             p.expect_token(SemiColon);
-        });
+        })
     }
 }
 

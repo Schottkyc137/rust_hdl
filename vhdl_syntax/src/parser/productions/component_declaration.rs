@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::standard::VHDLStandard;
 use crate::syntax::node_kind::NodeKind::*;
@@ -11,13 +12,13 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
-    pub fn component_declaration(&mut self) {
+    pub fn component_declaration(&mut self) -> CompletedMarker {
         self.node(ComponentDeclaration, |p| {
             p.component_declaration_preamble();
             p.opt_generic_clause();
             p.opt_port_clause();
             p.component_declaration_epilogue();
-        });
+        })
     }
 
     pub fn component_declaration_preamble(&mut self) {

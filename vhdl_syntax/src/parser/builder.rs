@@ -214,30 +214,6 @@ impl NodeBuilder {
     pub fn current_token_index(&self) -> usize {
         self.token_index
     }
-
-    /// The node that was just parsed
-    pub fn last_node(&self) -> Option<NodeKind> {
-        let Some(Event::End) = self.events.last() else {
-            return None;
-        };
-        let mut depth = 1usize;
-
-        for event in self.events.iter().rev().skip(1) {
-            match event {
-                // A node inserted by `precede` opens here too: its `Start` sits
-                // where the parser asked for it, only its nesting is deferred.
-                Event::Start {
-                    kind: Some(kind), ..
-                } if depth == 1 => return Some(*kind),
-                Event::Start { kind: None, .. } if depth == 1 => return None,
-                Event::Start { .. } => depth -= 1,
-                Event::End => depth += 1,
-                Event::Push(..) | Event::Error(_) | Event::Ignore => continue,
-            }
-        }
-
-        None
-    }
 }
 
 #[cfg(test)]

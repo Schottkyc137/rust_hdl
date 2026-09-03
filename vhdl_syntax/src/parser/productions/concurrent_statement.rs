@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::marker::Precede;
+use crate::parser::marker::{CompletedMarker, Precede};
 use crate::parser::productions::declarations::is_start_of_declarative_part;
 use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
@@ -18,7 +18,7 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
-    pub fn block_statement(&mut self) {
+    pub fn block_statement(&mut self) -> CompletedMarker {
         self.node(BlockStatement, |p| {
             p.label();
             p.block_preamble();
@@ -29,7 +29,7 @@ impl Parser {
             });
             p.block_statement_part();
             p.block_epilogue();
-        });
+        })
     }
 
     pub fn block_preamble(&mut self) {
@@ -103,9 +103,12 @@ impl Parser {
                 Keyword(Kw::End | Kw::Elsif | Kw::Else | Kw::When) | Eof => {
                     break;
                 }
-                _ => self.concurrent_statement(),
+                _ => {
+                    if let Some(statement) = self.concurrent_statement() {
+                        self.check_node_is_allowed(&statement, allowed_nodes);
+                    }
+                }
             }
-            self.check_last_node_is_allowed(allowed_nodes);
         }
     }
 
@@ -151,36 +154,36 @@ impl Parser {
         }
     }
 
-    pub fn component_instantiation_statement(&mut self) {
+    pub fn component_instantiation_statement(&mut self) -> CompletedMarker {
         self.node(ComponentInstantiationStatement, |p| {
             p.label();
             p.instantiated_unit();
             p.instantiation_statement_inner();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn concurrent_assertion_statement(&mut self) {
+    pub fn concurrent_assertion_statement(&mut self) -> CompletedMarker {
         self.node(ConcurrentAssertionStatement, |p| {
             p.opt_label();
             p.opt_token(Keyword(Kw::Postponed));
             p.assertion();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub(crate) fn concurrent_statement(&mut self) {
+    pub(crate) fn concurrent_statement(&mut self) -> Option<CompletedMarker> {
         match self.peek_concurrent_statement_kind() {
-            Keyword(Kw::Block) => self.block_statement(),
-            Keyword(Kw::Process) => self.process_statement(),
+            Keyword(Kw::Block) => Some(self.block_statement()),
+            Keyword(Kw::Process) => Some(self.process_statement()),
             Keyword(Kw::Component | Kw::Configuration | Kw::Entity) => {
-                self.component_instantiation_statement()
+                Some(self.component_instantiation_statement())
             }
-            Keyword(Kw::For) => self.for_generate_statement(),
-            Keyword(Kw::If) => self.if_generate_statement(),
-            Keyword(Kw::Case) => self.case_generate_statement(),
-            Keyword(Kw::Assert) => self.concurrent_assertion_statement(),
-            Keyword(Kw::With) => self.concurrent_selected_signal_assignment(),
+            Keyword(Kw::For) => Some(self.for_generate_statement()),
+            Keyword(Kw::If) => Some(self.if_generate_statement()),
+            Keyword(Kw::Case) => Some(self.case_generate_statement()),
+            Keyword(Kw::Assert) => Some(self.concurrent_assertion_statement()),
+            Keyword(Kw::With) => Some(self.concurrent_selected_signal_assignment()),
             Identifier | LtLt | StringLiteral | CharacterLiteral => {
                 let unknown = self.start_unknown();
                 self.opt_label();
@@ -222,7 +225,7 @@ impl Parser {
                     ),
                 };
                 self.expect_token(SemiColon);
-                marker.complete(self);
+                Some(marker.complete(self))
             }
             _ => {
                 self.expect_tokens_recover([
@@ -241,11 +244,12 @@ impl Parser {
                     StringLiteral,
                     CharacterLiteral,
                 ]);
+                None
             }
-        };
+        }
     }
 
-    pub fn concurrent_selected_signal_assignment(&mut self) {
+    pub fn concurrent_selected_signal_assignment(&mut self) -> CompletedMarker {
         self.node(ConcurrentSelectedSignalAssignment, |p| {
             p.opt_label();
             p.opt_token(Keyword(Kw::Postponed));
@@ -256,7 +260,7 @@ impl Parser {
             p.opt_delay_mechanism();
             p.selected_waveforms();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     pub fn selected_assignment_preamble(&mut self) {
@@ -299,7 +303,7 @@ impl Parser {
         });
     }
 
-    pub fn case_generate_statement(&mut self) {
+    pub fn case_generate_statement(&mut self) -> CompletedMarker {
         self.node(CaseGenerateStatement, |p| {
             p.label();
             p.case_generate_preamble();
@@ -308,7 +312,7 @@ impl Parser {
                 p.case_generate_alternative();
             }
             p.generate_epilogue();
-        });
+        })
     }
 
     pub fn case_generate_preamble(&mut self) {
@@ -329,13 +333,13 @@ impl Parser {
         });
     }
 
-    pub fn for_generate_statement(&mut self) {
+    pub fn for_generate_statement(&mut self) -> CompletedMarker {
         self.node(ForGenerateStatement, |p| {
             p.label();
             p.for_generate_preamble();
             p.generate_statement_body();
             p.generate_epilogue();
-        });
+        })
     }
 
     pub fn for_generate_preamble(&mut self) {
@@ -383,7 +387,7 @@ impl Parser {
         });
     }
 
-    pub fn if_generate_statement(&mut self) {
+    pub fn if_generate_statement(&mut self) -> CompletedMarker {
         self.node(IfGenerateStatement, |p| {
             p.label();
             p.if_generate_if();
@@ -394,7 +398,7 @@ impl Parser {
                 p.if_generate_else();
             }
             p.generate_epilogue();
-        });
+        })
     }
 
     pub fn generate_statement_body(&mut self) {
@@ -435,7 +439,7 @@ impl Parser {
         self.opt_port_map_aspect();
     }
 
-    pub fn process_statement(&mut self) {
+    pub fn process_statement(&mut self) -> CompletedMarker {
         self.node(ProcessStatement, |p| {
             p.opt_label();
             p.process_preamble();
@@ -445,7 +449,7 @@ impl Parser {
             });
             p.process_statement_part();
             p.process_epilogue();
-        });
+        })
     }
 
     pub fn process_declarative_part(&mut self) {

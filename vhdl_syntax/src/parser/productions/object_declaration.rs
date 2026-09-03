@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 /// Parsing of object declarations (LRM §6.4.2)
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::syntax::NodeKind;
@@ -36,19 +37,19 @@ impl Object {
 }
 
 impl Parser {
-    pub fn constant_declaration(&mut self) {
-        self.any_object_declaration(Object::Constant);
+    pub fn constant_declaration(&mut self) -> CompletedMarker {
+        self.any_object_declaration(Object::Constant)
     }
 
-    pub fn signal_declaration(&mut self) {
-        self.any_object_declaration(Object::Signal);
+    pub fn signal_declaration(&mut self) -> CompletedMarker {
+        self.any_object_declaration(Object::Signal)
     }
 
-    pub fn variable_declaration(&mut self) {
-        self.any_object_declaration(Object::Variable);
+    pub fn variable_declaration(&mut self) -> CompletedMarker {
+        self.any_object_declaration(Object::Variable)
     }
 
-    fn any_object_declaration(&mut self, object: Object) {
+    fn any_object_declaration(&mut self, object: Object) -> CompletedMarker {
         self.node(object.kind(), |p| {
             if object == Object::Variable {
                 p.opt_token(Keyword(Kw::Shared));
@@ -65,10 +66,10 @@ impl Parser {
                 });
             }
             p.expect_token(SemiColon);
-        });
+        })
     }
 
-    pub fn file_declaration(&mut self) {
+    pub fn file_declaration(&mut self) -> CompletedMarker {
         self.node(FileDeclaration, |p| {
             p.expect_token(Keyword(Kw::File));
             p.identifier_list();
@@ -76,7 +77,7 @@ impl Parser {
             p.subtype_indication();
             p.opt_file_open_information();
             p.expect_token(SemiColon);
-        });
+        })
     }
 
     fn opt_file_open_information(&mut self) -> bool {
