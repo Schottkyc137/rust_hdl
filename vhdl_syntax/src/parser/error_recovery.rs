@@ -94,7 +94,10 @@ impl Parser {
 
             // inconclusive. Skip and look at the next token.
             self.skip();
-            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Token(tok)));
+            // Don't push double diagnostics on an unknown token
+            if tok != TokenKind::Unknown {
+                self.push_err(SyntaxErrKind::Unexpected(ChildKind::Token(tok)));
+            }
             skipped_any = true;
         }
     }
@@ -1356,6 +1359,30 @@ mod tests {
         let text = String::from_utf8(buf).unwrap();
         assert!(text.contains("foo"));
         assert!(text.contains("bar"));
+    }
+
+    #[test]
+    fn expect_recover_leaves_illegal_input_to_the_tokenizer() {
+        let (_, diags) = parse_syntax("foo $ bar ;", |p: &mut Parser| {
+            // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                p.skip();
+            });
+        });
+        let unknown: Vec<_> = diags
+            .iter()
+            .filter(|diag| {
+                matches!(
+                    diag.err(),
+                    SyntaxErrKind::Unexpected(ChildKind::Token(TokenKind::Unknown))
+                )
+            })
+            .collect();
+        assert_eq!(unknown.len(), 1, "got: {:?}", diags);
+        assert_eq!(*unknown[0].span(), 4..5, "the `$` itself");
+        // The other two identifiers still report themselves, one each.
+        assert_eq!(diags.len(), 3, "got: {:?}", diags);
     }
 
     /// Expected token shows up after garbage (not a recovery token):
