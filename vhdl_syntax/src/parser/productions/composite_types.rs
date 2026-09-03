@@ -14,8 +14,13 @@ impl Parser {
         let unknown = self.start_unknown();
         self.expect_kw(Kw::Array);
         let box_found = self.lookahead_skip_n(1, [BOX]).is_ok();
-
         let array_definition = if box_found {
+            unknown.resolve(self, UnboundedArrayDefinition)
+        } else {
+            unknown.resolve(self, ConstrainedArrayDefinition)
+        };
+
+        if box_found {
             self.expect_token(LeftPar);
             self.separated_list(
                 IndexSubtypeDefinitionList,
@@ -23,11 +28,9 @@ impl Parser {
                 Comma,
             );
             self.expect_token(RightPar);
-            unknown.resolve(self, UnboundedArrayDefinition)
         } else {
             self.index_constraint();
-            unknown.resolve(self, ConstrainedArrayDefinition)
-        };
+        }
         self.expect_kw(Kw::Of);
         self.subtype_indication();
         array_definition.complete(self);
