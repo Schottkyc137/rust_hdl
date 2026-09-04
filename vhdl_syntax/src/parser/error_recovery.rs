@@ -57,7 +57,7 @@ impl Parser {
     pub(crate) fn expect_tokens_recover<const N: usize>(&mut self, expected: [TokenKind; N]) {
         debug_assert!(
             !expected.contains(&self.peek_token()),
-            "should only be called on an error path"
+            "should only be called on an error path ({:?} contains {:?})", expected, self.peek_token()
         );
 
         // We're at EoF -> emit an EoF diagnostic
@@ -1456,5 +1456,28 @@ mod tests {
         let text = String::from_utf8(buf).unwrap();
         assert!(text.contains("entity"));
         assert!(text.contains("foo"));
+    }
+
+    #[test]
+    fn label_without_statement() {
+        assert_recovery_snapshot!(
+            "\
+architecture arch of ent is
+begin
+    p :
+end arch;
+",
+            Parser::design_file
+        );
+
+        assert_recovery_snapshot!(
+            "\
+architecture arch of ent is
+begin
+    p : foo
+end arch;
+",
+            Parser::design_file
+        );
     }
 }

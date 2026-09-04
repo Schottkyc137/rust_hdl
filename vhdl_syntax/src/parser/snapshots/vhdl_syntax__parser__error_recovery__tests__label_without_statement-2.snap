@@ -1,0 +1,41 @@
+---
+source: vhdl_syntax/src/parser/error_recovery.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+architecture arch of ent is
+begin
+    p : foo
+end arch;
+
+
+== tree ==
+DesignFile
+  DesignUnit
+    ArchitectureBody
+      ArchitecturePreamble
+        Keyword(Architecture)
+        Identifier 'arch'
+        Keyword(Of)
+        Name
+          NameDesignatorPrefix
+            Identifier 'ent'
+        Keyword(Is)
+      DeclarationStatementSeparator
+        Keyword(Begin)
+      ArchitectureStatementPart
+        ConcurrentProcedureCallOrComponentInstantiationStatement
+          StmtLabel
+            Identifier 'p'
+            Colon
+          Name
+            NameDesignatorPrefix
+              Identifier 'foo'
+      ArchitectureEpilogue
+        Keyword(End)
+        Identifier 'arch'
+        SemiColon
+  Eof
+
+== diagnostics ==
+3:12 Expected(Token([SemiColon]))
