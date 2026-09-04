@@ -13,6 +13,7 @@ use crate::tokens::Tokenizer;
 
 pub(crate) mod builder;
 pub mod error;
+pub(crate) mod marker;
 #[cfg(test)]
 #[macro_use]
 mod test_utils;
@@ -29,7 +30,6 @@ pub mod productions;
 pub struct Parser {
     token_stream: TokenStream,
     builder: builder::NodeBuilder,
-    errors: Vec<error::SyntaxErr>,
     standard: VHDLStandard,
     recovery: RecoveryState,
 }
@@ -39,7 +39,6 @@ impl Parser {
         Parser {
             token_stream,
             builder: builder::NodeBuilder::new(),
-            errors: Vec::default(),
             standard,
             recovery: RecoveryState::new(),
         }
@@ -80,9 +79,9 @@ pub fn parse_with_standard(
 }
 
 #[cfg(test)]
-pub(crate) fn parse_syntax(
+pub(crate) fn parse_syntax<T>(
     token_stream: impl Into<TokenStream>,
-    parser_fn: impl FnOnce(&mut Parser),
+    parser_fn: impl FnOnce(&mut Parser) -> T,
 ) -> (SyntaxNode, Vec<error::SyntaxErr>) {
     let mut parser = Parser::new(token_stream.into(), VHDLStandard::default());
     parser_fn(&mut parser);
@@ -91,10 +90,10 @@ pub(crate) fn parse_syntax(
 }
 
 #[cfg(test)]
-pub(crate) fn parse_syntax_with_standard(
+pub(crate) fn parse_syntax_with_standard<T>(
     standard: VHDLStandard,
     input: impl IntoIterator<Item = u8>,
-    parser_fn: impl FnOnce(&mut Parser),
+    parser_fn: impl FnOnce(&mut Parser) -> T,
 ) -> (SyntaxNode, Vec<error::SyntaxErr>) {
     let token_stream: TokenStream = Tokenizer::with_standard(standard, input.into_iter()).collect();
     let mut parser = Parser::new(token_stream, standard);

@@ -41,15 +41,19 @@ impl SyntaxNode {
 #[cfg(test)]
 mod tests {
     use crate::fmt::write::FormatToExt;
-    use crate::parser::builder::NodeBuilder;
     use crate::parser::{parse, parse_syntax, Parser};
     use crate::syntax::meta::LayoutItemKind;
     use crate::syntax::node::{SyntaxElement, SyntaxNode};
     use crate::syntax::node_kind::NodeKind;
     use crate::syntax::validate::error::Validation;
     use crate::syntax::validate::validator::check_node;
-    use crate::syntax::AstNode;
-    use crate::syntax::{InterfaceDeclarationSyntax, InterfaceListBuilder};
+    use crate::syntax::{
+        builder::RawNodeBuilder, AstNode, EntityDeclarationBuilder,
+        EntityDeclarationPreambleSyntax, InterfaceListSyntax, InterfaceObjectDeclarationSyntax,
+    };
+    use crate::syntax::{
+        EntityDeclarationEpilogueSyntax, InterfaceDeclarationSyntax, InterfaceListBuilder,
+    };
     use crate::tokens::{Keyword, Token, TokenKind, Trivia};
 
     fn tok(kind: TokenKind, text: &[u8]) -> Token {
@@ -59,13 +63,9 @@ mod tests {
     /// Build an `EntityDeclarationPreamble` node from the given raw tokens.
     /// Layout: entity (req) · name-identifier (req) · is (req)
     fn build_preamble(tokens: impl IntoIterator<Item = Token>) -> SyntaxNode {
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::EntityDeclarationPreamble);
-        for t in tokens {
-            b.push(t);
-        }
-        b.end_node();
-        SyntaxNode::new_root(b.end())
+        RawNodeBuilder::<EntityDeclarationPreambleSyntax>::new()
+            .push_tokens(tokens)
+            .finish_untyped()
     }
 
     // --- happy-path tests ---
@@ -149,30 +149,28 @@ end configuration cfg;
     /// `x` a token that neither slot accepts. The elements are deliberately not valid
     /// `InterfaceObjectDeclaration`s — these tests drive [`check_node`] directly so only
     /// the list's own alternation is under test.
-    fn interface_list(spec: &str) -> SyntaxNode {
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::InterfaceList);
+    fn interface_list(spec: &str) -> InterfaceListSyntax {
+        let mut b = RawNodeBuilder::new();
         for (i, ch) in spec.chars().enumerate() {
             match ch {
                 'e' => {
-                    let mut inner = NodeBuilder::new();
-                    inner.start_node(NodeKind::InterfaceObjectDeclaration);
-                    inner.push(tok(TokenKind::Identifier, format!("x{i}").as_bytes()));
-                    inner.end_node();
-                    b.push_node(inner.end());
+                    b = b.push_node(
+                        RawNodeBuilder::<InterfaceObjectDeclarationSyntax>::new()
+                            .push_token(tok(TokenKind::Identifier, format!("x{i}").as_bytes()))
+                            .finish(),
+                    );
                 }
-                ';' => b.push(tok(TokenKind::SemiColon, b";")),
-                'x' => b.push(tok(TokenKind::Comma, b",")),
+                ';' => b = b.push_token(tok(TokenKind::SemiColon, b";")),
+                'x' => b = b.push_token(tok(TokenKind::Comma, b",")),
                 other => panic!("bad spec char {other}"),
             }
         }
-        b.end_node();
-        SyntaxNode::new_root(b.end())
+        b.finish()
     }
 
     fn list_findings(spec: &str) -> Vec<Validation> {
         let mut err = crate::syntax::validate::error::ValidationError::new();
-        check_node(&interface_list(spec), &mut err);
+        check_node(&interface_list(spec).raw(), &mut err);
         err.items().to_vec()
     }
 
@@ -225,20 +223,6 @@ end configuration cfg;
             }
             other => panic!("expected a missing element, got {other:?}"),
         }
-    }
-
-    /// An empty list node never reaches the tree: `NodeBuilder::end_node` drops any node
-    /// that gained no children, so an empty-capable list shows up as *absent* from its
-    /// parent rather than as an empty node.
-    #[test]
-    fn empty_list_node_is_dropped_rather_than_built() {
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::InterfaceList);
-        b.end_node();
-        assert!(
-            std::panic::catch_unwind(move || b.end()).is_err(),
-            "an empty list node should not have been produced"
-        );
     }
 
     #[test]
@@ -308,11 +292,9 @@ end configuration cfg;
     #[test]
     fn missing_required_after_optional_is_reported() {
         // EntityDeclarationEpilogue with only 'end'; the mandatory ';' is absent.
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::EntityDeclarationEpilogue);
-        b.push(tok(TokenKind::Keyword(Keyword::End), b"end"));
-        b.end_node();
-        let node = SyntaxNode::new_root(b.end());
+        let node = RawNodeBuilder::<EntityDeclarationEpilogueSyntax>::new()
+            .push_token(tok(TokenKind::Keyword(Keyword::End), b"end"))
+            .finish_untyped();
 
         let err = node.validate().unwrap_err();
 
@@ -358,23 +340,11 @@ end configuration cfg;
     fn child_errors_propagate_to_parent() {
         // EntityDeclarationPreamble with only 'entity' — 'name' and 'is' are missing.
         let bad_preamble = build_preamble([tok(TokenKind::Keyword(Keyword::Entity), b"entity")]);
-
-        // Minimal valid epilogue: "end ;"
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::EntityDeclarationEpilogue);
-        b.push(tok(TokenKind::Keyword(Keyword::End), b"end"));
-        b.push(tok(TokenKind::SemiColon, b";"));
-        b.end_node();
-        let epilogue = SyntaxNode::new_root(b.end());
-
-        // Assemble an EntityDeclaration from the two children above.
-        // All intermediate optional children (EntityHeader, Declarations, …) are absent.
-        let mut b = NodeBuilder::new();
-        b.start_node(NodeKind::EntityDeclaration);
-        b.push_node(bad_preamble.green().clone());
-        b.push_node(epilogue.green().clone());
-        b.end_node();
-        let entity = SyntaxNode::new_root(b.end());
+        let entity = EntityDeclarationBuilder::new(
+            EntityDeclarationPreambleSyntax::cast(bad_preamble).unwrap(),
+        )
+        .build()
+        .raw();
 
         let err = entity.validate().unwrap_err();
 

@@ -11,7 +11,7 @@ use crate::syntax::node::{SyntaxElement, SyntaxNode};
 use crate::syntax::validate::error::Validation;
 
 /// Returns the AST text for snapshot assertions.
-pub fn to_test_text(func: impl FnOnce(&mut Parser), input: &str) -> String {
+pub fn to_test_text<T>(func: impl FnOnce(&mut Parser) -> T, input: &str) -> String {
     let (entity, diagnostics) = parse_syntax(input, func);
     assert!(diagnostics.is_empty(), "got diagnostics: {:?}", diagnostics);
     if let Err(err) = entity.validate() {
@@ -86,9 +86,9 @@ macro_rules! assert_recovery_snapshot {
 }
 
 /// Returns the AST text for snapshot assertions, tokenizing and parsing under `standard`.
-pub fn to_test_text_with_standard(
+pub fn to_test_text_with_standard<T>(
     standard: VHDLStandard,
-    func: impl FnOnce(&mut Parser),
+    func: impl FnOnce(&mut Parser) -> T,
     input: &str,
 ) -> String {
     let (entity, diagnostics) = parse_syntax_with_standard(standard, input.bytes(), func);

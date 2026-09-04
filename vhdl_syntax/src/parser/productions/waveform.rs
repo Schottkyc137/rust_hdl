@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::token_kind::Keyword as Kw;
@@ -20,24 +21,20 @@ impl Parser {
         }
     }
 
-    pub fn delay_mechanism(&mut self) {
-        let checkpoint = self.checkpoint();
-        match_next_token_consume!(self,
-            Keyword(Kw::Transport) => {
-                self.start_node_at(checkpoint, TransportDelayMechanism);
-            },
-            Keyword(Kw::Inertial) => {
-                self.start_node_at(checkpoint, InertialDelayMechanism);
-            },
+    pub fn delay_mechanism(&mut self) -> Option<CompletedMarker> {
+        match_next_token!(self,
+            Keyword(Kw::Transport) => Some(self.skip_into_node(TransportDelayMechanism)),
+            Keyword(Kw::Inertial) => Some(self.skip_into_node(InertialDelayMechanism)),
             Keyword(Kw::Reject) => {
-                self.start_node_at(checkpoint, InertialDelayMechanism);
-                self.start_node_at(checkpoint, RejectClause);
-                self.expression();
-                self.end_node();
-                self.expect_kw(Kw::Inertial);
+                Some(self.node(InertialDelayMechanism, |p| {
+                    p.node(RejectClause, |p| {
+                        p.skip(); // Kw::Reject
+                        p.expression();
+                    });
+                    p.expect_kw(Kw::Inertial);
+                }))
             }
-        );
-        self.end_node();
+        )
     }
 
     pub fn selected_waveforms(&mut self) {
@@ -45,35 +42,35 @@ impl Parser {
     }
 
     fn selected_waveform(&mut self) {
-        self.start_node(SelectedWaveformItem);
-        self.waveform();
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.end_node();
+        self.node(SelectedWaveformItem, |p| {
+            p.waveform();
+            p.expect_kw(Kw::When);
+            p.choices();
+        });
     }
 
-    pub fn waveform_elements(&mut self) {
-        self.separated_list(WaveformElements, Parser::waveform_element, Comma);
+    pub fn waveform_elements(&mut self) -> CompletedMarker {
+        self.separated_list(WaveformElements, Parser::waveform_element, Comma)
     }
 
-    pub fn waveform(&mut self) {
+    pub fn waveform(&mut self) -> CompletedMarker {
         if self.next_is(Keyword(Kw::Unaffected)) {
-            self.skip_into_node(UnaffectedWaveform);
+            self.skip_into_node(UnaffectedWaveform)
         } else {
-            self.waveform_elements();
+            self.waveform_elements()
         }
     }
 
     pub fn waveform_element(&mut self) {
-        self.start_node(WaveformElement);
-        self.expression();
-        if self.next_is(Keyword(Kw::After)) {
-            self.start_node(AfterClause);
-            self.skip(); // Kw::After
-            self.expression();
-            self.end_node();
-        }
-        self.end_node();
+        self.node(WaveformElement, |p| {
+            p.expression();
+            if p.next_is(Keyword(Kw::After)) {
+                p.node(AfterClause, |p| {
+                    p.skip(); // Kw::After
+                    p.expression();
+                });
+            }
+        });
     }
 }
 

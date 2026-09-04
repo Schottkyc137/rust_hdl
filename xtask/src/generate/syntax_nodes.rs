@@ -438,7 +438,7 @@ fn generate_node_kind_enum(model: &Model) -> TokenStream {
         .collect::<Vec<_>>();
     choices.sort();
     quote! {
-        #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+        #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub enum NodeKind {
             #(#choices),*

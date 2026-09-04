@@ -11,12 +11,16 @@ use crate::tokens::TokenKind::*;
 
 impl Parser {
     pub fn array_type_definition(&mut self) {
-        let checkpoint = self.checkpoint();
+        let unknown = self.start_unknown();
         self.expect_kw(Kw::Array);
         let box_found = self.lookahead_skip_n(1, [BOX]).is_ok();
+        let array_definition = if box_found {
+            unknown.resolve(self, UnboundedArrayDefinition)
+        } else {
+            unknown.resolve(self, ConstrainedArrayDefinition)
+        };
 
         if box_found {
-            self.start_node_at(checkpoint, UnboundedArrayDefinition);
             self.expect_token(LeftPar);
             self.separated_list(
                 IndexSubtypeDefinitionList,
@@ -25,56 +29,55 @@ impl Parser {
             );
             self.expect_token(RightPar);
         } else {
-            self.start_node_at(checkpoint, ConstrainedArrayDefinition);
             self.index_constraint();
         }
         self.expect_kw(Kw::Of);
         self.subtype_indication();
-        self.end_node();
+        array_definition.complete(self);
     }
 
     pub fn record_type_definition(&mut self) {
-        self.start_node(RecordTypeDefinition);
-        self.start_node(RecordTypeDefinitionPreamble);
-        self.expect_kw(Kw::Record);
-        self.end_node();
+        self.node(RecordTypeDefinition, |p| {
+            p.node(RecordTypeDefinitionPreamble, |p| {
+                p.expect_kw(Kw::Record);
+            });
 
-        self.start_node(RecordElementDeclarations);
-        self.element_declaration();
-        while self.next_is(Identifier) {
-            self.element_declaration();
-        }
-        self.end_node();
+            p.node(RecordElementDeclarations, |p| {
+                p.element_declaration();
+                while p.next_is(Identifier) {
+                    p.element_declaration();
+                }
+            });
 
-        self.start_node(RecordTypeDefinitionEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Record)]);
-        self.opt_identifier();
-        self.end_node();
-        self.end_node();
+            p.node(RecordTypeDefinitionEpilogue, |p| {
+                p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Record)]);
+                p.opt_identifier();
+            });
+        });
     }
 
     pub fn element_declaration(&mut self) {
-        self.start_node(ElementDeclaration);
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.subtype_indication();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ElementDeclaration, |p| {
+            p.identifier_list();
+            p.expect_token(Colon);
+            p.subtype_indication();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn index_subtype_definition(&mut self) {
-        self.start_node(IndexSubtypeDefinition);
-        self.type_mark();
-        self.expect_tokens([Keyword(Kw::Range), BOX]);
-        self.end_node();
+        self.node(IndexSubtypeDefinition, |p| {
+            p.type_mark();
+            p.expect_tokens([Keyword(Kw::Range), BOX]);
+        });
     }
 
     pub fn index_constraint(&mut self) {
-        self.start_node(IndexConstraint);
-        self.expect_token(LeftPar);
-        self.separated_list(ExpressionList, Parser::expression, Comma);
-        self.expect_token(RightPar);
-        self.end_node();
+        self.node(IndexConstraint, |p| {
+            p.expect_token(LeftPar);
+            p.separated_list(ExpressionList, Parser::expression, Comma);
+            p.expect_token(RightPar);
+        });
     }
 }
 

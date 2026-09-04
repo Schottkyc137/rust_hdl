@@ -14,4 +14,4 @@ Name
     RightPar
 
 == diagnostics ==
-1:5 Expected(Token([Identifier, LtLt, BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Null), AbstractLiteral, LeftPar, Keyword(New)]))
+1:5 Expected(Node([AssociationList]))

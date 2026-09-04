@@ -1,6 +1,29 @@
 //! Meta API that provides static information about the layout of a SyntaxNode at runtime.
 
-use crate::{syntax::NodeKind, tokens::TokenKind};
+use crate::{
+    syntax::{layout_of, NodeKind},
+    tokens::TokenKind,
+};
+
+/// Whether a node of `kind` may legally hold no children at all
+pub fn is_empty_capable(kind: NodeKind) -> bool {
+    is_empty_capable_seen(kind, &mut Vec::new())
+}
+
+fn is_empty_capable_seen(kind: NodeKind, seen: &mut Vec<NodeKind>) -> bool {
+    if seen.contains(&kind) {
+        return false;
+    }
+    seen.push(kind);
+    match layout_of(kind) {
+        Layout::Sequence(sequence) => sequence.items.iter().all(|item| item.optional),
+        Layout::List(_) => false,
+        Layout::Choice(choice) => choice
+            .options
+            .iter()
+            .any(|option| is_empty_capable_seen(*option, seen)),
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum Layout {

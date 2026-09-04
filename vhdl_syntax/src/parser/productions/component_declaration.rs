@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::standard::VHDLStandard;
 use crate::syntax::node_kind::NodeKind::*;
@@ -11,34 +12,34 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
-    pub fn component_declaration(&mut self) {
-        self.start_node(ComponentDeclaration);
-        self.component_declaration_preamble();
-        self.opt_generic_clause();
-        self.opt_port_clause();
-        self.component_declaration_epilogue();
-        self.end_node();
+    pub fn component_declaration(&mut self) -> CompletedMarker {
+        self.node(ComponentDeclaration, |p| {
+            p.component_declaration_preamble();
+            p.opt_generic_clause();
+            p.opt_port_clause();
+            p.component_declaration_epilogue();
+        })
     }
 
     pub fn component_declaration_preamble(&mut self) {
-        self.start_node(ComponentDeclarationPreamble);
-        self.expect_token(Keyword(Kw::Component));
-        self.identifier();
-        self.opt_token(Keyword(Kw::Is));
-        self.end_node();
+        self.node(ComponentDeclarationPreamble, |p| {
+            p.expect_token(Keyword(Kw::Component));
+            p.identifier();
+            p.opt_token(Keyword(Kw::Is));
+        });
     }
 
     pub fn component_declaration_epilogue(&mut self) {
-        self.start_node(ComponentDeclarationEpilogue);
-        self.expect_token(Keyword(Kw::End));
-        if self.standard().is_at_least(VHDLStandard::VHDL2019) {
-            self.opt_token(Keyword(Kw::Component));
-        } else {
-            self.expect_token(Keyword(Kw::Component));
-        }
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ComponentDeclarationEpilogue, |p| {
+            p.expect_token(Keyword(Kw::End));
+            if p.standard().is_at_least(VHDLStandard::VHDL2019) {
+                p.opt_token(Keyword(Kw::Component));
+            } else {
+                p.expect_token(Keyword(Kw::Component));
+            }
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 }
 

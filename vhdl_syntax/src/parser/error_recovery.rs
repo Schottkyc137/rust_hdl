@@ -4,7 +4,7 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::error::{SyntaxErr, SyntaxErrKind};
+use crate::parser::error::SyntaxErrKind;
 use crate::parser::Parser;
 use crate::syntax::child::{Child, ChildKind};
 use crate::syntax::layout_of;
@@ -60,33 +60,18 @@ impl Parser {
             "should only be called on an error path"
         );
 
-        let start = self.builder.current_pos();
-
         // We're at EoF -> emit an EoF diagnostic
         if self.peek_token().is_eof() {
-            self.errors.push(SyntaxErr::new(
-                start..start,
-                SyntaxErrKind::Expected(Child::Token(expected.into())),
-            ));
+            self.push_err(SyntaxErrKind::Expected(Child::Token(expected.into())));
             return;
         }
-
-        let initial_trivia_len = self
-            .token_stream
-            .peek_next()
-            .map(|tok| tok.leading_trivia().byte_len())
-            .unwrap_or(0);
 
         let mut skipped_any = false;
         loop {
             let tok = self.peek_token();
-            // Expected contains the token before we hit recovery or EoF -> Assume garbage input
+            // Expected contains the token before we hit recovery or EoF -> Assume garbage input.
+            // Each skipped token has already reported itself.
             if expected.contains(&tok) {
-                let end = self.builder.current_pos();
-                self.errors.push(SyntaxErr::new(
-                    start + initial_trivia_len..end,
-                    SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
-                ));
                 return;
             }
 
@@ -99,24 +84,20 @@ impl Parser {
                 || self.recovery.is_in_continuation_set(&expected, tok)
             {
                 // We found a recovery token at the next position.
-                // This means the token is simply missing.
+                // This means the token is simply missing. If tokens were
+                // skipped they have already reported themselves as garbage.
                 if !skipped_any {
-                    self.errors.push(SyntaxErr::new(
-                        start..start,
-                        SyntaxErrKind::Expected(Child::Token(expected.into())),
-                    ));
-                // skipped tokens: Garbage input before recovery token.
-                } else {
-                    self.errors.push(SyntaxErr::new(
-                        start + initial_trivia_len..self.builder.current_pos(),
-                        SyntaxErrKind::Unexpected(ChildKind::Token(tok)),
-                    ));
-                };
+                    self.push_err(SyntaxErrKind::Expected(Child::Token(expected.into())));
+                }
                 return;
             }
 
             // inconclusive. Skip and look at the next token.
             self.skip();
+            // Don't push double diagnostics on an unknown token
+            if tok != TokenKind::Unknown {
+                self.push_err(SyntaxErrKind::Unexpected(ChildKind::Token(tok)));
+            }
             skipped_any = true;
         }
     }
@@ -1340,35 +1321,32 @@ mod tests {
     fn expect_recover_emits_missing_token_when_recovery_point_is_next() {
         let (_, diags) = parse_syntax(";", |p: &mut Parser| {
             // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            // The recovery token must NOT have been consumed.
-            assert_eq!(p.peek_token(), TokenKind::SemiColon);
-            p.skip(); // consume so the tree is non-empty
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                // The recovery token must NOT have been consumed.
+                assert_eq!(p.peek_token(), TokenKind::SemiColon);
+                p.skip(); // consume so the tree is non-empty
+            });
         });
         assert_eq!(diags.len(), 1);
         assert_expected_token(&diags[0], &[TokenKind::Keyword(Kw::Is)]);
     }
 
-    /// Garbage before a recovery token: tokens are consumed up to (not
-    /// including) the recovery token, and exactly one UnexpectedInput is
-    /// reported covering the skipped range.
     #[test]
     fn expect_recover_emits_unexpected_input_after_skipping() {
         let (root, diags) = parse_syntax("foo bar ;", |p: &mut Parser| {
             // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            assert_eq!(
-                p.peek_token(),
-                TokenKind::SemiColon,
-                "recovery token must remain unconsumed"
-            );
-            p.skip();
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                assert_eq!(
+                    p.peek_token(),
+                    TokenKind::SemiColon,
+                    "recovery token must remain unconsumed"
+                );
+                p.skip();
+            });
         });
-        assert_eq!(diags.len(), 1, "got: {:?}", diags);
+        assert_eq!(diags.len(), 2, "got: {:?}", diags);
         match &diags[0].err() {
             SyntaxErrKind::Unexpected(_) => {
                 assert!(!diags[0].span().is_empty());
@@ -1383,6 +1361,30 @@ mod tests {
         assert!(text.contains("bar"));
     }
 
+    #[test]
+    fn expect_recover_leaves_illegal_input_to_the_tokenizer() {
+        let (_, diags) = parse_syntax("foo $ bar ;", |p: &mut Parser| {
+            // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                p.skip();
+            });
+        });
+        let unknown: Vec<_> = diags
+            .iter()
+            .filter(|diag| {
+                matches!(
+                    diag.err(),
+                    SyntaxErrKind::Unexpected(ChildKind::Token(TokenKind::Unknown))
+                )
+            })
+            .collect();
+        assert_eq!(unknown.len(), 1, "got: {:?}", diags);
+        assert_eq!(*unknown[0].span(), 4..5, "the `$` itself");
+        // The other two identifiers still report themselves, one each.
+        assert_eq!(diags.len(), 3, "got: {:?}", diags);
+    }
+
     /// Expected token shows up after garbage (not a recovery token):
     /// skipping stops once the expected token is reached, an
     /// UnexpectedInput diagnostic is reported, and the expected token
@@ -1390,12 +1392,12 @@ mod tests {
     #[test]
     fn expect_recover_stops_when_expected_token_appears() {
         let (_, diags) = parse_syntax("garbage is", |p: &mut Parser| {
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            // expected token kept for the caller to consume.
-            assert_eq!(p.peek_token(), TokenKind::Keyword(Kw::Is));
-            p.skip();
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                // expected token kept for the caller to consume.
+                assert_eq!(p.peek_token(), TokenKind::Keyword(Kw::Is));
+                p.skip();
+            });
         });
         assert_eq!(diags.len(), 1);
         match diags[0].err() {
@@ -1418,10 +1420,10 @@ mod tests {
         let src = "\n\n;";
         let (_, diags) = parse_syntax(src, |p: &mut Parser| {
             // Assertion's FOLLOW set is `[SemiColon]`, so `;` is a recovery point.
-            p.start_node(NodeKind::Assertion);
-            p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
-            p.skip();
-            p.end_node();
+            p.node(NodeKind::Assertion, |p| {
+                p.expect_tokens_recover([TokenKind::Keyword(Kw::Is)]);
+                p.skip();
+            });
         });
         assert_eq!(diags.len(), 1);
         // The insertion locus sits before the leading trivia of `;`, i.e. at the

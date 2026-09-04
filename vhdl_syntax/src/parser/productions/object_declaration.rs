@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 /// Parsing of object declarations (LRM §6.4.2)
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::syntax::NodeKind;
@@ -36,47 +37,47 @@ impl Object {
 }
 
 impl Parser {
-    pub fn constant_declaration(&mut self) {
-        self.any_object_declaration(Object::Constant);
+    pub fn constant_declaration(&mut self) -> CompletedMarker {
+        self.any_object_declaration(Object::Constant)
     }
 
-    pub fn signal_declaration(&mut self) {
-        self.any_object_declaration(Object::Signal);
+    pub fn signal_declaration(&mut self) -> CompletedMarker {
+        self.any_object_declaration(Object::Signal)
     }
 
-    pub fn variable_declaration(&mut self) {
-        self.any_object_declaration(Object::Variable);
+    pub fn variable_declaration(&mut self) -> CompletedMarker {
+        self.any_object_declaration(Object::Variable)
     }
 
-    fn any_object_declaration(&mut self, object: Object) {
-        self.start_node(object.kind());
-        if object == Object::Variable {
-            self.opt_token(Keyword(Kw::Shared));
-        }
-        self.expect_token(object.initial_token());
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.subtype_indication();
-        self.opt_tokens([Keyword(Kw::Register), Keyword(Kw::Bus)]);
-        if self.next_is(ColonEq) {
-            self.start_node(InitialValue);
-            self.skip(); // :=
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    fn any_object_declaration(&mut self, object: Object) -> CompletedMarker {
+        self.node(object.kind(), |p| {
+            if object == Object::Variable {
+                p.opt_token(Keyword(Kw::Shared));
+            }
+            p.expect_token(object.initial_token());
+            p.identifier_list();
+            p.expect_token(Colon);
+            p.subtype_indication();
+            p.opt_tokens([Keyword(Kw::Register), Keyword(Kw::Bus)]);
+            if p.next_is(ColonEq) {
+                p.node(InitialValue, |p| {
+                    p.skip(); // :=
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn file_declaration(&mut self) {
-        self.start_node(FileDeclaration);
-        self.expect_token(Keyword(Kw::File));
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.subtype_indication();
-        self.opt_file_open_information();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn file_declaration(&mut self) -> CompletedMarker {
+        self.node(FileDeclaration, |p| {
+            p.expect_token(Keyword(Kw::File));
+            p.identifier_list();
+            p.expect_token(Colon);
+            p.subtype_indication();
+            p.opt_file_open_information();
+            p.expect_token(SemiColon);
+        })
     }
 
     fn opt_file_open_information(&mut self) -> bool {
@@ -84,16 +85,16 @@ impl Parser {
             return false;
         }
 
-        self.start_node(FileOpenInformation);
-        if self.next_is(Keyword(Kw::Open)) {
-            self.start_node(FileOpenKind);
-            self.skip(); // Kw::Open
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(Keyword(Kw::Is));
-        self.expression();
-        self.end_node();
+        self.node(FileOpenInformation, |p| {
+            if p.next_is(Keyword(Kw::Open)) {
+                p.node(FileOpenKind, |p| {
+                    p.skip(); // Kw::Open
+                    p.expression();
+                });
+            }
+            p.expect_token(Keyword(Kw::Is));
+            p.expression();
+        });
         true
     }
 }

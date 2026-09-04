@@ -6,50 +6,48 @@ use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
     pub fn library_clause(&mut self) {
-        self.start_node(NodeKind::LibraryClause);
-        self.expect_kw(Kw::Library);
-        self.separated_list(LogicalNameList, Parser::identifier, Comma);
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(NodeKind::LibraryClause, |p| {
+            p.expect_kw(Kw::Library);
+            p.separated_list(LogicalNameList, Parser::identifier, Comma);
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn use_clause(&mut self) {
-        self.start_node(NodeKind::UseClause);
-        self.expect_kw(Kw::Use);
-        self.name_list();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(NodeKind::UseClause, |p| {
+            p.expect_kw(Kw::Use);
+            p.name_list();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn context_reference(&mut self) {
-        self.start_node(NodeKind::ContextReference);
-        self.expect_kw(Kw::Context);
-        self.name_list();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(NodeKind::ContextReference, |p| {
+            p.expect_kw(Kw::Context);
+            p.name_list();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn context_clause(&mut self) {
-        self.start_node(NodeKind::ContextClause);
-        loop {
-            match self.peek_token() {
+        self.node(NodeKind::ContextClause, |p| loop {
+            match p.peek_token() {
                 Keyword(Kw::Use) => {
-                    self.start_node(NodeKind::UseClauseContextItem);
-                    self.use_clause();
-                    self.end_node();
+                    p.node(NodeKind::UseClauseContextItem, |p| {
+                        p.use_clause();
+                    });
                 }
-                Keyword(Kw::Library) => self.library_clause(),
+                Keyword(Kw::Library) => p.library_clause(),
                 Keyword(Kw::Context) => {
-                    if !self.next_nth_is(Keyword(Kw::Is), 2) {
-                        self.context_reference()
+                    if !p.next_nth_is(Keyword(Kw::Is), 2) {
+                        p.context_reference()
                     } else {
                         break;
                     }
                 }
                 _ => break,
             }
-        }
-        self.end_node();
+        });
     }
 }
 

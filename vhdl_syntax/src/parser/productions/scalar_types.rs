@@ -11,38 +11,37 @@ use crate::tokens::TokenKind::*;
 
 impl Parser {
     pub fn numeric_type_definition(&mut self) {
-        let checkpoint = self.checkpoint();
+        let unknown = self.start_unknown();
         self.range_constraint();
         if self.next_is(Keyword(Kw::Units)) {
-            self.start_node_at(checkpoint, PhysicalTypeDefinition);
-            self.start_node(UnitDeclarations);
-            self.expect_token(Keyword(Kw::Units));
-            self.primary_unit_declaration();
-            while self.next_is(Identifier) {
-                self.secondary_unit_declaration()
-            }
-            self.end_node();
+            let marker = unknown.resolve(self, PhysicalTypeDefinition);
+            self.node(UnitDeclarations, |p| {
+                p.expect_token(Keyword(Kw::Units));
+                p.primary_unit_declaration();
+                while p.next_is(Identifier) {
+                    p.secondary_unit_declaration()
+                }
+            });
             self.physical_type_definition_epilogue();
-            self.end_node();
+            marker.complete(self);
         } else {
-            self.start_node_at(checkpoint, NumericTypeDefinition);
-            self.end_node();
+            unknown.complete(self, NumericTypeDefinition);
         }
     }
 
     pub fn physical_type_definition_epilogue(&mut self) {
-        self.start_node(PhysicalTypeDefinitionEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Units)]);
-        self.opt_identifier();
-        self.end_node();
+        self.node(PhysicalTypeDefinitionEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Units)]);
+            p.opt_identifier();
+        });
     }
 
     pub fn enumeration_type_definition(&mut self) {
-        self.start_node(EnumerationTypeDefinition);
-        self.expect_token(LeftPar);
-        self.separated_list(EnumerationList, Parser::enumeration_literal, Comma);
-        self.expect_token(RightPar);
-        self.end_node();
+        self.node(EnumerationTypeDefinition, |p| {
+            p.expect_token(LeftPar);
+            p.separated_list(EnumerationList, Parser::enumeration_literal, Comma);
+            p.expect_token(RightPar);
+        });
     }
 
     pub fn enumeration_literal(&mut self) {
@@ -50,26 +49,26 @@ impl Parser {
     }
 
     pub fn primary_unit_declaration(&mut self) {
-        self.start_node(PrimaryUnitDeclaration);
-        self.identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(PrimaryUnitDeclaration, |p| {
+            p.identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn secondary_unit_declaration(&mut self) {
-        self.start_node(SecondaryUnitDeclaration);
-        self.identifier();
-        self.expect_token(EQ);
-        self.physical_literal();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(SecondaryUnitDeclaration, |p| {
+            p.identifier();
+            p.expect_token(EQ);
+            p.physical_literal();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn physical_literal(&mut self) {
-        self.start_node(PhysicalLiteral);
-        self.opt_token(AbstractLiteral);
-        self.name();
-        self.end_node();
+        self.node(PhysicalLiteral, |p| {
+            p.opt_token(AbstractLiteral);
+            p.name();
+        });
     }
 }
 

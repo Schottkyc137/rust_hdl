@@ -7,34 +7,34 @@ use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
     pub fn architecture(&mut self) {
-        self.start_node(ArchitectureBody);
-        self.architecture_preamble();
-        self.architecture_declarative_part();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.architecture_statement_part();
-        self.architecture_epilogue();
-        self.end_node();
+        self.node(ArchitectureBody, |p| {
+            p.architecture_preamble();
+            p.architecture_declarative_part();
+            p.node(DeclarationStatementSeparator, |p| {
+                p.expect_kw(Kw::Begin);
+            });
+            p.architecture_statement_part();
+            p.architecture_epilogue();
+        });
     }
 
     pub fn architecture_preamble(&mut self) {
-        self.start_node(ArchitecturePreamble);
-        self.expect_kw(Kw::Architecture);
-        self.identifier();
-        self.expect_kw(Kw::Of);
-        self.name();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+        self.node(ArchitecturePreamble, |p| {
+            p.expect_kw(Kw::Architecture);
+            p.identifier();
+            p.expect_kw(Kw::Of);
+            p.name();
+            p.expect_kw(Kw::Is);
+        });
     }
 
     pub fn architecture_epilogue(&mut self) {
-        self.start_node(ArchitectureEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Architecture));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(ArchitectureEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Architecture));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn architecture_declarative_part(&mut self) {

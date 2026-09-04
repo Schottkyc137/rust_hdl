@@ -4,15 +4,14 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 /// (private) utility functions used when parsing
-use crate::parser::builder::Checkpoint;
 use crate::parser::error::{SyntaxErr, SyntaxErrKind};
+use crate::parser::marker::{CompletedMarker, Marker, UnknownMarker};
 use crate::parser::Parser;
 use crate::syntax::child::ChildKind;
 use crate::syntax::green::GreenNode;
 use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind;
-use crate::tokens::tokenizer::LexErr;
-use crate::tokens::{Keyword, Token, TokenKind};
+use crate::tokens::{Keyword, TokenKind};
 
 /// Allows match-style syntax for tokens.
 /// This function does not consume the next token.
@@ -39,7 +38,10 @@ macro_rules! match_next_token {
     (@inner $parser:expr, [[ $($($pattern:pat_param),+ => $action:expr),+ $(,)? ]], [[ $($($pattern_expr:expr),+ => $_action_expr:expr),+ $(,)? ]]) => {
         match $parser.peek_token() {
             $($($pattern)|+ => $action),+,
-            _ => $parser.expect_tokens_recover([$($($pattern_expr),+),+]),
+            _ => {
+                $parser.expect_tokens_recover([$($($pattern_expr),+),+]);
+                Default::default()
+            }
         }
     };
 }
@@ -58,7 +60,10 @@ macro_rules! match_next_token_consume {
                 $parser.skip();
                 $action
             }),+
-            _ => $parser.expect_tokens_recover([$($($pattern_expr),+),+]),
+            _ => {
+                $parser.expect_tokens_recover([$($($pattern_expr),+),+]);
+                Default::default()
+            }
         }
     };
 }
@@ -75,26 +80,28 @@ pub enum LookaheadError {
 /// Guards a parsing loop against hangs by detecting lack of forward progress.
 ///
 /// Call [`StallGuard::should_continue`] at the top of the loop. It returns
-/// `false` once an entire iteration consumed no input (the parser position did
-/// not advance), which means the loop is stalled and must stop. The first call
-/// always returns `true` to prime the guard before the loop body has run.
+/// `false` once an entire iteration consumed no input (no token was pushed),
+/// which means the loop is stalled and must stop. The first call always
+/// returns `true` to prime the guard before the loop body has run.
 pub(crate) struct StallGuard {
-    last_pos: Option<usize>,
+    last_token_index: Option<usize>,
 }
 
 impl StallGuard {
     pub(crate) fn new() -> StallGuard {
-        StallGuard { last_pos: None }
+        StallGuard {
+            last_token_index: None,
+        }
     }
 
     pub(crate) fn should_continue(&mut self, parser: &mut Parser) -> bool {
-        let current_pos = parser.builder.current_pos();
-        let Some(last_pos) = self.last_pos else {
-            self.last_pos = Some(current_pos);
+        let current = parser.token_index();
+        let Some(last) = self.last_token_index else {
+            self.last_token_index = Some(current);
             return true;
         };
-        self.last_pos = Some(current_pos);
-        current_pos > last_pos
+        self.last_token_index = Some(current);
+        current > last
     }
 }
 
@@ -106,30 +113,21 @@ pub(crate) const fn choice_options(layout: &Layout) -> &[NodeKind] {
 }
 
 impl Parser {
-    pub(crate) fn check_last_node_is_allowed(&mut self, start: usize, allowed: &[NodeKind]) {
-        let Some(parsed_node) = self.builder.last_node() else {
-            return;
-        };
-        if !allowed.contains(&parsed_node) {
-            self.errors.push(SyntaxErr::new(
-                start..self.builder.current_pos(),
-                SyntaxErrKind::Unexpected(ChildKind::Node(parsed_node)),
-            ));
-        }
+    /// Record an error. The parser says only what went wrong; where it lands
+    /// follows from the kind and from where this sits in the event stream.
+    pub(crate) fn push_err(&mut self, kind: SyntaxErrKind) {
+        self.builder.push_err(kind);
     }
 
-    fn push_opt_lex_err(&mut self, err: Option<LexErr>, token: &Token, token_start: usize) {
-        if let Some(err) = err {
-            self.errors
-                .push(SyntaxErr::from_lex_err(err, token, token_start));
+    pub(crate) fn check_node_is_allowed(&mut self, marker: &CompletedMarker, allowed: &[NodeKind]) {
+        if !allowed.contains(&marker.kind()) {
+            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Node(marker.kind())));
         }
     }
 
     pub(crate) fn skip(&mut self) {
-        let start = self.builder.current_pos();
         if let Some((token, err)) = self.token_stream.next() {
-            self.push_opt_lex_err(err, &token, start);
-            self.builder.push(token);
+            self.builder.push(token, err);
         }
     }
 
@@ -147,10 +145,8 @@ impl Parser {
     }
 
     pub(crate) fn expect_token(&mut self, kind: TokenKind) {
-        let start = self.builder.current_pos();
         if let Some((token, err)) = self.token_stream.next_if(|token| token.kind() == kind) {
-            self.push_opt_lex_err(err, &token, start);
-            self.builder.push(token);
+            self.builder.push(token, err);
             return;
         }
 
@@ -207,10 +203,8 @@ impl Parser {
     }
 
     pub(crate) fn opt_token(&mut self, kind: TokenKind) -> bool {
-        let start = self.builder.current_pos();
         if let Some((token, err)) = self.token_stream.next_if(|token| token.kind() == kind) {
-            self.push_opt_lex_err(err, &token, start);
-            self.builder.push(token);
+            self.builder.push(token, err);
             true
         } else {
             false
@@ -221,43 +215,40 @@ impl Parser {
         &mut self,
         kinds: [TokenKind; N],
     ) -> Option<TokenKind> {
-        let start = self.builder.current_pos();
         if let Some((token, err)) = self
             .token_stream
             .next_if(|token| kinds.contains(&token.kind()))
         {
-            self.push_opt_lex_err(err, &token, start);
             let kind = token.kind();
-            self.builder.push(token);
+            self.builder.push(token, err);
             Some(kind)
         } else {
             None
         }
     }
 
-    pub(crate) fn start_node(&mut self, kind: NodeKind) {
-        self.builder.start_node(kind);
+    pub(crate) fn start_node(&mut self, kind: NodeKind) -> Marker {
+        let marker = self.builder.start_node(kind);
         self.recovery.push(kind);
+        marker
     }
 
-    pub(crate) fn end_node(&mut self) {
-        self.recovery.pop();
-        self.builder.end_node()
+    pub(crate) fn node(
+        &mut self,
+        kind: NodeKind,
+        builder: impl FnOnce(&mut Parser),
+    ) -> CompletedMarker {
+        let marker = self.start_node(kind);
+        builder(self);
+        marker.complete(self)
     }
 
-    pub(crate) fn checkpoint(&mut self) -> Checkpoint {
-        self.builder.checkpoint()
-    }
-
-    /// Retroactively wrap children from `checkpoint` onward in a node of the
-    /// given kind.
-    pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: NodeKind) {
-        self.builder.start_node_at(checkpoint, kind);
-        self.recovery.push(kind);
+    pub(crate) fn start_unknown(&mut self) -> UnknownMarker {
+        self.builder.start_unknown()
     }
 
     pub(crate) fn end(self) -> (GreenNode, Vec<SyntaxErr>) {
-        (self.builder.end(), self.errors)
+        self.builder.end()
     }
 
     pub(crate) fn lookahead_max_token_index<const N: usize>(
@@ -268,10 +259,8 @@ impl Parser {
         self.lookahead_max_token_index_skip_n(maximum_index, 0, kinds)
     }
 
-    pub(crate) fn skip_into_node(&mut self, node: NodeKind) {
-        self.start_node(node);
-        self.skip();
-        self.end_node();
+    pub(crate) fn skip_into_node(&mut self, node: NodeKind) -> CompletedMarker {
+        self.node(node, Parser::skip)
     }
 
     pub(crate) fn lookahead_skip_n<const N: usize>(

@@ -27,4 +27,4 @@ SubprogramDeclaration
 
 == diagnostics ==
 1:24 Expected(Token([Keyword(Return)]))
-1:24 Expected(Token([Identifier, StringLiteral, CharacterLiteral]))
+1:24 Expected(Node([Name]))

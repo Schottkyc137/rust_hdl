@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::{CompletedMarker, Precede};
 use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
 use crate::syntax::meta::Layout;
@@ -14,192 +15,192 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
-    pub fn wait_statement(&mut self) {
-        self.start_node(WaitStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Wait);
-        if self.next_is(Keyword(Kw::On)) {
-            self.start_node(SensitivityClause);
-            self.skip();
-            self.sensitivity_list();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::Until)) {
-            self.start_node(ConditionClause);
-            self.skip();
-            self.expression();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::For)) {
-            self.start_node(TimeoutClause);
-            self.skip();
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn wait_statement(&mut self) -> CompletedMarker {
+        self.node(WaitStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Wait);
+            if p.next_is(Keyword(Kw::On)) {
+                p.node(SensitivityClause, |p| {
+                    p.skip();
+                    p.sensitivity_list();
+                });
+            }
+            if p.next_is(Keyword(Kw::Until)) {
+                p.node(ConditionClause, |p| {
+                    p.skip();
+                    p.expression();
+                });
+            }
+            if p.next_is(Keyword(Kw::For)) {
+                p.node(TimeoutClause, |p| {
+                    p.skip();
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn assert_statement(&mut self) {
-        self.start_node(AssertionStatement);
-        self.opt_label();
-        self.assertion();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn assert_statement(&mut self) -> CompletedMarker {
+        self.node(AssertionStatement, |p| {
+            p.opt_label();
+            p.assertion();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn report_statement(&mut self) {
-        self.start_node(ReportStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Report);
-        self.expression();
-        if self.next_is(Keyword(Kw::Severity)) {
-            self.start_node(SeverityClause);
-            self.skip(); // Kw::Severity
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn report_statement(&mut self) -> CompletedMarker {
+        self.node(ReportStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Report);
+            p.expression();
+            if p.next_is(Keyword(Kw::Severity)) {
+                p.node(SeverityClause, |p| {
+                    p.skip(); // Kw::Severity
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn next_statement(&mut self) {
-        self.start_node(NextStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Next);
-        self.opt_identifier();
-        if self.next_is(Keyword(Kw::When)) {
-            self.start_node(WhenClause);
-            self.skip(); // Kw::When
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn next_statement(&mut self) -> CompletedMarker {
+        self.node(NextStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Next);
+            p.opt_identifier();
+            if p.next_is(Keyword(Kw::When)) {
+                p.node(WhenClause, |p| {
+                    p.skip(); // Kw::When
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn exit_statement(&mut self) {
-        self.start_node(ExitStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Exit);
-        self.opt_identifier();
-        if self.next_is(Keyword(Kw::When)) {
-            self.start_node(WhenClause);
-            self.skip(); // Kw::When
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn exit_statement(&mut self) -> CompletedMarker {
+        self.node(ExitStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Exit);
+            p.opt_identifier();
+            if p.next_is(Keyword(Kw::When)) {
+                p.node(WhenClause, |p| {
+                    p.skip(); // Kw::When
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn return_statement(&mut self) {
-        self.start_node(ReturnStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Return);
-        if !self.next_is(SemiColon) {
-            self.expression();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn return_statement(&mut self) -> CompletedMarker {
+        self.node(ReturnStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Return);
+            if !p.next_is(SemiColon) {
+                p.expression();
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn null_statement(&mut self) {
-        self.start_node(NullStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Null);
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub fn null_statement(&mut self) -> CompletedMarker {
+        self.node(NullStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Null);
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn if_statement(&mut self) {
-        self.start_node(IfStatement);
-        self.if_statement_preamble();
-        self.sequence_of_statements();
-        while self.next_is(Keyword(Kw::Elsif)) {
-            self.start_node(IfStatementElsif);
-            self.skip();
-            self.condition();
-            self.expect_kw(Kw::Then);
-            self.sequence_of_statements();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::Else)) {
-            self.start_node(IfStatementElse);
-            self.skip();
-            self.sequence_of_statements();
-            self.end_node();
-        }
-        self.if_statement_epilogue();
-        self.end_node();
+    pub fn if_statement(&mut self) -> CompletedMarker {
+        self.node(IfStatement, |p| {
+            p.if_statement_preamble();
+            p.sequence_of_statements();
+            while p.next_is(Keyword(Kw::Elsif)) {
+                p.node(IfStatementElsif, |p| {
+                    p.skip();
+                    p.condition();
+                    p.expect_kw(Kw::Then);
+                    p.sequence_of_statements();
+                });
+            }
+            if p.next_is(Keyword(Kw::Else)) {
+                p.node(IfStatementElse, |p| {
+                    p.skip();
+                    p.sequence_of_statements();
+                });
+            }
+            p.if_statement_epilogue();
+        })
     }
 
     pub fn if_statement_preamble(&mut self) {
-        self.start_node(IfStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::If);
-        self.condition();
-        self.expect_kw(Kw::Then);
-        self.end_node();
+        self.node(IfStatementPreamble, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::If);
+            p.condition();
+            p.expect_kw(Kw::Then);
+        });
     }
 
     pub fn if_statement_epilogue(&mut self) {
-        self.start_node(IfStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::If)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(IfStatementEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::If)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn case_statement(&mut self) {
-        self.start_node(CaseStatement);
-        self.case_statement_preamble();
-        self.case_statement_alternative();
-        while self.next_is(Keyword(Kw::When)) {
-            self.case_statement_alternative();
-        }
-        self.case_statement_epilogue();
-        self.end_node();
+    pub fn case_statement(&mut self) -> CompletedMarker {
+        self.node(CaseStatement, |p| {
+            p.case_statement_preamble();
+            p.case_statement_alternative();
+            while p.next_is(Keyword(Kw::When)) {
+                p.case_statement_alternative();
+            }
+            p.case_statement_epilogue();
+        })
     }
 
     pub fn case_statement_preamble(&mut self) {
-        self.start_node(CaseStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::Case);
-        self.opt_token(Que);
-        self.expression();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+        self.node(CaseStatementPreamble, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Case);
+            p.opt_token(Que);
+            p.expression();
+            p.expect_kw(Kw::Is);
+        });
     }
 
     pub fn case_statement_epilogue(&mut self) {
-        self.start_node(CaseStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Case)]);
-        self.opt_token(Que);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(CaseStatementEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Case)]);
+            p.opt_token(Que);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn case_statement_alternative(&mut self) {
-        self.start_node(CaseStatementAlternative);
-        self.case_statement_alternative_preamble();
-        self.sequence_of_statements();
-        self.end_node();
+        self.node(CaseStatementAlternative, |p| {
+            p.case_statement_alternative_preamble();
+            p.sequence_of_statements();
+        });
     }
 
     pub fn case_statement_alternative_preamble(&mut self) {
-        self.start_node(CaseStatementAlternativePreamble);
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.expect_token(RightArrow);
-        self.end_node();
+        self.node(CaseStatementAlternativePreamble, |p| {
+            p.expect_kw(Kw::When);
+            p.choices();
+            p.expect_token(RightArrow);
+        });
     }
 
     pub fn aggregate(&mut self) {
-        self.start_node(Aggregate);
-        self.aggregate_inner();
-        self.end_node();
+        self.node(Aggregate, |p| {
+            p.aggregate_inner();
+        });
     }
 
     pub(crate) fn aggregate_inner(&mut self) {
@@ -209,82 +210,74 @@ impl Parser {
     }
 
     pub fn element_association(&mut self) {
-        self.start_node(ElementAssociation);
-        let has_choices = matches!(
-            self.lookahead_max_token_index(usize::MAX, [RightArrow, Comma]),
-            Ok((RightArrow, _))
-        );
-        if has_choices {
-            self.start_node(ElementChoices);
-            self.choices();
-            self.expect_token(RightArrow);
-            self.end_node();
-        }
-        self.expression();
-        self.end_node();
+        self.node(ElementAssociation, |p| {
+            let has_choices = matches!(
+                p.lookahead_max_token_index(usize::MAX, [RightArrow, Comma]),
+                Ok((RightArrow, _))
+            );
+            if has_choices {
+                p.node(ElementChoices, |p| {
+                    p.choices();
+                    p.expect_token(RightArrow);
+                });
+            }
+            p.expression();
+        });
     }
 
-    pub fn loop_statement(&mut self) {
-        self.start_node(LoopStatement);
-        self.loop_statement_preamble();
-        self.sequence_of_statements();
-        self.loop_statement_epilogue();
-        self.end_node();
+    pub fn loop_statement(&mut self) -> CompletedMarker {
+        self.node(LoopStatement, |p| {
+            p.loop_statement_preamble();
+            p.sequence_of_statements();
+            p.loop_statement_epilogue();
+        })
     }
 
     pub fn loop_statement_preamble(&mut self) {
-        self.start_node(LoopStatementPreamble);
-        self.opt_label();
-        self.opt_iteration_scheme();
-        self.expect_kw(Kw::Loop);
-        self.end_node();
+        self.node(LoopStatementPreamble, |p| {
+            p.opt_label();
+            p.opt_iteration_scheme();
+            p.expect_kw(Kw::Loop);
+        });
     }
 
     pub fn loop_statement_epilogue(&mut self) {
-        self.start_node(LoopStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Loop)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(LoopStatementEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Loop)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     fn opt_iteration_scheme(&mut self) {
         if self.next_is(Keyword(Kw::While)) {
-            self.start_node(WhileScheme);
-            self.skip();
-            self.condition();
-            self.end_node();
+            self.node(WhileScheme, |p| {
+                p.skip();
+                p.condition();
+            });
         } else if self.next_is(Keyword(Kw::For)) {
-            self.start_node(ForScheme);
-            self.skip();
-            self.parameter_specification();
-            self.end_node();
+            self.node(ForScheme, |p| {
+                p.skip();
+                p.parameter_specification();
+            });
         }
-    }
-
-    pub fn iteration_scheme(&mut self) {
-        if self
-            .opt_tokens([Keyword(Kw::While), Keyword(Kw::For)])
-            .is_none()
-        {
-            return;
-        }
-        self.opt_iteration_scheme();
     }
 
     pub(crate) fn sequential_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
         let allowed_nodes = choice_options(layout);
-        self.start_node(node_kind);
-        let mut guard = StallGuard::new();
-        while guard.should_continue(self) {
-            let start = self.builder.current_pos();
-            match self.peek_token() {
-                Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
-                _ => self.sequential_statement(),
+        self.node(node_kind, |p| {
+            let mut guard = StallGuard::new();
+            while guard.should_continue(p) {
+                match p.peek_token() {
+                    Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
+                    _ => {
+                        if let Some(stmt) = p.sequential_statement() {
+                            p.check_node_is_allowed(&stmt, allowed_nodes);
+                        }
+                    }
+                }
             }
-            self.check_last_node_is_allowed(start, allowed_nodes);
-        }
-        self.end_node();
+        });
     }
 
     pub fn sequence_of_statements(&mut self) {
@@ -300,11 +293,11 @@ impl Parser {
     }
 
     fn selected_expression(&mut self) {
-        self.start_node(SelectedExpressionItem);
-        self.expression();
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.end_node();
+        self.node(SelectedExpressionItem, |p| {
+            p.expression();
+            p.expect_kw(Kw::When);
+            p.choices();
+        });
     }
 
     fn sequential_statement_start(&mut self) -> TokenKind {
@@ -315,52 +308,56 @@ impl Parser {
         }
     }
 
-    pub fn sequential_statement(&mut self) {
+    pub fn sequential_statement(&mut self) -> Option<CompletedMarker> {
         match self.sequential_statement_start() {
-            Keyword(Kw::Wait) => self.wait_statement(),
-            Keyword(Kw::Assert) => self.assert_statement(),
-            Keyword(Kw::Report) => self.report_statement(),
-            Keyword(Kw::If) => self.if_statement(),
-            Keyword(Kw::Case) => self.case_statement(),
-            Keyword(Kw::For | Kw::Loop | Kw::While) => self.loop_statement(),
-            Keyword(Kw::Next) => self.next_statement(),
-            Keyword(Kw::Exit) => self.exit_statement(),
-            Keyword(Kw::Return) => self.return_statement(),
-            Keyword(Kw::Null) => self.null_statement(),
+            Keyword(Kw::Wait) => Some(self.wait_statement()),
+            Keyword(Kw::Assert) => Some(self.assert_statement()),
+            Keyword(Kw::Report) => Some(self.report_statement()),
+            Keyword(Kw::If) => Some(self.if_statement()),
+            Keyword(Kw::Case) => Some(self.case_statement()),
+            Keyword(Kw::For | Kw::Loop | Kw::While) => Some(self.loop_statement()),
+            Keyword(Kw::Next) => Some(self.next_statement()),
+            Keyword(Kw::Exit) => Some(self.exit_statement()),
+            Keyword(Kw::Return) => Some(self.return_statement()),
+            Keyword(Kw::Null) => Some(self.null_statement()),
             Keyword(Kw::With) => {
-                let checkpoint = self.checkpoint();
+                let unknown = self.start_unknown();
                 self.opt_label();
                 self.selected_assignment_preamble();
                 self.target();
-                match self.peek_token() {
+                let marker = match self.peek_token() {
                     LTE => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
-                            self.start_node_at(checkpoint, SelectedForceAssignment);
+                            let marker = unknown.resolve(self, SelectedForceAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
                             self.selected_expressions();
+                            marker
                         } else {
-                            self.start_node_at(checkpoint, SelectedWaveformAssignment);
+                            let marker = unknown.resolve(self, SelectedWaveformAssignment);
                             self.skip();
                             self.opt_delay_mechanism();
                             self.selected_waveforms();
+                            marker
                         }
                     }
                     ColonEq => {
-                        self.start_node_at(checkpoint, SelectedVariableAssignment);
+                        let marker = unknown.resolve(self, SelectedVariableAssignment);
                         self.skip();
                         self.selected_expressions();
+                        marker
                     }
                     _ => {
-                        self.start_node_at(checkpoint, SelectedWaveformAssignment);
+                        let marker = unknown.resolve(self, SelectedWaveformAssignment);
                         self.expect_tokens_recover([LTE, ColonEq]);
+                        marker
                     }
-                }
+                };
                 self.expect_token(SemiColon);
-                self.end_node();
+                Some(marker.complete(self))
             }
             Identifier | LeftPar | LtLt => {
-                let checkpoint = self.checkpoint();
+                let unknown = self.start_unknown();
                 self.opt_label();
                 // A procedure call's callee is a plain `Name`; an assignment's
                 // left-hand side is a `Target`. They are told apart by the
@@ -369,138 +366,139 @@ impl Parser {
                 // bare and wrap it in `NameTarget` only when an assignment
                 // operator follows.
                 if self.next_is(LeftPar) {
-                    self.start_node(AggregateTarget);
-                    self.aggregate();
-                    self.end_node();
+                    self.node(AggregateTarget, |p| {
+                        p.aggregate();
+                    });
                 } else {
-                    let target_checkpoint = self.checkpoint();
-                    self.name();
+                    let name = self.name();
                     if self.next_is_one_of([ColonEq, LTE]) {
-                        self.start_node_at(target_checkpoint, NameTarget);
-                        self.end_node();
+                        name.precede(self, NameTarget).complete(self);
                     }
                 }
-                match self.peek_token() {
+                let marker = match self.peek_token() {
                     ColonEq => {
                         self.skip();
-                        let cond_expr_checkpoint = self.checkpoint();
-                        self.expression();
+                        let expression = self.expression();
                         if self.next_is(Keyword(Kw::When)) {
-                            self.start_node_at(checkpoint, ConditionalVariableAssignment);
-                            self.start_node_at(cond_expr_checkpoint, ConditionalExpressions);
-                            self.start_node_at(cond_expr_checkpoint, WhenExpression);
+                            let marker = unknown.resolve(self, ConditionalVariableAssignment);
+                            let when = expression.precede(self, WhenExpression);
                             self.skip();
                             self.expression();
-                            self.end_node();
+                            let when_expression = when.complete(self);
+                            let expressions = when_expression.precede(self, ConditionalExpressions);
                             self.conditional_else(
                                 Parser::expression,
                                 ElseWhenExpression,
                                 ElseExpression,
                             );
-                            self.end_node();
+                            expressions.complete(self);
+                            marker
                         } else {
-                            self.start_node_at(checkpoint, SimpleVariableAssignment);
+                            unknown.resolve(self, SimpleVariableAssignment)
                         }
                     }
                     LTE => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
                             self.skip_n(2);
                             self.opt_force_mode();
-                            let cond_expr_checkpoint = self.checkpoint();
-                            self.expression();
+                            let expression = self.expression();
                             if self.next_is(Keyword(Kw::When)) {
-                                self.start_node_at(checkpoint, ConditionalForceAssignment);
-                                self.start_node_at(cond_expr_checkpoint, ConditionalExpressions);
-                                self.start_node_at(cond_expr_checkpoint, WhenExpression);
+                                let marker = unknown.resolve(self, ConditionalForceAssignment);
+                                let when = expression.precede(self, WhenExpression);
                                 self.skip();
                                 self.expression();
-                                self.end_node();
+                                let when_expression = when.complete(self);
+                                let expressions =
+                                    when_expression.precede(self, ConditionalExpressions);
                                 self.conditional_else(
                                     Parser::expression,
                                     ElseWhenExpression,
                                     ElseExpression,
                                 );
-                                self.end_node();
+                                expressions.complete(self);
+                                marker
                             } else {
-                                self.start_node_at(checkpoint, SimpleForceAssignment);
+                                unknown.resolve(self, SimpleForceAssignment)
                             }
                         } else if self.next_nth_is(Keyword(Kw::Release), 1) {
-                            self.start_node_at(checkpoint, SimpleReleaseAssignment);
+                            let marker = unknown.resolve(self, SimpleReleaseAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
+                            marker
                         } else {
                             self.skip();
                             self.opt_delay_mechanism();
-                            let wvfm_checkpoint = self.checkpoint();
-                            self.waveform();
+                            let waveform = self.waveform();
                             if self.next_is(Keyword(Kw::When)) {
-                                self.start_node_at(checkpoint, ConditionalWaveformAssignment);
-                                self.start_node_at(wvfm_checkpoint, ConditionalWaveforms);
-                                self.start_node_at(wvfm_checkpoint, WhenWaveform);
+                                let marker = unknown.resolve(self, ConditionalWaveformAssignment);
+                                let when = waveform.precede(self, WhenWaveform);
                                 self.skip();
                                 self.expression();
-                                self.end_node();
+                                let when_waveform = when.complete(self);
+                                let waveforms = when_waveform.precede(self, ConditionalWaveforms);
                                 self.conditional_else(
                                     Parser::waveform,
                                     ElseWhenWaveform,
                                     ElseWaveform,
                                 );
-                                self.end_node();
+                                waveforms.complete(self);
+                                marker
                             } else {
-                                self.start_node_at(checkpoint, SimpleWaveformAssignment);
+                                unknown.resolve(self, SimpleWaveformAssignment)
                             }
                         }
                     }
-                    SemiColon => {
-                        self.start_node_at(checkpoint, ProcedureCallStatement);
-                    }
+                    SemiColon => unknown.resolve(self, ProcedureCallStatement),
                     _ => {
-                        self.start_node_at(checkpoint, ProcedureCallStatement);
+                        let marker = unknown.resolve(self, ProcedureCallStatement);
                         self.expect_tokens_recover([LTE, ColonEq, SemiColon]);
+                        marker
                     }
-                }
+                };
                 self.expect_token(SemiColon);
-                self.end_node();
+                Some(marker.complete(self))
             }
-            _ => self.expect_tokens_recover([
-                Keyword(Kw::Wait),
-                Keyword(Kw::Assert),
-                Keyword(Kw::Report),
-                Keyword(Kw::If),
-                Keyword(Kw::Case),
-                Keyword(Kw::For),
-                Keyword(Kw::Loop),
-                Keyword(Kw::While),
-                Keyword(Kw::Next),
-                Keyword(Kw::Exit),
-                Keyword(Kw::Return),
-                Keyword(Kw::Null),
-                Keyword(Kw::With),
-                Identifier,
-                LeftPar,
-                LtLt,
-            ]),
+            _ => {
+                self.expect_tokens_recover([
+                    Keyword(Kw::Wait),
+                    Keyword(Kw::Assert),
+                    Keyword(Kw::Report),
+                    Keyword(Kw::If),
+                    Keyword(Kw::Case),
+                    Keyword(Kw::For),
+                    Keyword(Kw::Loop),
+                    Keyword(Kw::While),
+                    Keyword(Kw::Next),
+                    Keyword(Kw::Exit),
+                    Keyword(Kw::Return),
+                    Keyword(Kw::Null),
+                    Keyword(Kw::With),
+                    Identifier,
+                    LeftPar,
+                    LtLt,
+                ]);
+                None
+            }
         }
     }
 
-    pub(crate) fn conditional_else(
+    pub(crate) fn conditional_else<T>(
         &mut self,
-        item: impl Fn(&mut Parser),
+        item: impl Fn(&mut Parser) -> T,
         else_when_node: NodeKind,
         else_node: NodeKind,
     ) {
         while self.next_is(Keyword(Kw::Else)) {
-            let local_checkpoint = self.checkpoint();
+            let unknown = self.start_unknown();
             self.skip();
             item(self);
             if self.next_is(Keyword(Kw::When)) {
-                self.start_node_at(local_checkpoint, else_when_node);
+                let marker = unknown.resolve(self, else_when_node);
                 self.skip();
                 self.condition();
-                self.end_node();
+                marker.complete(self);
             } else {
-                self.start_node_at(local_checkpoint, else_node);
-                self.end_node();
+                unknown.complete(self, else_node);
                 break;
             }
         }

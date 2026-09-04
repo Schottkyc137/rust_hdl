@@ -36,5 +36,5 @@ EntityDeclaration
     SemiColon
 
 == diagnostics ==
-2:13 Expected(Token([Keyword(Signal), Keyword(Constant), Keyword(Variable), Identifier, Keyword(File), Keyword(Type), Keyword(Function), Keyword(Procedure), Keyword(Impure), Keyword(Pure), Keyword(Package)]))
-3:10 Expected(Token([Keyword(Signal), Keyword(Constant), Keyword(Variable), Identifier, Keyword(File), Keyword(Type), Keyword(Function), Keyword(Procedure), Keyword(Impure), Keyword(Pure), Keyword(Package)]))
+2:13 Expected(Node([InterfaceList]))
+3:10 Expected(Node([InterfaceList]))

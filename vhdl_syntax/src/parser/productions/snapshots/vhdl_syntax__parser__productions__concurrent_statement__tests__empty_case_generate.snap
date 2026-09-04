@@ -37,6 +37,4 @@ CaseGenerateStatement
     SemiColon
 
 == diagnostics ==
-1:31 Expected(Token([Keyword(When)]))
-1:31 Expected(Token([Identifier, LtLt, BitStringLiteral, CharacterLiteral, StringLiteral, Keyword(Null), AbstractLiteral, LeftPar, Keyword(New)]))
-1:31 Expected(Token([RightArrow]))
+1:31 Expected(Node([CaseGenerateAlternative]))

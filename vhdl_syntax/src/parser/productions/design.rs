@@ -6,7 +6,6 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::error::SyntaxErr;
 use crate::parser::error::SyntaxErrKind;
 use crate::parser::util::StallGuard;
 use crate::parser::Parser;
@@ -19,16 +18,13 @@ use crate::tokens::TokenKind;
 
 impl Parser {
     pub fn design_file(&mut self) {
-        self.start_node(NodeKind::DesignFile);
+        let marker = self.start_node(NodeKind::DesignFile);
         if self.next_is(Eof) {
-            self.errors.push(SyntaxErr::new(
-                0..0,
-                SyntaxErrKind::Expected(Child::<_, Box<[TokenKind]>>::Node(Box::new([
-                    NodeKind::DesignUnit,
-                ]))),
-            ));
+            self.push_err(SyntaxErrKind::Expected(Child::<_, Box<[TokenKind]>>::Node(
+                Box::new([NodeKind::DesignUnit]),
+            )));
             self.skip();
-            self.end_node();
+            marker.complete(self);
             return;
         }
         let mut guard = StallGuard::new();
@@ -37,92 +33,91 @@ impl Parser {
         }
         assert!(self.next_is(Eof), "No EoF token in design file");
         self.skip();
-        self.end_node();
+        marker.complete(self);
     }
 
     pub fn design_unit(&mut self) {
-        self.start_node(NodeKind::DesignUnit);
-
-        self.context_clause();
-        match_next_token!(self,
-            Keyword(Kw::Architecture) => self.architecture(),
-            Keyword(Kw::Package) => {
-                if self.next_nth_is(Keyword(Kw::Body), 1) {
-                    self.start_node(NodeKind::SecondaryUnitPackageBody);
-                    self.package_body();
-                    self.end_node();
-                } else if self.next_nth_is(Keyword(Kw::New), 3) {
-                    self.start_node(NodeKind::PackageInstantiationDeclarationPrimaryUnit);
-                    self.package_instantiation();
-                    self.end_node();
-                } else {
-                    self.start_node(NodeKind::PrimaryUnitPackageDeclaration);
-                    self.package();
-                    self.end_node();
-                }
-            },
-            Keyword(Kw::Entity) => self.entity_declaration(),
-            Keyword(Kw::Configuration) => self.configuration_declaration(),
-            Keyword(Kw::Context) => self.context_declaration(),
-        );
-        self.end_node();
+        self.node(NodeKind::DesignUnit, |p| {
+            p.context_clause();
+            match_next_token!(p,
+                Keyword(Kw::Architecture) => p.architecture(),
+                Keyword(Kw::Package) => {
+                    if p.next_nth_is(Keyword(Kw::Body), 1) {
+                        p.node(NodeKind::SecondaryUnitPackageBody, |p| {
+                            p.package_body();
+                        });
+                    } else if p.next_nth_is(Keyword(Kw::New), 3) {
+                        p.node(NodeKind::PackageInstantiationDeclarationPrimaryUnit, |p| {
+                            p.package_instantiation();
+                        });
+                    } else {
+                        p.node(NodeKind::PrimaryUnitPackageDeclaration, |p| {
+                            p.package();
+                        });
+                    }
+                },
+                Keyword(Kw::Entity) => p.entity_declaration(),
+                Keyword(Kw::Configuration) => p.configuration_declaration(),
+                Keyword(Kw::Context) => p.context_declaration(),
+            );
+        });
     }
 
     pub fn context_declaration(&mut self) {
-        self.start_node(NodeKind::ContextDeclaration);
-        self.context_declaration_preamble();
-        self.context_clause();
-        self.context_declaration_epilogue();
-        self.end_node();
+        self.node(NodeKind::ContextDeclaration, |p| {
+            p.context_declaration_preamble();
+            p.context_clause();
+            p.context_declaration_epilogue();
+        });
     }
 
     pub fn context_declaration_preamble(&mut self) {
-        self.start_node(NodeKind::ContextDeclarationPreamble);
-        self.expect_kw(Kw::Context);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+        self.node(NodeKind::ContextDeclarationPreamble, |p| {
+            p.expect_kw(Kw::Context);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
     }
 
     pub fn context_declaration_epilogue(&mut self) {
-        self.start_node(NodeKind::ContextDeclarationEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Context));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+        self.node(NodeKind::ContextDeclarationEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Context));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     pub fn binding_indication(&mut self) {
-        self.start_node(NodeKind::BindingIndication);
-        if self.next_is(Keyword(Kw::Use)) {
-            self.start_node(BindingUseClause);
-            self.skip(); // Use
-            self.entity_aspect();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::Generic)) {
-            self.generic_map_aspect();
-        }
-        if self.next_is(Keyword(Kw::Port)) {
-            self.port_map_aspect();
-        }
-        self.end_node();
+        self.node(NodeKind::BindingIndication, |p| {
+            if p.next_is(Keyword(Kw::Use)) {
+                p.node(BindingUseClause, |p| {
+                    p.skip(); // Use
+                    p.entity_aspect();
+                });
+            }
+            if p.next_is(Keyword(Kw::Generic)) {
+                p.generic_map_aspect();
+            }
+            if p.next_is(Keyword(Kw::Port)) {
+                p.port_map_aspect();
+            }
+        });
     }
 
     pub fn entity_aspect(&mut self) {
         if self.next_is(Keyword(Kw::Open)) {
             self.skip_into_node(NodeKind::EntityOpenAspect);
         } else if self.next_is(Keyword(Kw::Entity)) {
-            self.start_node(NodeKind::EntityEntityAspect);
-            self.skip();
-            self.name();
-            self.end_node();
+            self.node(NodeKind::EntityEntityAspect, |p| {
+                p.skip();
+                p.name();
+            });
         } else if self.next_is(Keyword(Kw::Configuration)) {
-            self.start_node(NodeKind::EntityConfigurationAspect);
-            self.skip();
-            self.name();
-            self.end_node();
+            self.node(NodeKind::EntityConfigurationAspect, |p| {
+                p.skip();
+                p.name();
+            });
         }
     }
 }

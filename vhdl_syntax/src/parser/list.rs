@@ -4,22 +4,23 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::NodeKind;
 use crate::tokens::TokenKind;
 
 impl Parser {
-    pub(crate) fn separated_list(
+    pub(crate) fn separated_list<T>(
         &mut self,
         node: NodeKind,
-        element: impl Fn(&mut Parser),
+        element: impl Fn(&mut Parser) -> T,
         separator: TokenKind,
-    ) {
-        self.start_node(node);
-        element(self);
-        while self.opt_token(separator) {
-            element(self);
-        }
-        self.end_node();
+    ) -> CompletedMarker {
+        self.node(node, |p| {
+            element(p);
+            while p.opt_token(separator) {
+                element(p);
+            }
+        })
     }
 }
