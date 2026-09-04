@@ -1,0 +1,26 @@
+package p is
+  constant i1 : integer := 0;
+  constant i2 : integer := 1_234_567;
+  constant i3 : integer := 2#1010_1010#;
+  constant i4 : integer := 16#DEAD_beef#;
+  constant i5 : integer := 8#777#e2;
+  constant r1 : real := 0.0;
+  constant r2 : real := 1.5e-10;
+  constant r3 : real := 16#f.f#e+2;
+  constant s1 : string := "";
+  constant s2 : string := "with ""quotes"" inside";
+  constant ch : character := ''';
+  constant b1 : bit_vector := b"1010_1010";
+  constant b2 : bit_vector := X"dead_BEEF";
+  constant b3 : bit_vector := O"777";
+  constant b4 : bit_vector := D"999";
+  constant b5 : bit_vector := 12UX"f";
+  constant b6 : bit_vector := 8Sb"1";
+  constant b7 : bit_vector := 4d"3";
+  constant ph : time := 10 ns;
+  constant ag : rec := (1, 2, f => 3, others => 0);
+  constant ag2 : arr := (0 to 3 => '0', others => '1');
+  constant nl : ptr := new integer'(5);
+  constant nl2 : ptr := new arr_t(0 to 3);
+  constant nu : ptr := null;
+end package;
