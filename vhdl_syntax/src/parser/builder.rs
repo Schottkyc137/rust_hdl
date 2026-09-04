@@ -10,6 +10,7 @@ use crate::parser::error::{SyntaxErr, SyntaxErrKind};
 use crate::parser::marker::{Marker, UnknownMarker};
 use crate::syntax::child::Child;
 use crate::syntax::green::{GreenChild, GreenNode, GreenNodeData, GreenToken};
+use crate::syntax::meta::is_empty_capable;
 use crate::syntax::node_kind::NodeKind;
 use crate::tokens::tokenizer::LexErr;
 use crate::tokens::{Token, TokenKind};
@@ -144,7 +145,7 @@ impl NodeBuilder {
                     } = parents.pop().expect("end_node without start_node");
                     // Drop empty nodes and merge multiple errors into one
                     if children.len() == first_child {
-                        if errors.len() > first_error {
+                        if errors.len() > first_error && !is_empty_capable(kind) {
                             errors.truncate(first_error);
                             let folded = SyntaxErrKind::Expected(
                                 Child::<_, Box<[TokenKind]>>::Node(Box::new([kind])),
@@ -241,6 +242,8 @@ mod tests {
     const OUTER: NodeKind = NodeKind::DesignUnit;
     const INNER: NodeKind = NodeKind::Name;
     const WRAPPER: NodeKind = NodeKind::BinaryExpression;
+    /// A node that may legally hold nothing (`ArchitectureDeclarativePart = BlockDeclarativeItem*`).
+    const EMPTY_CAPABLE: NodeKind = NodeKind::ArchitectureDeclarativePart;
 
     /// A token preceded by `spaces` spaces of leading trivia.
     fn tok(text: &'static [u8], spaces: usize) -> Token {
@@ -372,6 +375,47 @@ mod tests {
         assert!(
             matches!(errors[0].err(), SyntaxErrKind::Expected(Child::Node(kinds)) if **kinds == [OUTER])
         );
+    }
+
+    #[test]
+    fn folding_stops_at_an_empty_capable_node() {
+        let mut builder = NodeBuilder::new();
+        builder.start(ROOT);
+        builder.push(tok(b"ab", 0), None);
+        builder.start(EMPTY_CAPABLE);
+        builder.start(OUTER);
+        builder.start(INNER);
+        builder.push_err(expected_token());
+        builder.end_node();
+        builder.end_node();
+        builder.end_node();
+        builder.end_node();
+
+        let (_, errors) = builder.end();
+        assert_eq!(errors.len(), 1);
+        assert!(
+            matches!(errors[0].err(), SyntaxErrKind::Expected(Child::Node(kinds)) if **kinds == [OUTER])
+        );
+    }
+
+    #[test]
+    fn an_empty_capable_node_keeps_its_own_errors_unfolded() {
+        let mut builder = NodeBuilder::new();
+        builder.start(ROOT);
+        builder.push(tok(b"ab", 0), None);
+        builder.start(EMPTY_CAPABLE);
+        builder.push_err(expected_token());
+        builder.push_err(expected_token());
+        builder.end_node();
+        builder.end_node();
+
+        let (root, errors) = builder.end();
+        assert_eq!(errors.len(), 2);
+        assert!(errors
+            .iter()
+            .all(|err| matches!(err.err(), SyntaxErrKind::Expected(Child::Token(_)))));
+        // The empty node is still dropped from the tree.
+        assert_eq!(root.children().count(), 1);
     }
 
     #[test]
