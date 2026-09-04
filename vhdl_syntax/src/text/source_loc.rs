@@ -268,7 +268,7 @@ where
                 &[],
                 line_starts,
                 wide_char_lines,
-                cursor + 2,
+                cursor,
             );
         }
         other => {
@@ -294,7 +294,7 @@ fn record_piece_lossy<E: LossyEncoder, C: CharEncoding>(
                 &replacements,
                 line_starts,
                 wide_char_lines,
-                cursor + 2,
+                cursor,
             );
         }
         other => {

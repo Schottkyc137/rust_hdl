@@ -68,8 +68,7 @@ impl TriviaPiece {
             HorizontalTabs(n) | VerticalTabs(n) | CarriageReturns(n) | LineFeeds(n)
             | FormFeeds(n) | Spaces(n) | NonBreakingSpaces(n) => *n,
             CarriageReturnLineFeeds(n) => *n * 2,
-            LineComment(str) => 2 + str.byte_len(),
-            BlockComment(str) => 4 + str.byte_len(),
+            LineComment(str) | BlockComment(str) => str.byte_len(),
         }
     }
 
@@ -118,15 +117,7 @@ impl TriviaPiece {
             CarriageReturnLineFeeds(n) => write_repeated(writer, b"\r\n", *n),
             LineFeeds(n) => write_repeated(writer, b"\n", *n),
             FormFeeds(n) => write_repeated(writer, &[0x0Cu8], *n),
-            LineComment(comment) => {
-                writer.write_all(b"--")?;
-                writer.write_all(comment.as_bytes())
-            }
-            BlockComment(comment) => {
-                writer.write_all(b"/*")?;
-                writer.write_all(comment.as_bytes())?;
-                writer.write_all(b"*/")
-            }
+            LineComment(comment) | BlockComment(comment) => writer.write_all(comment.as_bytes()),
             Spaces(n) => write_repeated(writer, b" ", *n),
             NonBreakingSpaces(n) => write_repeated(writer, &[0xA0u8], *n),
         }

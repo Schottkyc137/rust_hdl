@@ -60,14 +60,8 @@ impl WriteEncoded for TriviaPiece {
             CarriageReturnLineFeeds(n) => write!(writer, "{}", "\r\n".repeat(*n))?,
             LineFeeds(n) => write!(writer, "{}", "\n".repeat(*n))?,
             FormFeeds(n) => write!(writer, "{}", "\u{0C}".repeat(*n))?,
-            LineComment(comment) => {
-                write!(writer, "--")?;
+            LineComment(comment) | BlockComment(comment) => {
                 comment.fmt_to::<E>(writer)?;
-            }
-            BlockComment(comment) => {
-                write!(writer, "/*")?;
-                comment.fmt_to::<E>(writer)?;
-                write!(writer, "*/")?;
             }
             Spaces(n) => write!(writer, "{}", " ".repeat(*n))?,
             NonBreakingSpaces(n) => write!(writer, "{}", "\u{A0}".repeat(*n))?,

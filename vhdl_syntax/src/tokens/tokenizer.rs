@@ -387,20 +387,22 @@ impl<T: Iterator<Item = u8>> Tokenizer<T> {
             b'\n' => (TriviaPiece::LineFeeds(count_chars!(b'\n')), None),
             b' ' => (TriviaPiece::Spaces(count_chars!(b' ')), None),
             b'-' if self.peek() == Some(b'-') => {
+                let mut bytes = vec![b'-', b'-'];
                 self.skip();
                 self.skip();
-                let mut bytes = Vec::default();
                 while let Some(ch) = self.skip_if(|ch| !matches!(ch, b'\r' | b'\n')) {
                     bytes.push(ch);
                 }
                 (TriviaPiece::LineComment(Comment::new(bytes)), None)
             }
             b'/' if self.peek() == Some(b'*') => {
+                let mut bytes = vec![b'/', b'*'];
                 self.skip();
                 self.skip();
-                let mut bytes = Vec::default();
                 loop {
                     if self.current == Some(b'*') && self.peek() == Some(b'/') {
+                        bytes.push(b'*');
+                        bytes.push(b'/');
                         self.skip();
                         self.skip();
                         break;
@@ -1208,7 +1210,7 @@ my_other_ident"
                     b"-",
                     Trivia::from([
                         TriviaPiece::LineFeeds(1),
-                        TriviaPiece::LineComment(Comment::new(b"comment")),
+                        TriviaPiece::LineComment(Comment::new(b"--comment")),
                         TriviaPiece::LineFeeds(1)
                     ])
                 ),
@@ -1245,18 +1247,49 @@ comment
                     b"-",
                     Trivia::from([
                         TriviaPiece::LineFeeds(2),
-                        TriviaPiece::BlockComment(Comment::new(b"\ncomment\n")),
+                        TriviaPiece::BlockComment(Comment::new(b"/*\ncomment\n*/")),
                         TriviaPiece::LineFeeds(2),
                     ])
                 ),
                 Token::new(AbstractLiteral, b"2", Trivia::default(),),
                 Token::eof(Trivia::from([
                     TriviaPiece::Spaces(1),
-                    TriviaPiece::BlockComment(Comment::new("\ncomment\n")),
+                    TriviaPiece::BlockComment(Comment::new("/*\ncomment\n*/")),
                     TriviaPiece::LineFeeds(2),
                 ]),)
             ]
         )
+    }
+
+    #[test]
+    fn unterminated_block_comment_roundtrips() {
+        for input in ["1 /* unterminated", "1 /* unterminated *", "1 /*"] {
+            let comment = &input[2..];
+            assert_eq!(
+                input.tokenize_vec(),
+                vec![
+                    Token::new(AbstractLiteral, b"1", Trivia::default()),
+                    Token::eof(Trivia::from([
+                        TriviaPiece::Spaces(1),
+                        TriviaPiece::BlockComment(Comment::new(comment)),
+                    ])),
+                ],
+                "input: {input:?}"
+            );
+
+            let mut buf = Vec::new();
+            for token in input.tokenize_vec() {
+                token.write_to(&mut buf).unwrap();
+            }
+            assert_eq!(buf, input.as_bytes(), "input: {input:?}");
+
+            let byte_len: usize = input
+                .tokenize_vec()
+                .iter()
+                .map(|token| token.byte_len())
+                .sum();
+            assert_eq!(byte_len, input.len(), "input: {input:?}");
+        }
     }
 
     #[test]
