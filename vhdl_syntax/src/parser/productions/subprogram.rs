@@ -116,13 +116,14 @@ impl Parser {
     pub(crate) fn subprogram_declaration_or_body(&mut self) -> CompletedMarker {
         let unknown = self.start_unknown();
         let specification = self.subprogram_specification();
-        if self.opt_token(SemiColon) {
+        let marker = if self.opt_token(SemiColon) {
             return unknown.complete(self, SubprogramDeclaration);
-        }
+        } else {
+            unknown.resolve(self, SubprogramBody)
+        };
         let preamble = specification.precede(self, SubprogramBodyPreamble);
         self.expect_kw(Kw::Is);
         preamble.complete(self);
-        let marker = unknown.resolve(self, SubprogramBody);
         self.subprogram_declarative_part();
         self.node(DeclarationStatementSeparator, |p| {
             p.expect_kw(Kw::Begin);
