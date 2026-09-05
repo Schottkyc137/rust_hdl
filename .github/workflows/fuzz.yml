@@ -61,11 +61,13 @@ jobs:
 
       - name: Fuzz
         working-directory: fuzz
+        env:
+          DURATION: ${{ github.event.inputs.duration || '1800' }}
         run: |
           mkdir -p corpus/parser
           cargo fuzz run parser corpus/parser seeds/parser -- \
             -dict=vhdl.dict \
-            -max_total_time=${{ github.event.inputs.duration || '1800' }} \
+            -max_total_time="$DURATION" \
             -timeout=25 \
             -rss_limit_mb=4096 \
             -print_final_stats=1
