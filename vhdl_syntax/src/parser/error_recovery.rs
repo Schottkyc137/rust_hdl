@@ -57,7 +57,9 @@ impl Parser {
     pub(crate) fn expect_tokens_recover<const N: usize>(&mut self, expected: [TokenKind; N]) {
         debug_assert!(
             !expected.contains(&self.peek_token()),
-            "should only be called on an error path ({:?} contains {:?})", expected, self.peek_token()
+            "should only be called on an error path ({:?} contains {:?})",
+            expected,
+            self.peek_token()
         );
 
         // We're at EoF -> emit an EoF diagnostic

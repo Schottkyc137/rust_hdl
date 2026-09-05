@@ -263,13 +263,7 @@ where
         // Note: In theory, `LineComment`s don't need the special newline handling, it's just included here for simplicity.
         // If performance ever becomes a bottleneck, this can be split.
         TriviaPiece::BlockComment(c) | TriviaPiece::LineComment(c) => {
-            record_str::<C>(
-                c.encode::<E>()?,
-                &[],
-                line_starts,
-                wide_char_lines,
-                cursor,
-            );
+            record_str::<C>(c.encode::<E>()?, &[], line_starts, wide_char_lines, cursor);
         }
         other => {
             record_non_comment_trivia::<C>(other, cursor, line_starts, wide_char_lines);
@@ -289,13 +283,7 @@ fn record_piece_lossy<E: LossyEncoder, C: CharEncoding>(
     match piece {
         TriviaPiece::BlockComment(c) | TriviaPiece::LineComment(c) => {
             let (encoded, replacements) = c.encode_lossy::<E>();
-            record_str::<C>(
-                encoded,
-                &replacements,
-                line_starts,
-                wide_char_lines,
-                cursor,
-            );
+            record_str::<C>(encoded, &replacements, line_starts, wide_char_lines, cursor);
         }
         other => {
             record_non_comment_trivia::<C>(other, cursor, line_starts, wide_char_lines);
