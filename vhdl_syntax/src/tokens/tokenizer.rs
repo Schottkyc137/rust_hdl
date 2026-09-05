@@ -393,7 +393,7 @@ impl<T: Iterator<Item = u8>> Tokenizer<T> {
                 while let Some(ch) = self.skip_if(|ch| !matches!(ch, b'\r' | b'\n')) {
                     bytes.push(ch);
                 }
-                (TriviaPiece::LineComment(Comment::new(bytes)), None)
+                (TriviaPiece::LineComment(Comment::from_raw(bytes)), None)
             }
             b'/' if self.peek() == Some(b'*') => {
                 let mut bytes = vec![b'/', b'*'];
@@ -409,13 +409,13 @@ impl<T: Iterator<Item = u8>> Tokenizer<T> {
                     }
                     let Some(ch) = self.skip() else {
                         return Some((
-                            TriviaPiece::BlockComment(Comment::new(bytes)),
+                            TriviaPiece::BlockComment(Comment::from_raw(bytes)),
                             Some(LexErrKind::Unterminated(UnterminatedKind::BlockComment)),
                         ));
                     };
                     bytes.push(ch)
                 }
-                (TriviaPiece::BlockComment(Comment::new(bytes)), None)
+                (TriviaPiece::BlockComment(Comment::from_raw(bytes)), None)
             }
             /*non breaking spaces*/
             0xA0 => (TriviaPiece::NonBreakingSpaces(count_chars!(0xA0)), None),
@@ -1210,7 +1210,7 @@ my_other_ident"
                     b"-",
                     Trivia::from([
                         TriviaPiece::LineFeeds(1),
-                        TriviaPiece::LineComment(Comment::new(b"--comment")),
+                        TriviaPiece::LineComment(Comment::from_raw(b"--comment")),
                         TriviaPiece::LineFeeds(1)
                     ])
                 ),
@@ -1247,14 +1247,14 @@ comment
                     b"-",
                     Trivia::from([
                         TriviaPiece::LineFeeds(2),
-                        TriviaPiece::BlockComment(Comment::new(b"/*\ncomment\n*/")),
+                        TriviaPiece::BlockComment(Comment::from_raw(b"/*\ncomment\n*/")),
                         TriviaPiece::LineFeeds(2),
                     ])
                 ),
                 Token::new(AbstractLiteral, b"2", Trivia::default(),),
                 Token::eof(Trivia::from([
                     TriviaPiece::Spaces(1),
-                    TriviaPiece::BlockComment(Comment::new("/*\ncomment\n*/")),
+                    TriviaPiece::BlockComment(Comment::from_raw("/*\ncomment\n*/")),
                     TriviaPiece::LineFeeds(2),
                 ]),)
             ]
@@ -1271,7 +1271,7 @@ comment
                     Token::new(AbstractLiteral, b"1", Trivia::default()),
                     Token::eof(Trivia::from([
                         TriviaPiece::Spaces(1),
-                        TriviaPiece::BlockComment(Comment::new(comment)),
+                        TriviaPiece::BlockComment(Comment::from_raw(comment)),
                     ])),
                 ],
                 "input: {input:?}"
