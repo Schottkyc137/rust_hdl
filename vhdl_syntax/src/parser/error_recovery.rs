@@ -1479,5 +1479,18 @@ end arch;
 ",
             Parser::design_file
         );
+
+        assert_recovery_snapshot!(
+            "\
+architecture arch of ent is
+begin
+    p1 : process (all) is
+    p1;
+
+    p : postponed foo;
+end arch;
+",
+            Parser::design_file
+        );
     }
 }

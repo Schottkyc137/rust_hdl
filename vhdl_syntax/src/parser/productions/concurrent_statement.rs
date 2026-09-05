@@ -230,11 +230,7 @@ impl Parser {
             _ => {
                 // Create a fake block statement to eat the leading tokens and produce a plausible tree
                 let fake_stmt = self.start_node(BlockStatement);
-                if self.next_is(Identifier) && self.next_nth_is(Colon, 1) {
-                    self.label();
-                } else if self.next_is(Identifier) {
-                    self.skip();
-                }
+                self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
                 fake_stmt.complete(self);
                 self.expect_tokens_recover([

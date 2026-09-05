@@ -1,0 +1,69 @@
+---
+source: vhdl_syntax/src/parser/error_recovery.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+architecture arch of ent is
+begin
+    p1 : process (all) is
+    p1;
+
+    p : postponed foo;
+end arch;
+
+
+== tree ==
+DesignFile
+  DesignUnit
+    ArchitectureBody
+      ArchitecturePreamble
+        Keyword(Architecture)
+        Identifier 'arch'
+        Keyword(Of)
+        Name
+          NameDesignatorPrefix
+            Identifier 'ent'
+        Keyword(Is)
+      DeclarationStatementSeparator
+        Keyword(Begin)
+      ArchitectureStatementPart
+        ProcessStatement
+          StmtLabel
+            Identifier 'p1'
+            Colon
+          ProcessPreamble
+            Keyword(Process)
+            ParenthesizedProcessSensitivityList
+              LeftPar
+              AllSensitivityList
+                Keyword(All)
+              RightPar
+            Keyword(Is)
+          ProcessStatementPart
+            ProcedureCallStatement
+              Name
+                NameDesignatorPrefix
+                  Identifier 'p1'
+              SemiColon
+            NullStatement
+              StmtLabel
+                Identifier 'p'
+                Colon
+            Keyword(Postponed)
+            ProcedureCallStatement
+              Name
+                NameDesignatorPrefix
+                  Identifier 'foo'
+              SemiColon
+          ProcessEpilogue
+            Keyword(End)
+            Identifier 'arch'
+            SemiColon
+  Eof
+
+== diagnostics ==
+3:26 Expected(Token([Keyword(Type), Keyword(Subtype), Keyword(Component), Keyword(Impure), Keyword(Pure), Keyword(Function), Keyword(Procedure), Keyword(Package), Keyword(For), Keyword(File), Keyword(Shared), Keyword(Variable), Keyword(Constant), Keyword(Signal), Keyword(Attribute), Keyword(Use), Keyword(Alias), Keyword(Group), Keyword(Disconnect)]))
+3:26 Expected(Node([DeclarationStatementSeparator]))
+6:9..6:18 Unexpected(Token(Keyword(Postponed)))
+7:4 Expected(Token([Keyword(Process)]))
+7:10 Expected(Node([ArchitectureEpilogue]))

@@ -1,0 +1,35 @@
+---
+source: vhdl_syntax/src/parser/productions/sequential_statement.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+function f return integer is
+begin
+    p:
+end;
+        
+
+== tree ==
+SubprogramBody
+  SubprogramBodyPreamble
+    FunctionSpecification
+      Keyword(Function)
+      Identifier 'f'
+      Keyword(Return)
+      Name
+        NameDesignatorPrefix
+          Identifier 'integer'
+    Keyword(Is)
+  DeclarationStatementSeparator
+    Keyword(Begin)
+  SubprogramStatementPart
+    NullStatement
+      StmtLabel
+        Identifier 'p'
+        Colon
+  SubprogramBodyEpilogue
+    Keyword(End)
+    SemiColon
+
+== diagnostics ==
+3:7 Expected(Token([Keyword(Wait), Keyword(Assert), Keyword(Report), Keyword(If), Keyword(Case), Keyword(For), Keyword(Loop), Keyword(While), Keyword(Next), Keyword(Exit), Keyword(Return), Keyword(Null), Keyword(With), Identifier, LeftPar, LtLt]))
