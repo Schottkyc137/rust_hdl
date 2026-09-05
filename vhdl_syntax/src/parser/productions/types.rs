@@ -105,13 +105,6 @@ impl Parser {
         });
     }
 
-    pub fn access_type_definition(&mut self) {
-        self.node(AccessTypeDefinition, |p| {
-            p.expect_kw(Kw::Access);
-            p.subtype_indication();
-        });
-    }
-
     pub fn subtype_declaration(&mut self) -> CompletedMarker {
         self.node(SubtypeDeclaration, |p| {
             p.expect_kw(Kw::Subtype);
