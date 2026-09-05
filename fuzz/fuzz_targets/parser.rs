@@ -6,7 +6,9 @@ use vhdl_syntax::syntax::{AstNode, DesignFileSyntax};
 
 fn unparse(file: &DesignFileSyntax) -> Vec<u8> {
     let mut buf = Vec::new();
-    file.raw().write_to(&mut buf).expect("writing to a Vec cannot fail");
+    file.raw()
+        .write_to(&mut buf)
+        .expect("writing to a Vec cannot fail");
     buf
 }
 
@@ -21,4 +23,3 @@ fuzz_target!(|data: &[u8]| {
         String::from_utf8_lossy(&unparsed),
     );
 });
-
