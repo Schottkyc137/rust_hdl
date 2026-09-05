@@ -228,11 +228,9 @@ impl Parser {
                 Some(marker.complete(self))
             }
             _ => {
-                // Create a fake block statement to eat the leading tokens and produce a plausible tree
-                let fake_stmt = self.start_node(BlockStatement);
+                // Consume label and postponed keyword for error recovery
                 self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
-                fake_stmt.complete(self);
                 self.expect_tokens_recover([
                     Keyword(Kw::Block),
                     Keyword(Kw::Process),

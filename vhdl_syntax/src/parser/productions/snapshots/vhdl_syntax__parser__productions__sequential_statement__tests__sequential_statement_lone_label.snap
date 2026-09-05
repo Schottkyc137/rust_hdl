@@ -23,10 +23,9 @@ SubprogramBody
   DeclarationStatementSeparator
     Keyword(Begin)
   SubprogramStatementPart
-    NullStatement
-      StmtLabel
-        Identifier 'p'
-        Colon
+    StmtLabel
+      Identifier 'p'
+      Colon
   SubprogramBodyEpilogue
     Keyword(End)
     SemiColon

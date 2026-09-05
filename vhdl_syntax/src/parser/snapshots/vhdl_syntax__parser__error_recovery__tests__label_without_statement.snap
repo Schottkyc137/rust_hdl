@@ -24,10 +24,9 @@ DesignFile
       DeclarationStatementSeparator
         Keyword(Begin)
       ArchitectureStatementPart
-        BlockStatement
-          StmtLabel
-            Identifier 'p'
-            Colon
+        StmtLabel
+          Identifier 'p'
+          Colon
       ArchitectureEpilogue
         Keyword(End)
         Identifier 'arch'

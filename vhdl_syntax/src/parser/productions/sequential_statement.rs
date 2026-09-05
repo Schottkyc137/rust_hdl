@@ -459,9 +459,8 @@ impl Parser {
                 Some(marker.complete(self))
             }
             _ => {
-                let marker = self.start_node(NullStatement);
+                // consume label for error recovery
                 self.opt_label();
-                marker.complete(self);
                 self.expect_tokens_recover([
                     Keyword(Kw::Wait),
                     Keyword(Kw::Assert),

@@ -45,10 +45,9 @@ DesignFile
                 NameDesignatorPrefix
                   Identifier 'p1'
               SemiColon
-            NullStatement
-              StmtLabel
-                Identifier 'p'
-                Colon
+            StmtLabel
+              Identifier 'p'
+              Colon
             Keyword(Postponed)
             ProcedureCallStatement
               Name
