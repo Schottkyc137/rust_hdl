@@ -11,19 +11,21 @@ SubprogramBody
         ParenthesizedInterfaceList
           LeftPar
           InterfaceList
-            InterfaceConstantDeclaration
+            InterfaceObjectDeclaration
               IdentifierList
                 Identifier 'arg'
               Colon
               SubtypeIndication
                 Name
-                  Identifier 'natural'
+                  NameDesignatorPrefix
+                    Identifier 'natural'
           RightPar
       Keyword(Return)
       Name
-        Identifier 'natural'
+        NameDesignatorPrefix
+          Identifier 'natural'
     Keyword(Is)
-  Declarations
+  SubprogramDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
@@ -31,24 +33,28 @@ SubprogramBody
       Colon
       SubtypeIndication
         Name
-          Identifier 'natural'
-      ColonEq
-      LiteralExpression
-        AbstractLiteral '0'
+          NameDesignatorPrefix
+            Identifier 'natural'
+      InitialValue
+        ColonEq
+        LiteralExpression
+          AbstractLiteral '0'
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
-  SequentialStatements
+  SubprogramStatementPart
     ReturnStatement
       Keyword(Return)
       BinaryExpression
         NameExpression
           Name
-            Identifier 'foo'
+            NameDesignatorPrefix
+              Identifier 'foo'
         Plus
         NameExpression
           Name
-            Identifier 'arg'
+            NameDesignatorPrefix
+              Identifier 'arg'
       SemiColon
   SubprogramBodyEpilogue
     Keyword(End)

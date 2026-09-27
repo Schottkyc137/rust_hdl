@@ -12,13 +12,13 @@ use std::fmt::{Display, Formatter, Result};
 
 impl<T: Display> Display for WithTokenSpan<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", &self.item)
+        write!(f, "{}", self.item)
     }
 }
 
 impl<T: Display> Display for WithDecl<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", &self.tree)
+        write!(f, "{}", self.tree)
     }
 }
 
@@ -27,7 +27,7 @@ where
     T: Display,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", &self.item)
+        write!(f, "{}", self.item)
     }
 }
 
@@ -457,6 +457,26 @@ impl Display for Expression {
     }
 }
 
+impl Display for ConditionalExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            ConditionalExpression::Simple(expr) => write!(f, "{expr}"),
+            ConditionalExpression::Conditional(conditionals) => {
+                for (i, conditional) in conditionals.conditionals.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " else ")?;
+                    }
+                    write!(f, "{} when {}", conditional.item, conditional.condition)?;
+                }
+                if let Some((else_item, _)) = &conditionals.else_item {
+                    write!(f, " else {else_item}")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
 impl Display for Direction {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
@@ -556,30 +576,33 @@ impl Display for RecordElementResolution {
     }
 }
 
+impl Display for ElementResolution {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            ElementResolution::Array(arr) => {
+                write!(f, "{arr}")
+            }
+            ElementResolution::Record(elem_resolutions) => {
+                for (i, elem_resolution) in elem_resolutions.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{elem_resolution}")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
 impl Display for ResolutionIndication {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
             ResolutionIndication::FunctionName(ref name) => {
                 write!(f, "{name}")
             }
-            ResolutionIndication::ArrayElement(ref name) => {
-                write!(f, "({name})")
-            }
-            ResolutionIndication::Record(elem_resolutions) => {
-                let mut first = true;
-                for elem_resolution in &elem_resolutions.item {
-                    if first {
-                        write!(f, "({elem_resolution}")?;
-                    } else {
-                        write!(f, ", {elem_resolution}")?;
-                    }
-                    first = false;
-                }
-                if !first {
-                    write!(f, ")")
-                } else {
-                    Ok(())
-                }
+            ResolutionIndication::Element(ref el) => {
+                write!(f, "({el})")
             }
         }
     }
@@ -635,7 +658,7 @@ impl Display for Designator {
 
 impl<T: Display> Display for WithRef<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", &self.item)
+        write!(f, "{}", self.item)
     }
 }
 
@@ -850,7 +873,15 @@ impl Display for FunctionSpecification {
                 write!(f, "\n)")?;
             }
         }
-        write!(f, " return {}", self.return_type)
+        if let Some(return_identifier) = &self.return_identifier {
+            write!(
+                f,
+                " return {} of {}",
+                return_identifier.tree, self.return_type
+            )
+        } else {
+            write!(f, " return {}", self.return_type)
+        }
     }
 }
 
@@ -1271,6 +1302,19 @@ mod tests {
         assert_format_eq(code, code, code_fun);
     }
 
+    pub fn assert_format_with_standard<F, R: Display>(
+        code: &str,
+        standard: crate::VHDLStandard,
+        code_fun: F,
+    ) where
+        F: FnOnce(&Code) -> R,
+    {
+        assert_eq!(
+            format!("{}", code_fun(&Code::with_standard(code, standard))),
+            code
+        );
+    }
+
     #[test]
     fn test_selected_name_single() {
         assert_format("foo", Code::name);
@@ -1614,6 +1658,14 @@ mod tests {
     }
 
     #[test]
+    fn test_subtype_indication_with_nested_array_element_resolution_function() {
+        assert_format(
+            "((resolved)) unresolved_slv_array",
+            Code::subtype_indication,
+        );
+    }
+
+    #[test]
     fn test_subtype_indication_with_record_element_resolution_function() {
         assert_format("(elem resolve) rec_t", Code::subtype_indication);
     }
@@ -1935,6 +1987,15 @@ end units;",
     pub fn test_function_specification() {
         assert_format(
             "function foo return lib.foo.natural",
+            Code::subprogram_specification,
+        );
+    }
+
+    #[test]
+    pub fn test_function_specification_with_return_identifier() {
+        assert_format_with_standard(
+            "function foo return ret of lib.foo.natural",
+            crate::VHDLStandard::VHDL2019,
             Code::subprogram_specification,
         );
     }

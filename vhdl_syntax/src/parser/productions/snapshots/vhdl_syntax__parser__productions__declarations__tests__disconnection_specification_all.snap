@@ -1,0 +1,21 @@
+---
+source: vhdl_syntax/src/parser/productions/declarations.rs
+expression: "to_test_text(Parser::disconnection_specification,\n\"disconnect all : bit after 10 ns;\",)"
+---
+DisconnectionSpecification
+  Keyword(Disconnect)
+  GuardedSignalSpecification
+    SignalListAll
+      Keyword(All)
+    Colon
+    Name
+      NameDesignatorPrefix
+        Identifier 'bit'
+  Keyword(After)
+  PhysicalLiteralExpression
+    PhysicalLiteral
+      AbstractLiteral '10'
+      Name
+        NameDesignatorPrefix
+          Identifier 'ns'
+  SemiColon

@@ -9,7 +9,7 @@
 //! This module provides the [`VHDLStandard`] enum to represent all supported VHDL versions
 //! and methods to work with standards.
 
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 /// VHDL standard version.
 ///
@@ -95,12 +95,12 @@ impl std::fmt::Display for ParseVHDLStandardError {
 
 impl std::error::Error for ParseVHDLStandardError {}
 
-impl TryFrom<&str> for VHDLStandard {
-    type Error = ParseVHDLStandardError;
+impl FromStr for VHDLStandard {
+    type Err = ParseVHDLStandardError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         use VHDLStandard::*;
-        Ok(match value {
+        Ok(match s {
             "1987" | "87" => VHDL1987,
             "1993" | "93" => VHDL1993,
             "2000" | "00" => VHDL2000,
@@ -121,5 +121,52 @@ impl AsRef<str> for VHDLStandard {
 impl fmt::Display for VHDLStandard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for VHDLStandard {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for VHDLStandard {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor;
+
+        impl serde::de::Visitor<'_> for Visitor {
+            type Value = VHDLStandard;
+
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("a VHDL standard such as \"2008\" or \"08\"")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+                v.parse()
+                    .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(v), &self))
+            }
+
+            fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Self::Value, E> {
+                // Deny the two-digit form for integers: this would allow
+                // `standard = 8` which reads weird in a config file
+                let text = if v > 1000 {
+                    format!("{v}")
+                } else {
+                    return Err(E::invalid_value(serde::de::Unexpected::Unsigned(v), &self));
+                };
+                text.parse()
+                    .map_err(|_| E::invalid_value(serde::de::Unexpected::Unsigned(v), &self))
+            }
+
+            fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<Self::Value, E> {
+                u64::try_from(v)
+                    .map_err(|_| E::invalid_value(serde::de::Unexpected::Signed(v), &self))
+                    .and_then(|v| self.visit_u64(v))
+            }
+        }
+
+        deserializer.deserialize_any(Visitor)
     }
 }

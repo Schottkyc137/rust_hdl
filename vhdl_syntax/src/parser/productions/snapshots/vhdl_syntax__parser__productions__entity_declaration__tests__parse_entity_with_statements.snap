@@ -7,30 +7,34 @@ EntityDeclaration
     Keyword(Entity)
     Identifier 'myent'
     Keyword(Is)
-  DeclarationStatementSeparator
-    Keyword(Begin)
-  ConcurrentStatements
-    ConcurrentProcedureCallOrComponentInstantiationStatement
-      Name
-        Identifier 'check'
-        ParenthesizedName
-          LeftPar
-          AssociationList
-            AssociationElement
-              ActualPart
-                ActualPartExpression
-                  NameExpression
-                    Name
-                      Identifier 'clk'
-            Comma
-            AssociationElement
-              ActualPart
-                ActualPartExpression
-                  NameExpression
-                    Name
-                      Identifier 'valid'
-          RightPar
-      SemiColon
+  EntityStatements
+    DeclarationStatementSeparator
+      Keyword(Begin)
+    EntityStatementPart
+      ConcurrentProcedureCallOrComponentInstantiationStatement
+        Name
+          NameDesignatorPrefix
+            Identifier 'check'
+          ParenthesizedName
+            LeftPar
+            AssociationList
+              AssociationElement
+                ActualPart
+                  ActualPartExpression
+                    NameExpression
+                      Name
+                        NameDesignatorPrefix
+                          Identifier 'clk'
+              Comma
+              AssociationElement
+                ActualPart
+                  ActualPartExpression
+                    NameExpression
+                      Name
+                        NameDesignatorPrefix
+                          Identifier 'valid'
+            RightPar
+        SemiColon
   EntityDeclarationEpilogue
     Keyword(End)
     Keyword(Entity)

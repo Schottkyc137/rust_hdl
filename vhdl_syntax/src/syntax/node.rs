@@ -1,3 +1,9 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
+
 //! Public API for abstract and untyped nodes.
 //!
 //! Every language element is either represented by a [SyntaxToken] or a [SyntaxNode].
@@ -21,10 +27,11 @@
 //! ```
 //!
 //! # Tree traversal
-//! Traversal cen be accommodated by the many methods on `SyntaxNode`, such as
+//! Traversal can be accommodated by several methods on `SyntaxNode`, such as
 //! [SyntaxNode::children], [SyntaxNode::parent] or [SyntaxNode::ancestors]. To traverse the tree
-//! in textual pre-order, for example, to search for a node of a certain type, use
-//! [Preorder](crate::syntax::Preorder).
+//! in textual pre-order, for example, to search for a node of a certain type, use one of the
+//! visitor methods, i.e., [SyntaxNode::walk], [SyntaxNode::descendants],
+//! [SyntaxNode::descendants_with_tokens] or [SyntaxNode::visit_tokens].
 //!
 //! # Mutability
 //! Once created, a [SyntaxNode] is immutable. To change the tree, for example, for refactorings,
@@ -42,23 +49,22 @@
 //!
 //! Note that currently the main effort is on creating a public and well-tested API.
 //! Many known optimization possibilities are currently ignored.
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this file,
-// You can obtain one at http://mozilla.org/MPL/2.0/.
-//
-// Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use crate::latin_1::{Latin1Str, Latin1String, Utf8ToLatin1Error};
-use crate::syntax::child::Child;
+use crate::syntax::child::{Child, ChildKind};
 use crate::syntax::green::{GreenChild, GreenNode, GreenToken};
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::rewrite::{RewriteAction, Rewriter};
-use crate::tokens::{Token, TokenKind, Trivia};
+use crate::syntax::visitor::{PreorderWithTokens, WalkEvent};
+use crate::tokens::{Token, TokenKind, Trivia, TriviaBuf};
 use std::fmt::Debug;
 use std::io::{self, Write};
-use std::iter;
+use std::iter::FusedIterator;
+use std::ops::Range;
 use std::sync::Arc;
+use std::{iter, slice};
 
+/// A union of either a child or a token
 pub type SyntaxElement = Child<SyntaxNode, SyntaxToken>;
 
 impl SyntaxElement {
@@ -84,6 +90,13 @@ impl SyntaxElement {
             Child::Token(token) => Some(token.parent()),
         }
     }
+
+    pub fn kind(&self) -> ChildKind {
+        match self {
+            Child::Node(node) => Child::Node(node.kind()),
+            Child::Token(token) => Child::Token(token.kind()),
+        }
+    }
 }
 
 impl From<SyntaxNode> for SyntaxElement {
@@ -98,6 +111,8 @@ impl From<SyntaxToken> for SyntaxElement {
     }
 }
 
+/// SyntaxTokens, in conjunction with [SyntaxNode]s
+/// are the building blocks of the concrete syntax tree.
 #[derive(Clone, Eq, PartialEq)]
 pub struct SyntaxToken(Arc<SyntaxTokenData>);
 
@@ -126,18 +141,46 @@ impl SyntaxToken {
         }))
     }
 
+    /// Returns the offset in bytes of this token.
+    /// This includes leading trivia.
     pub fn offset(&self) -> usize {
         self.0.offset
     }
 
+    /// Returns the offset of the text-portion only.
+    /// This is similar to [SyntaxToken::offset], but excludes leading trivia.
+    pub fn text_offset(&self) -> usize {
+        self.offset() + self.leading_trivia().byte_len()
+    }
+
+    /// Returns the full byte range covered by this token, including its leading trivia.
+    ///
+    /// Use this for tree traversal, where every byte must belong to exactly one token.
+    /// For user-facing spans (diagnostics, highlights, hover), prefer [`text_range`](Self::text_range).
+    pub fn range(&self) -> Range<usize> {
+        self.offset()..self.offset() + self.byte_len()
+    }
+
+    /// Returns the byte range of this token's text, excluding leading trivia.
+    ///
+    /// This is the span a user perceives as "the token" — what to point at in diagnostics
+    /// or highlight on hover. Gaps between successive `text_range`s contain trivia
+    /// (whitespace and comments). For the full extent including trivia, see [`range`](Self::range).
+    pub fn text_range(&self) -> Range<usize> {
+        self.text_offset()..self.offset() + self.byte_len()
+    }
+
+    /// Returns the token associated to this `SyntaxToken`
     pub fn token(&self) -> &Token {
         self.green().token()
     }
 
+    /// Returns the length, in bytes, of this token (including leading trivia)
     pub fn byte_len(&self) -> usize {
         self.green().byte_len()
     }
 
+    /// Returns the token-kind
     pub fn kind(&self) -> TokenKind {
         self.green().kind()
     }
@@ -151,22 +194,20 @@ impl SyntaxToken {
     /// Returns all trailing trivia between this token and the next one, resp. only the trailing
     /// trivia of this token, if there is no next token.
     /// TODO: After trivia-interning, we should be able to return `&Trivia` here, similar to `leading_trivia`
-    pub fn trailing_trivia(&self) -> Trivia {
+    pub fn trailing_trivia(&self) -> TriviaBuf {
         self.next_token()
             .map(|tok| tok.leading_trivia().to_owned())
             .unwrap_or_default()
     }
 
+    /// Returns the token-text, stripped of any trivia
     pub fn text(&self) -> &Latin1Str {
         self.green().text()
     }
 
+    /// Returns the parent node that contains this token
     pub fn parent(&self) -> SyntaxNode {
         self.0.parent.clone()
-    }
-
-    pub fn text_pos(&self) -> usize {
-        self.0.offset
     }
 
     pub fn ancestors(&self) -> impl Iterator<Item = SyntaxNode> {
@@ -177,40 +218,75 @@ impl SyntaxToken {
         self.0.parent.children_with_tokens()
     }
 
+    /// Returns the previous child or token.
+    ///
+    /// # Example
+    ///
+    /// If the previous element is a node, `prev_sibling` selects the node
+    ///
+    /// ```text
+    /// Parent
+    /// ├── Previous node  <- prev_sibling()
+    /// │   └── "previous"
+    /// └── Self           <- self
+    ///     └── "current"
+    /// ```
+    ///
+    /// If the previous element is a token, `prev_sibling` selects the token
+    ///
+    /// ```text
+    /// Parent
+    /// ├── "previous"  <- prev_sibling()
+    /// └── Self           <- self
+    ///     └── "current"
+    /// ```
     pub fn prev_sibling_or_token(&self) -> Option<SyntaxElement> {
         self.siblings().nth(self.index().checked_sub(1)?)
     }
 
+    /// Returns the next child or token.
+    ///
+    /// # Example
+    ///
+    /// If `self` is the second child, `prev_sibling` selects the first element
+    ///
+    /// ```text
+    /// Parent
+    /// ├── Previous node  <- prev_sibling()
+    /// │   └── "previous"
+    /// └── Self           <- self
+    ///     └── "current"
+    /// ```
     pub fn next_sibling_or_token(&self) -> Option<SyntaxElement> {
         self.siblings().nth(self.index().checked_add(1)?)
     }
 
     pub fn prev_token(&self) -> Option<SyntaxToken> {
         match self.prev_sibling_or_token() {
-            Some(element) => element.last_token(),
+            Some(element) => Some(element.last_token()),
             None => self
                 .ancestors()
                 .find_map(|it| it.prev_sibling_or_token())
-                .and_then(|element| element.last_token()),
+                .map(|element| element.last_token()),
         }
     }
 
     pub fn next_token(&self) -> Option<SyntaxToken> {
         match self.next_sibling_or_token() {
-            Some(element) => element.first_token(),
+            Some(element) => Some(element.first_token()),
             None => self
                 .ancestors()
                 .find_map(|node| node.next_sibling_or_token())
-                .and_then(|element| element.first_token()),
+                .map(|element| element.first_token()),
         }
     }
 
-    pub fn clone_with_text(&self, text: impl Into<Box<Latin1Str>>) -> SyntaxToken {
-        let token = Token::new(self.kind(), text, self.green().leading_trivia().clone());
+    pub fn clone_with_text(&self, text: impl AsRef<Latin1Str>) -> SyntaxToken {
+        let token = Token::new(self.kind(), text, self.green().leading_trivia().to_owned());
         self.clone_with_token(token)
     }
 
-    pub fn clone_with_leading_trivia(&self, trivia: Trivia) -> SyntaxToken {
+    pub fn clone_with_leading_trivia(&self, trivia: TriviaBuf) -> SyntaxToken {
         let token = Token::new(self.kind(), self.green().text(), trivia);
         self.clone_with_token(token)
     }
@@ -251,6 +327,18 @@ impl SyntaxToken {
     pub fn is_last_sibling(&self) -> bool {
         self.next_sibling_or_token().is_none()
     }
+
+    /// Returns `true` if `offset` lies within [`range`](Self::range), i.e. within this
+    /// token or its leading trivia. Use when descending the tree.
+    pub fn contains_offset(&self, offset: usize) -> bool {
+        self.range().contains(&offset)
+    }
+
+    /// Returns `true` if `offset` lies within [`text_range`](Self::text_range), i.e. on
+    /// the token's text and not in surrounding trivia. Use for cursor-on-token queries.
+    pub fn text_contains_offset(&self, offset: usize) -> bool {
+        self.text_range().contains(&offset)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -261,6 +349,22 @@ pub struct SyntaxTokenData {
     green: GreenToken,
 }
 
+/// SyntaxNodes, in conjunction with [SyntaxToken]s
+/// are the building blocks of the concrete syntax tree.
+/// Every syntax node carries
+/// - the [NodeKind], e.g., `EntityDeclaration`, `Name`, ...
+/// - One or more children where each child is either another node or a token
+/// - its position in the tree: the parent, and an index into the parent node
+///
+/// ## Tree traversal
+/// Since a syntax node carries its parent and an index into the parent,
+/// the tree can be traversed: children of this node, siblings, and parents can be visited from this node.
+/// Use, for example, the [SyntaxNode::parent], [SyntaxNode::children], [SyntaxNode::prev_sibling], [SyntaxNode::next_sibling] methods
+///
+/// ## Construction
+/// Syntax nodes are never constructed by the user directly.
+/// Instead, they are either produced by the [parser](crate::parser),
+/// or by one of the [builders](crate::syntax::builders)
 #[derive(Clone, Eq, PartialEq)]
 pub struct SyntaxNode(Arc<SyntaxNodeData>);
 
@@ -273,6 +377,73 @@ impl Debug for SyntaxNode {
     }
 }
 
+/// Iterator over the direct children (nodes and tokens) of a [SyntaxNode].
+#[derive(Debug, Clone)]
+pub struct ChildrenWithTokens<'a> {
+    index: usize,
+    itr: slice::Iter<'a, GreenChild>,
+    offset: usize,
+    parent: SyntaxNode,
+}
+
+impl<'a> ChildrenWithTokens<'a> {
+    pub fn kind_at(&self, index: usize) -> Option<ChildKind> {
+        self.itr.as_slice().get(index).map(|child| child.kind())
+    }
+}
+
+impl<'a> Iterator for ChildrenWithTokens<'a> {
+    type Item = SyntaxElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let child = self.itr.next()?;
+        let child_len = child.byte_len();
+        let next_child = match child {
+            Child::Token(token) => Child::Token(SyntaxToken::new(
+                self.offset,
+                self.index,
+                self.parent.clone(),
+                token.clone(),
+            )),
+            Child::Node(node) => Child::Node(SyntaxNode::new_child(
+                self.offset,
+                self.index,
+                self.parent.clone(),
+                node.clone(),
+            )),
+        };
+        self.offset += child_len;
+        self.index += 1;
+        Some(next_child)
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        for _ in 0..n {
+            let child = self.itr.next()?;
+            self.offset += child.byte_len();
+            self.index += 1;
+        }
+        self.next()
+    }
+
+    fn last(mut self) -> Option<Self::Item> {
+        let len = self.len();
+        self.nth(len.checked_sub(1)?)
+    }
+
+    fn count(self) -> usize {
+        self.len()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.itr.size_hint()
+    }
+}
+
+impl<'a> ExactSizeIterator for ChildrenWithTokens<'a> {}
+
+impl<'a> FusedIterator for ChildrenWithTokens<'a> {}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct SyntaxNodeData {
     offset: usize,
@@ -282,107 +453,179 @@ pub struct SyntaxNodeData {
 }
 
 impl SyntaxNode {
+    /// Returns the parent, i.e., the syntax node that has this as a direct child.
     pub fn parent(&self) -> Option<SyntaxNode> {
         self.0.parent.clone()
     }
 
+    /// Returns the kind of this node
     pub fn kind(&self) -> NodeKind {
         self.0.green.kind()
     }
 
+    /// Returns the absolute byte-offset of this syntax node from the origin
     pub fn offset(&self) -> usize {
         self.0.offset
     }
 
+    /// Returns the length, in bytes, of the text contained within this syntax nodes
     pub fn byte_len(&self) -> usize {
         self.green().byte_len()
     }
 
-    pub fn children_with_tokens(
-        &self,
-    ) -> impl Iterator<Item = Child<SyntaxNode, SyntaxToken>> + use<'_> {
-        let parent_offset = self.offset();
-        self.green()
-            .children()
-            .enumerate()
-            .scan(0usize, move |run, (i, child)| {
-                let child_offset = parent_offset + *run;
-                *run += child.byte_len();
-                Some(match child {
-                    Child::Token(t) => {
-                        Child::Token(SyntaxToken::new(child_offset, i, self.clone(), t.clone()))
-                    }
-                    Child::Node(n) => Child::Node(SyntaxNode::new_child(
-                        child_offset,
-                        i,
-                        self.clone(),
-                        n.clone(),
-                    )),
-                })
-            })
+    /// Produces an iterator over all direct children of this node in lexicographical order
+    /// (i.e., as written in the source text).
+    /// As opposed of simply [SyntaxNode::children], this includes tokens too.
+    pub fn children_with_tokens(&self) -> ChildrenWithTokens<'_> {
+        ChildrenWithTokens {
+            index: 0,
+            itr: self.green().children(),
+            offset: self.offset(),
+            parent: self.clone(),
+        }
     }
 
+    /// Produces an iterator over all direct (i.e., not nested) child syntax nodes.
+    /// To iterate over all child nodes and all tokens use [SyntaxNode::children_with_tokens]
     pub fn children(&self) -> impl Iterator<Item = SyntaxNode> + use<'_> {
         self.children_with_tokens()
             .filter_map(|child| child.as_node())
     }
 
-    pub fn first_token(&self) -> Option<SyntaxToken> {
-        self.children_with_tokens()
-            .filter_map(|node| match node {
-                SyntaxElement::Node(n) => n.first_token(),
-                SyntaxElement::Token(t) => Some(t),
-            })
-            .next()
-    }
-
+    /// Returns an iterator over all direct (i.e., not nested) child tokens.
+    /// To iterate over all child nodes and all tokens use [SyntaxNode::children_with_tokens]
     pub fn tokens(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
         self.children_with_tokens()
             .filter_map(|element| element.as_token())
     }
 
+    /// Return the first token of this node.
+    /// Note that this method searches deep, i.e., also considers tokens of sub-nodes
+    pub fn first_token(&self) -> SyntaxToken {
+        self.first_child_or_token().first_token()
+    }
+
+    /// Returns the first child-node of this node.
+    ///
+    /// Returns `None` if this node contains only tokens.
     pub fn first_child(&self) -> Option<SyntaxNode> {
         self.children().next()
     }
 
-    pub fn first_child_or_token(&self) -> Option<SyntaxElement> {
-        self.children_with_tokens().next()
+    /// Returns the first element in this node, i.e, a `SyntaxToken` if its a token
+    /// or a `SyntaxNode` if its a node
+    pub fn first_child_or_token(&self) -> SyntaxElement {
+        self.children_with_tokens()
+            .next()
+            .expect("invariant: a SyntaxNode is never empty")
     }
 
+    /// Returns the `nth` child (i.e., syntax node) of this node
     pub fn nth_child(&self, n: usize) -> Option<SyntaxNode> {
         self.children().nth(n)
     }
 
-    pub fn nth_child_or_token(&self, n: usize) -> Option<Child<SyntaxNode, SyntaxToken>> {
+    /// Returns the `nth` child or token of this node
+    pub fn nth_child_or_token(&self, n: usize) -> Option<SyntaxElement> {
         self.children_with_tokens().nth(n)
     }
 
-    pub fn prev_sibling(&self) -> Option<Child<SyntaxNode, SyntaxToken>> {
+    /// Returns the previous sibling node
+    pub fn prev_sibling(&self) -> Option<SyntaxNode> {
         self.parent()?
-            .nth_child_or_token(self.index().checked_sub(1)?)
+            .children_with_tokens()
+            .take(self.index())
+            .filter_map(|child| child.as_node())
+            .last()
     }
 
+    /// Returns the next sibling node
     pub fn next_sibling(&self) -> Option<SyntaxNode> {
-        self.parent()?.nth_child(self.0.index + 1)
+        self.parent()?
+            .children_with_tokens()
+            .skip(self.index() + 1)
+            .find_map(|child| child.as_node())
     }
 
-    pub fn last_token(&self) -> Option<SyntaxToken> {
-        self.last_child_or_token()?.last_token()
+    /// Returns the previous child or token.
+    ///
+    /// # Example
+    ///
+    /// If the previous element is a node, `prev_sibling` selects the node
+    ///
+    /// ```text
+    /// Parent
+    /// ├── Previous node  <- prev_sibling()
+    /// │   └── "previous"
+    /// └── Self           <- self
+    ///     └── "current"
+    /// ```
+    ///
+    /// If the previous element is a token, `prev_sibling` selects the token
+    ///
+    /// ```text
+    /// Parent
+    /// ├── "previous"  <- prev_sibling()
+    /// └── Self           <- self
+    ///     └── "current"
+    /// ```
+    pub fn prev_sibling_or_token(&self) -> Option<SyntaxElement> {
+        self.parent()?
+            .children_with_tokens()
+            .nth(self.index().checked_sub(1)?)
     }
 
-    pub fn last_child_or_token(&self) -> Option<SyntaxElement> {
-        self.children_with_tokens().last()
+    /// Returns the next child or token.
+    ///
+    /// # Example
+    ///
+    /// If `self` is the second child, `prev_sibling` selects the first element
+    ///
+    /// ```text
+    /// Parent
+    /// ├── Previous node  <- prev_sibling()
+    /// │   └── "previous"
+    /// └── Self           <- self
+    ///     └── "current"
+    /// ```
+    pub fn next_sibling_or_token(&self) -> Option<SyntaxElement> {
+        self.parent()?
+            .children_with_tokens()
+            .nth(self.index().checked_add(1)?)
     }
 
+    /// Returns the last token of this node.
+    /// Note that this method searches deep, i.e., also considers tokens of sub-nodes
+    pub fn last_token(&self) -> SyntaxToken {
+        self.last_child_or_token().last_token()
+    }
+
+    /// Returns the last child or token of the direct children of this node
+    pub fn last_child_or_token(&self) -> SyntaxElement {
+        self.children_with_tokens()
+            .last()
+            .expect("invariant: a SyntaxNode is never empty")
+    }
+
+    /// Return an iterator over all ancestors of this node, i.e., the parent,
+    /// the parent of the parent, e.t.c.
     pub fn ancestors(&self) -> impl Iterator<Item = SyntaxNode> {
         iter::successors(Some(self.clone()), SyntaxNode::parent)
     }
 
-    pub fn rewrite(&self, rewrite: impl FnMut(&SyntaxElement) -> RewriteAction) -> SyntaxNode {
+    /// Rewrite this node, i.e., change selected elements and produce a different `SyntaxNode`
+    pub fn rewrite(
+        &self,
+        rewrite: impl FnMut(&SyntaxElement) -> RewriteAction,
+    ) -> Option<SyntaxNode> {
         Rewriter::new(rewrite).rewrite(self.clone())
     }
 
-    pub fn rewrite_nodes(&self, rewrite: impl Fn(&SyntaxNode) -> RewriteAction) -> SyntaxNode {
+    /// Rewrite nodes. Like [SyntaxNode::rewrite], but only called on nodes
+    pub fn rewrite_nodes(
+        &self,
+        rewrite: impl Fn(&SyntaxNode) -> RewriteAction,
+    ) -> Option<SyntaxNode> {
         Rewriter::new(|element| match element {
             SyntaxElement::Node(node) => rewrite(node),
             SyntaxElement::Token(_) => RewriteAction::Leave,
@@ -390,7 +633,11 @@ impl SyntaxNode {
         .rewrite(self.clone())
     }
 
-    pub fn rewrite_tokens(&self, rewrite: impl Fn(&SyntaxToken) -> RewriteAction) -> SyntaxNode {
+    /// Rewrite tokens. Like [SyntaxNode::rewrite], but only called on tokens
+    pub fn rewrite_tokens(
+        &self,
+        rewrite: impl Fn(&SyntaxToken) -> RewriteAction,
+    ) -> Option<SyntaxNode> {
         Rewriter::new(|element| match element {
             SyntaxElement::Node(_) => RewriteAction::Leave,
             SyntaxElement::Token(token) => rewrite(token),
@@ -424,18 +671,6 @@ impl SyntaxNode {
         self.0.index
     }
 
-    fn prev_sibling_or_token(&self) -> Option<SyntaxElement> {
-        self.parent()?
-            .children_with_tokens()
-            .nth(self.index().checked_sub(1)?)
-    }
-
-    fn next_sibling_or_token(&self) -> Option<SyntaxElement> {
-        self.parent()?
-            .children_with_tokens()
-            .nth(self.index().checked_add(1)?)
-    }
-
     #[cfg(test)]
     pub(crate) fn test_text(&self) -> String {
         self.green().test_text(0)
@@ -444,26 +679,147 @@ impl SyntaxNode {
     pub fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         self.green().write_to(writer)
     }
+
+    /// Returns the full byte range covered by this node.
+    pub fn range(&self) -> Range<usize> {
+        self.offset()..self.offset() + self.byte_len()
+    }
+
+    /// Returns the byte range of this node's text, excluding leading trivia.
+    pub fn text_range(&self) -> Range<usize> {
+        self.offset() + self.first_token().leading_trivia().byte_len()
+            ..self.offset() + self.byte_len()
+    }
+
+    /// Returns `true` if `offset` lies within [`range`](Self::range).
+    pub fn contains_offset(&self, offset: usize) -> bool {
+        self.range().contains(&offset)
+    }
+
+    // TODO: Add binary search capabilitiy.
+    // children are ordered by their text position.
+    // We can make use of this to make finding a token more efficiently.
+
+    /// Descends from this node, at each level taking the first child matching
+    /// `predicate`, and returns the token reached at the leaf.
+    ///
+    /// Returns `None` if no child matches at some level along the descent.
+    pub fn find_token(&self, predicate: impl Fn(&SyntaxElement) -> bool) -> Option<SyntaxToken> {
+        let mut current: SyntaxNode = self.clone();
+        loop {
+            let child = current.children_with_tokens().find(&predicate)?;
+            match child {
+                Child::Token(tok) => return Some(tok),
+                Child::Node(node) => current = node,
+            }
+        }
+    }
+
+    /// Returns the token whose [`text_range`](SyntaxToken::text_range) contains `offset`.
+    ///
+    /// Returns `None` if `offset` lies in trivia (whitespace or comments) or
+    /// outside this subtree. For a total variant that always returns a token,
+    /// see [`covering_token_at_offset`](Self::covering_token_at_offset).
+    ///
+    /// At a token/token boundary with no trivia between, `offset` is attributed
+    /// to the following token (half-open ranges).
+    pub fn token_at_offset(&self, offset: usize) -> Option<SyntaxToken> {
+        self.find_token(|child| match child {
+            Child::Node(node) => node.contains_offset(offset),
+            Child::Token(tok) => tok.text_contains_offset(offset),
+        })
+    }
+
+    /// Returns the token whose [`range`](SyntaxToken::range) (including leading
+    /// trivia) contains `offset`, clamping to the first or last token when
+    /// `offset` lies outside this subtree.
+    ///
+    /// Unlike [`token_at_offset`](Self::token_at_offset), an offset inside
+    /// trivia is attributed to the following token rather than returning
+    /// `None`. Useful when a caller needs some token to anchor an action on
+    /// (e.g. a cursor position in an editor).
+    pub fn covering_token_at_offset(&self, offset: usize) -> SyntaxToken {
+        match self.find_token(|child| match child {
+            Child::Node(node) => node.contains_offset(offset),
+            Child::Token(tok) => tok.contains_offset(offset),
+        }) {
+            Some(token) => token,
+            None => {
+                let first_tok = self.first_token();
+                if offset < first_tok.offset() {
+                    first_tok
+                } else {
+                    self.last_token()
+                }
+            }
+        }
+    }
+
+    /// Walks this node and everything below it in textual order.
+    ///
+    /// This is the most general traversal. Unless that is needed, one of
+    /// [descendants](Self::descendants), [descendants_with_tokens](Self::descendants_with_tokens)
+    /// or [visit_tokens](Self::visit_tokens) is usually simpler.
+    ///
+    /// The iterator yields
+    /// - a [WalkEvent::Enter] when entering a node, starting with this node itself,
+    /// - a [WalkEvent::Leave] when leaving a node, ending with this node itself,
+    /// - a [WalkEvent::Token] when visiting a token.
+    pub fn walk(&self) -> PreorderWithTokens {
+        PreorderWithTokens::new(self.clone())
+    }
+
+    /// Returns an iterator over this node and all nodes below it, in textual order.
+    /// Tokens are not visited; use [descendants_with_tokens](Self::descendants_with_tokens)
+    /// to visit those as well.
+    // TODO: could optimize performance further using a dedicated iterator.
+    // This currently visits both nodes and tokens and only filters nodes
+    pub fn descendants(&self) -> impl Iterator<Item = SyntaxNode> + use<'_> {
+        PreorderWithTokens::new(self.clone()).filter_map(|event| match event {
+            WalkEvent::Enter(node) => Some(node),
+            _ => None,
+        })
+    }
+
+    /// Returns an iterator over this node and every node as well as token below it,
+    /// in textual order.
+    pub fn descendants_with_tokens(&self) -> impl Iterator<Item = SyntaxElement> + use<'_> {
+        PreorderWithTokens::new(self.clone()).filter_map(|event| match event {
+            WalkEvent::Enter(node) => Some(SyntaxElement::Node(node)),
+            WalkEvent::Token(token) => Some(SyntaxElement::Token(token)),
+            _ => None,
+        })
+    }
+
+    /// Returns an iterator over all tokens below this node, in textual order.
+    /// As opposed to [tokens](Self::tokens), this searches deep, i.e., it also returns the
+    /// tokens of sub-nodes.
+    pub fn visit_tokens(&self) -> impl Iterator<Item = SyntaxToken> + use<'_> {
+        PreorderWithTokens::new(self.clone()).filter_map(|event| match event {
+            WalkEvent::Token(token) => Some(token),
+            _ => None,
+        })
+    }
 }
 
 impl SyntaxElement {
-    pub fn last_token(&self) -> Option<SyntaxToken> {
+    pub fn last_token(&self) -> SyntaxToken {
         match self {
-            Child::Token(token) => Some(token.clone()),
+            Child::Token(token) => token.clone(),
             Child::Node(node) => node.last_token(),
         }
     }
 
-    pub fn first_token(&self) -> Option<SyntaxToken> {
+    pub fn first_token(&self) -> SyntaxToken {
         match self {
             SyntaxElement::Node(node) => node.first_token(),
-            SyntaxElement::Token(token) => Some(token.clone()),
+            SyntaxElement::Token(token) => token.clone(),
         }
     }
 
     pub fn offset(&self) -> usize {
         match self {
-            Child::Token(token) => token.text_pos(),
+            Child::Token(token) => token.offset(),
             Child::Node(node) => node.offset(),
         }
     }
@@ -478,25 +834,20 @@ impl SyntaxElement {
 
 #[cfg(test)]
 mod tests {
-    use crate::syntax::green::{GreenChild, GreenNode, GreenNodeData};
+    use crate::syntax::green::{GreenChild, GreenNode, GreenToken};
     use crate::syntax::node::{SyntaxElement, SyntaxNode};
     use crate::syntax::node_kind::NodeKind::*;
     use crate::syntax::rewrite::RewriteAction;
     use crate::tokens::Tokenize;
-    use crate::tokens::{Keyword, Token, TokenKind, Trivia, TriviaPiece};
+    use crate::tokens::{Keyword, Token, TokenKind, TriviaBuf, TriviaPiece};
     use pretty_assertions::assert_eq;
     use std::collections::VecDeque;
 
     #[test]
     fn no_leading_trivia() {
         let token = Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity");
-        let mut green_node = GreenNodeData::new(EntityDeclaration);
-        green_node.push_token(token);
-        let node = SyntaxNode::new_root(GreenNode::new(green_node));
-        assert_eq!(
-            node.first_token().unwrap().leading_trivia(),
-            &Trivia::default()
-        );
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(EntityDeclaration, [token]));
+        assert_eq!(node.first_token().leading_trivia(), &TriviaBuf::default());
     }
 
     #[test]
@@ -504,14 +855,12 @@ mod tests {
         let token = Token::new(
             TokenKind::Keyword(Keyword::Entity),
             b"entity",
-            Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
+            TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
         );
-        let mut green_node = GreenNodeData::new(EntityDeclaration);
-        green_node.push_token(token);
-        let node = SyntaxNode::new_root(GreenNode::new(green_node));
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(EntityDeclaration, [token]));
         assert_eq!(
-            node.first_token().unwrap().leading_trivia(),
-            &Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
+            node.first_token().leading_trivia(),
+            &TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
         );
     }
 
@@ -521,33 +870,26 @@ mod tests {
             Token::new(
                 TokenKind::Keyword(Keyword::Entity),
                 b"entity",
-                Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
+                TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
             ),
             Token::new(
                 TokenKind::Identifier,
                 b"foo",
-                Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
+                TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
             ),
         ];
-        let mut green_node = GreenNodeData::new(EntityDeclaration);
-        green_node.push_tokens(tokens);
-        let node = SyntaxNode::new_root(GreenNode::new(green_node));
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(EntityDeclaration, tokens));
         assert_eq!(
             node.tokens().nth(1).unwrap().leading_trivia(),
-            &Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
+            &TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
         );
     }
 
     #[test]
     fn no_trailing_trivia() {
         let token = Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity");
-        let mut green_node = GreenNodeData::new(EntityDeclaration);
-        green_node.push_token(token);
-        let node = SyntaxNode::new_root(GreenNode::new(green_node));
-        assert_eq!(
-            node.first_token().unwrap().trailing_trivia(),
-            Trivia::default()
-        );
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(EntityDeclaration, [token]));
+        assert_eq!(node.first_token().trailing_trivia(), TriviaBuf::default());
     }
 
     #[test]
@@ -556,30 +898,34 @@ mod tests {
             Token::new(
                 TokenKind::Keyword(Keyword::Entity),
                 b"entity",
-                Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
+                TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
             ),
             Token::new(
                 TokenKind::Identifier,
                 b"foo",
-                Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
+                TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)]),
             ),
         ];
-        let mut green_node = GreenNodeData::new(EntityDeclaration);
-        green_node.push_tokens(tokens);
-        let node = SyntaxNode::new_root(GreenNode::new(green_node));
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(EntityDeclaration, tokens));
         assert_eq!(
-            node.first_token().unwrap().trailing_trivia(),
-            Trivia::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
+            node.first_token().trailing_trivia(),
+            TriviaBuf::from([TriviaPiece::Spaces(2), TriviaPiece::LineFeeds(1)])
         );
     }
 
     #[test]
     fn no_rewrite_is_noop() {
-        let orig_tokens = "entity foo is end foo".tokenize().collect::<Vec<_>>();
-        let mut data = GreenNodeData::new(EntityDeclaration);
-        data.push_tokens(orig_tokens.clone());
-        let node = SyntaxNode::new_root(GreenNode::new(data));
-        let new_node = node.rewrite(|_| RewriteAction::Leave);
+        let orig_tokens = "entity foo is end foo"
+            .tokenize()
+            .map(|(tok, _)| tok)
+            .collect::<Vec<_>>();
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(
+            EntityDeclaration,
+            orig_tokens.clone(),
+        ));
+        let new_node = node
+            .rewrite(|_| RewriteAction::Leave)
+            .expect("nothing was removed");
         let new_tokens = new_node
             .tokens()
             .map(|syntax_token| syntax_token.token().clone())
@@ -589,36 +935,48 @@ mod tests {
 
     #[test]
     fn rewrite_tokens() {
-        let mut data = GreenNodeData::new(EntityDeclaration);
-        data.push_tokens("entity foo is end foo;".tokenize());
-        let node = SyntaxNode::new_root(GreenNode::new(data));
-        let new_node = node.rewrite_tokens(|tok| {
-            if tok.text() == "foo" {
-                RewriteAction::Change(SyntaxElement::Token(tok.clone_with_text(b"bar")))
-            } else {
-                RewriteAction::Leave
-            }
-        });
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(
+            EntityDeclaration,
+            "entity foo is end foo;".tokenize().map(|(tok, _)| tok),
+        ));
+        let new_node = node
+            .rewrite_tokens(|tok| {
+                if tok.text() == "foo" {
+                    RewriteAction::Change(SyntaxElement::Token(tok.clone_with_text(b"bar")))
+                } else {
+                    RewriteAction::Leave
+                }
+            })
+            .expect("nothing was removed");
         let new_tokens = new_node
             .tokens()
             .map(|syntax_token| syntax_token.token().clone())
             .collect::<VecDeque<_>>();
         assert_eq!(
             new_tokens,
-            "entity bar is end bar;".tokenize().collect::<Vec<_>>()
+            "entity bar is end bar;"
+                .tokenize()
+                .map(|(tok, _)| tok)
+                .collect::<Vec<_>>()
         );
     }
 
     #[test]
     fn rewrite_does_not_modify_self() {
-        let orig_tokens = "entity foo is end foo".tokenize().collect::<Vec<_>>();
-        let mut data = GreenNodeData::new(EntityDeclaration);
-        data.push_tokens(orig_tokens.clone());
-        let node = SyntaxNode::new_root(GreenNode::new(data));
-        let new_node = node.rewrite_nodes(|node| match node.kind() {
-            EntityDeclaration => panic!("Should not modify self"),
-            _ => RewriteAction::Leave,
-        });
+        let orig_tokens = "entity foo is end foo"
+            .tokenize()
+            .map(|(tok, _)| tok)
+            .collect::<Vec<_>>();
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(
+            EntityDeclaration,
+            orig_tokens.clone(),
+        ));
+        let new_node = node
+            .rewrite_nodes(|node| match node.kind() {
+                EntityDeclaration => panic!("Should not modify self"),
+                _ => RewriteAction::Leave,
+            })
+            .expect("nothing was removed");
         let new_tokens = new_node
             .tokens()
             .map(|syntax_token| syntax_token.token().clone())
@@ -627,25 +985,101 @@ mod tests {
     }
 
     #[test]
+    fn text_range_excludes_leading_trivia() {
+        let node = SyntaxNode::new_root(GreenNode::from_tokens(
+            EntityDeclaration,
+            [
+                Token::new(
+                    TokenKind::Keyword(Keyword::Entity),
+                    b"entity",
+                    TriviaBuf::from([TriviaPiece::Spaces(2)]),
+                ),
+                Token::simple(TokenKind::Identifier, b"foo"),
+            ],
+        ));
+        let first = node.first_token();
+
+        assert_eq!(first.range(), 0..8);
+        assert_eq!(first.text_range(), 2..8);
+        assert_eq!(first.text(), "entity");
+    }
+
+    fn interleaved_root() -> SyntaxNode {
+        let semicolon =
+            || GreenChild::Token(GreenToken::new(Token::simple(TokenKind::SemiColon, b";")));
+        let entity = GreenChild::Node(GreenNode::from_tokens(
+            EntityDeclaration,
+            [Token::simple(
+                TokenKind::Keyword(Keyword::Entity),
+                b"entity",
+            )],
+        ));
+        let architecture = GreenChild::Node(GreenNode::from_tokens(
+            ArchitectureBody,
+            [Token::simple(
+                TokenKind::Keyword(Keyword::Architecture),
+                b"architecture",
+            )],
+        ));
+        SyntaxNode::new_root(GreenNode::from_children(
+            DesignFile,
+            [semicolon(), entity, semicolon(), architecture, semicolon()],
+        ))
+    }
+
+    #[test]
+    fn next_sibling_skips_tokens() {
+        let root = interleaved_root();
+        let entity = root.first_child().expect("has an entity child");
+        assert_eq!(entity.kind(), EntityDeclaration);
+
+        let architecture = entity.next_sibling().expect("has a next sibling node");
+        assert_eq!(architecture.kind(), ArchitectureBody);
+        // Only tokens follow the architecture body
+        assert!(architecture.next_sibling().is_none());
+    }
+
+    #[test]
+    fn prev_sibling_skips_tokens() {
+        let root = interleaved_root();
+        let architecture = root.nth_child(1).expect("has an architecture child");
+        assert_eq!(architecture.kind(), ArchitectureBody);
+
+        let entity = architecture
+            .prev_sibling()
+            .expect("has a previous sibling node");
+        assert_eq!(entity.kind(), EntityDeclaration);
+        assert!(entity.prev_sibling().is_none());
+    }
+
+    #[test]
+    fn root_has_no_siblings() {
+        let root = interleaved_root();
+        assert!(root.prev_sibling().is_none());
+        assert!(root.next_sibling().is_none());
+    }
+
+    #[test]
     fn next_token() {
-        let mut top = GreenNodeData::new(DesignFile);
-        let mut n1 = GreenNodeData::new(EntityDeclaration);
-        n1.push_tokens([
-            Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity"),
-            Token::simple(TokenKind::Identifier, b"foo"),
-        ]);
-        let n1 = GreenNode::new(n1);
-        let mut n2 = GreenNodeData::new(ArchitectureBody);
-        n2.push_tokens([
-            Token::simple(TokenKind::Keyword(Keyword::Architecture), b"architecture"),
-            Token::simple(TokenKind::Identifier, b"bar"),
-        ]);
-        let n2 = GreenNode::new(n2);
+        let n1 = GreenNode::from_tokens(
+            EntityDeclaration,
+            [
+                Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity"),
+                Token::simple(TokenKind::Identifier, b"foo"),
+            ],
+        );
+        let n2 = GreenNode::from_tokens(
+            ArchitectureBody,
+            [
+                Token::simple(TokenKind::Keyword(Keyword::Architecture), b"architecture"),
+                Token::simple(TokenKind::Identifier, b"bar"),
+            ],
+        );
+        let top =
+            GreenNode::from_children(DesignFile, [GreenChild::Node(n1), GreenChild::Node(n2)]);
 
-        top.push_children([GreenChild::Node(n1), GreenChild::Node(n2)]);
-
-        let s = SyntaxNode::new_root(GreenNode::new(top));
-        let first_token = s.first_token().expect("Node must have first token");
+        let s = SyntaxNode::new_root(top);
+        let first_token = s.first_token();
         assert!(first_token.kind() == TokenKind::Keyword(Keyword::Entity));
         // Same node
         let second_token = first_token

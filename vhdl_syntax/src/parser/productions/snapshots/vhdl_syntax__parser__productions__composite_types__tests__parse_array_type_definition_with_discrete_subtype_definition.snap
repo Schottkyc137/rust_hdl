@@ -10,12 +10,15 @@ FullTypeDeclaration
     Keyword(Array)
     IndexConstraint
       LeftPar
-      NameExpression
-        Name
-          Identifier 'natural'
+      ExpressionList
+        NameExpression
+          Name
+            NameDesignatorPrefix
+              Identifier 'natural'
       RightPar
     Keyword(Of)
     SubtypeIndication
       Name
-        Identifier 'boolean'
+        NameDesignatorPrefix
+          Identifier 'boolean'
   SemiColon

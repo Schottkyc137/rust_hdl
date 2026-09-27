@@ -1,24 +1,54 @@
 [package]
 name = "vhdl_syntax"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Lukas Scheller"]
 readme = "README.md"
-description = "Library to work with VHDL files"
+description = "VHDL parser for lossless concrete syntax trees"
+categories = ["parser-implementations", "development-tools"]
+keywords = ["vhdl", "parser", "cst", "syntax-tree"]
+documentation = "https://docs.rs/vhdl_syntax"
+homepage = "https://github.com/VHDL-LS/rust_hdl/tree/master/vhdl_syntax"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+publish = true
 
 [dependencies]
-nonzero_ext = "0.3.0"
-serde = { version = "1.0.228", optional = true, features = ["derive"]}
+boxcar.workspace = true
+hashify.workspace = true
+nonzero_ext.workspace = true
+papaya.workspace = true
+rustc-hash.workspace = true
+serde = { workspace = true, optional = true, features = ["derive"] }
 
 [dev-dependencies]
-assert_matches = "1.5.0"
-pretty_assertions = "1.4.1"
-insta = { version = "1.36", features = ["redactions"] }
-similar = { version = "2.7.0", features = ["bytes"] }
+assert_matches.workspace = true
+pretty_assertions.workspace = true
+insta = { workspace = true, features = ["redactions"] }
+similar = { workspace = true, features = ["bytes"] }
+criterion.workspace = true
+rayon.workspace = true
 
 [features]
 serde = ["dep:serde"]
-default = ["serde"]
+default = []
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[bench]]
+name = "tokenize"
+harness = false
+
+[[bench]]
+name = "parse"
+harness = false
+
+[[bench]]
+name = "keyword_from_latin1"
+harness = false
+
+[[bench]]
+name = "tree_walk"
+harness = false

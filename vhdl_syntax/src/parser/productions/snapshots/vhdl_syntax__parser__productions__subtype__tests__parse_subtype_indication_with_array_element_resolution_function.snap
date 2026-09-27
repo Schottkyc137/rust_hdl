@@ -3,13 +3,14 @@ source: vhdl_syntax/src/parser/productions/subtype.rs
 expression: "to_test_text(Parser::subtype_indication, \"(resolve) integer_vector\")"
 ---
 SubtypeIndication
-  ParenthesizedElementResolutionResolutionIndication
+  ParenthesizedElementResolution
     LeftPar
     ElementResolutionResolutionIndication
-      ResolutionIndicationElementResolution
-        NameResolutionIndication
-          Name
+      NameResolutionIndication
+        Name
+          NameDesignatorPrefix
             Identifier 'resolve'
     RightPar
   Name
-    Identifier 'integer_vector'
+    NameDesignatorPrefix
+      Identifier 'integer_vector'

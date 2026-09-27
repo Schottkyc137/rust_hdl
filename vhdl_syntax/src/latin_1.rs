@@ -9,7 +9,7 @@
 //!
 //! In Rust's `String` and `str`, a character is a Unicode scalar value (represented as `char`),
 //! which can be multiple bytes when encoded in UTF-8. In contrast, Latin-1 has a 1:1 mapping
-//! between bytes and characters—each byte (0-255) represents exactly one character.
+//! between bytes and characters. Each byte (0-255) represents exactly one character.
 //! This means [`Latin1String`] and [`Latin1Str`] work directly with bytes, where a single `u8`
 //! is equivalent to a single character, simplifying indexing and iteration.
 //!
@@ -42,6 +42,16 @@
 //! assert_eq!(utf8_string, "café");
 //! ```
 //!
+//! Using [`Latin1Str::to_str`] optimizes the common case where the string is ASCII:
+//!
+//! ```
+//! # use vhdl_syntax::latin_1::Latin1Str;
+//! # use std::borrow::{Borrow, Cow};
+//! let latin1 = Latin1Str::new(b"Hello, World!");
+//! let utf8 = latin1.to_str();
+//! assert!(matches!(utf8, Cow::Borrowed(_)));
+//! ```
+//!
 //! ### From Raw Bytes
 //!
 //! Create a [`Latin1String`] directly from a byte vector or byte slice without validation:
@@ -59,11 +69,11 @@
 //
 // Copyright (c) 2025, Lukas Scheller lukasscheller@icloud.com
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::hash::{Hash, Hasher};
 use std::ops::{self, Range};
 use std::str::{self, FromStr};
-use std::{cmp, fmt, slice};
+use std::{cmp, fmt, slice, vec};
 
 /// An owned Latin-1 string type.
 pub struct Latin1String {
@@ -182,6 +192,10 @@ impl Latin1String {
         self.bytes.push(byte)
     }
 
+    pub fn push_str(&mut self, string: impl AsRef<Latin1Str>) {
+        self.bytes.extend(string.as_ref());
+    }
+
     pub fn append(&mut self, other: &mut Latin1String) {
         self.bytes.append(&mut other.bytes);
     }
@@ -207,13 +221,8 @@ impl Clone for Latin1String {
 }
 
 impl From<&Latin1Str> for Box<Latin1Str> {
-    /// Creates a boxed [`Latin1Str`] from a reference.
-    ///
-    /// This will allocate and clone `value` to it.
     fn from(value: &Latin1Str) -> Self {
-        let boxed: Box<[u8]> = value.inner.into();
-        let rw = Box::into_raw(boxed) as *mut Latin1Str;
-        unsafe { Box::from_raw(rw) }
+        value.to_boxed()
     }
 }
 
@@ -223,6 +232,12 @@ impl From<&mut Latin1Str> for Box<Latin1Str> {
     /// This will allocate and clone `value` to it.
     fn from(value: &mut Latin1Str) -> Self {
         Self::from(&*value)
+    }
+}
+
+impl AsRef<Latin1Str> for Latin1String {
+    fn as_ref(&self) -> &Latin1Str {
+        self.as_latin1_str()
     }
 }
 
@@ -315,6 +330,26 @@ impl Extend<u8> for Latin1String {
 impl<'a> Extend<&'a u8> for Latin1String {
     fn extend<T: IntoIterator<Item = &'a u8>>(&mut self, iter: T) {
         self.bytes.extend(iter);
+    }
+}
+
+impl IntoIterator for Latin1String {
+    type Item = u8;
+
+    type IntoIter = vec::IntoIter<u8>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.bytes.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Latin1String {
+    type Item = &'a u8;
+
+    type IntoIter = slice::Iter<'a, u8>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.bytes.iter()
     }
 }
 
@@ -443,17 +478,64 @@ pub struct Latin1Str {
     inner: [u8],
 }
 
-fn iso_8859_1_lowercase(chr: u8) -> u8 {
+pub fn latin1_char_lowercased(chr: u8) -> u8 {
     match chr {
         b'A'..=b'Z' | 0xC0..=0xD6 | 0xD8..=0xDE => chr + 32,
         _ => chr,
     }
 }
 
-fn iso_8859_1_uppercase(chr: u8) -> u8 {
+pub fn latin1_char_uppercased(chr: u8) -> u8 {
     match chr {
         b'a'..=b'z' | 0xE0..=0xF6 | 0xF8..=0xFE => chr - 32,
         _ => chr,
+    }
+}
+
+/// An iterator over the chars of a Latin-1 encoded string
+pub struct Chars<'a> {
+    iter: slice::Iter<'a, u8>,
+}
+
+impl<'a> Chars<'a> {
+    pub fn new(value: &'a Latin1Str) -> Chars<'a> {
+        Chars {
+            iter: value.inner.iter(),
+        }
+    }
+}
+
+impl<'a> Iterator for Chars<'a> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|byte| *byte as char)
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.iter.count()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        self.iter.last().map(|byte| *byte as char)
+    }
+}
+
+impl<'a> ExactSizeIterator for Chars<'a> {}
+
+impl<'a> DoubleEndedIterator for Chars<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back().map(|byte| *byte as char)
     }
 }
 
@@ -482,8 +564,8 @@ impl Latin1Str {
         Latin1String::from(&self.inner)
     }
 
-    pub fn chars(&self) -> slice::Iter<'_, u8> {
-        self.inner.iter()
+    pub fn chars(&self) -> Chars<'_> {
+        Chars::new(self)
     }
 
     pub fn len(&self) -> usize {
@@ -496,13 +578,13 @@ impl Latin1Str {
 
     pub fn make_lowercase(&mut self) {
         for i in 0..self.inner.len() {
-            self.inner[i] = iso_8859_1_lowercase(self.inner[i]);
+            self.inner[i] = latin1_char_lowercased(self.inner[i]);
         }
     }
 
     pub fn make_uppercase(&mut self) {
         for i in 0..self.inner.len() {
-            self.inner[i] = iso_8859_1_uppercase(self.inner[i]);
+            self.inner[i] = latin1_char_uppercased(self.inner[i]);
         }
     }
 
@@ -535,6 +617,57 @@ impl Latin1Str {
         Latin1String {
             bytes: Vec::from(inner),
         }
+    }
+
+    /// Reinterprets the underlying bytes as a UTF-8 `&str` without
+    /// allocation and validation. For the safe, allocating equivalent
+    /// that handles non-ASCII bytes correctly, use [`Latin1Str::to_str`].
+    ///
+    /// # Safety
+    ///
+    /// The caller must guarantee that every byte in `self` is < 0x80
+    /// (i.e. pure ASCII).
+    ///
+    /// In safe code, guard the call with [`Latin1Str::is_utf8`].
+    pub unsafe fn to_str_unchecked(&self) -> &str {
+        debug_assert!(
+            self.is_utf8(),
+            "called to_str_unchecked with non-ascii bytes"
+        );
+        str::from_utf8_unchecked(&self.inner)
+    }
+
+    /// Checks if all chars in this string are UTF-8 compatible
+    pub fn is_utf8(&self) -> bool {
+        // All ASCII symbols are UTF-8 compatible.
+        // Non-ascii symbols have different encodings.
+        self.inner.is_ascii()
+    }
+
+    pub fn to_str(&self) -> Cow<'_, str> {
+        if self.is_utf8() {
+            // SAFETY: all characters are UTF-8, the Latin1-String can safely be transmuted to a str
+            Cow::Borrowed(unsafe { self.to_str_unchecked() })
+        } else {
+            Cow::Owned(iso_8859_1_to_utf8(&self.inner))
+        }
+    }
+
+    /// Creates a boxed [`Latin1Str`] from this reference
+    pub fn to_boxed(&self) -> Box<Latin1Str> {
+        let boxed: Box<[u8]> = self.inner.into();
+        let raw = Box::into_raw(boxed) as *mut Latin1Str;
+        unsafe { Box::from_raw(raw) }
+    }
+
+    pub fn eq_ignore_case(&self, other: impl AsRef<Latin1Str>) -> bool {
+        // TODO: optimize this. No need to allocate for comparison only
+        self.to_lowercase() == other.as_ref().to_lowercase()
+    }
+
+    pub fn neq_ignore_case(&self, other: impl AsRef<Latin1Str>) -> bool {
+        // TODO: optimize this. No need to allocate for comparison only
+        self.to_lowercase() != other.as_ref().to_lowercase()
     }
 }
 

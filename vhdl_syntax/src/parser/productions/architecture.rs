@@ -1,38 +1,51 @@
 use crate::parser::Parser;
+use crate::syntax::AstNode;
 use crate::syntax::NodeKind::*;
+use crate::syntax::{BlockDeclarativeItemSyntax, ConcurrentStatementSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
-    pub fn architecture(&mut self) {
-        self.start_node(ArchitectureBody);
-        self.architecture_preamble();
-        self.declarations();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.concurrent_statements();
-        self.architecture_epilogue();
-        self.end_node();
+    pub(crate) fn architecture(&mut self) {
+        self.node(ArchitectureBody, |p| {
+            p.architecture_preamble();
+            p.architecture_declarative_part();
+            p.node(DeclarationStatementSeparator, |p| {
+                p.expect_kw(Kw::Begin);
+            });
+            p.architecture_statement_part();
+            p.architecture_epilogue();
+        });
     }
 
-    pub fn architecture_preamble(&mut self) {
-        self.start_node(ArchitecturePreamble);
-        self.expect_kw(Kw::Architecture);
-        self.identifier();
-        self.expect_kw(Kw::Of);
-        self.name();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+    pub(crate) fn architecture_preamble(&mut self) {
+        self.node(ArchitecturePreamble, |p| {
+            p.expect_kw(Kw::Architecture);
+            p.identifier();
+            p.expect_kw(Kw::Of);
+            p.name();
+            p.expect_kw(Kw::Is);
+        });
     }
 
-    pub fn architecture_epilogue(&mut self) {
-        self.start_node(ArchitectureEpilogue);
-        self.opt_token(Keyword(Kw::End));
-        self.opt_token(Keyword(Kw::Architecture));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn architecture_epilogue(&mut self) {
+        self.node(ArchitectureEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Architecture));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub(crate) fn architecture_declarative_part(&mut self) {
+        self.declarations(
+            ArchitectureDeclarativePart,
+            BlockDeclarativeItemSyntax::META,
+        );
+    }
+
+    pub(crate) fn architecture_statement_part(&mut self) {
+        self.concurrent_statements(ArchitectureStatementPart, ConcurrentStatementSyntax::META);
     }
 }
 
@@ -71,5 +84,39 @@ architecture arch_name of myent is
 begin
 end;"
         ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn architecture_missing_of() {
+        assert_recovery_snapshot!(
+            "\
+architecture rtl myent is
+begin
+end;",
+            Parser::architecture
+        );
+    }
+
+    #[test]
+    fn architecture_missing_is() {
+        assert_recovery_snapshot!(
+            "\
+architecture rtl of myent
+begin
+end;",
+            Parser::architecture
+        );
+    }
+
+    #[test]
+    fn architecture_missing_begin() {
+        assert_recovery_snapshot!(
+            "\
+architecture rtl of myent is
+end;",
+            Parser::architecture
+        );
     }
 }

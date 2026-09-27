@@ -7,13 +7,13 @@
 use clap::{Parser, Subcommand};
 use generate::{
     check_generators, run_generators, BuilderGenerator, Generator, MetaGenerator,
-    SyntaxNodeGenerator,
+    SyntaxNodeGenerator, TokenKindGenerator, ValidNodeGenerator,
 };
 use model::load_model;
 use std::path::Path;
-use std::process;
+use std::process::{self, Command};
 
-mod config;
+mod diff;
 mod generate;
 mod model;
 
@@ -26,9 +26,29 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generate AST node code from YAML grammar definitions
+    /// Generate AST node code from the ungrammar grammar definition
     Codegen {
         /// Check that generated files are up-to-date; exit 1 if any differ
+        #[arg(long)]
+        check: bool,
+    },
+    /// Compare the unmodified LRM grammar with the grammar modelled by `vhdl_syntax`,
+    /// ignoring labels and the nesting of unmarked groups. A difference the user
+    /// guide quotes verbatim is counted as explained instead of being listed
+    DiffGrammar {
+        /// Only compare this production instead of the whole grammar
+        #[arg(long)]
+        production: Option<String>,
+        /// Compare the group nesting too, instead of flattening unmarked groups.
+        /// A group carrying no `?` or `*` accepts the same token sequences as its
+        /// elements spelled inline, so the modified grammar's scoping groups are not
+        /// deviations -- this shows them anyway.
+        #[arg(long)]
+        exact: bool,
+    },
+    /// Generate the rule pages of the vhdl-lint book from the rules' doc comments.
+    LintDocs {
+        /// Check that the generated pages are up-to-date; exit 1 if any differ
         #[arg(long)]
         check: bool,
     },
@@ -42,29 +62,69 @@ fn main() {
 
     match cli.command {
         Commands::Codegen { check } => {
-            let output_dir = workspace_root.join("vhdl_syntax/src/syntax/generated");
-            let definitions_dir = workspace_root.join("xtask/src/syntax_definitions");
-            let model = load_model(&definitions_dir);
-            let generators: &[&dyn Generator] =
-                &[&SyntaxNodeGenerator, &BuilderGenerator, &MetaGenerator];
+            let src_dir = workspace_root.join("vhdl_syntax/src");
+            let file = workspace_root.join("xtask/doc/vhdl-08-modified.ungram");
+            let model = load_model(&file);
+            let generators: &[&dyn Generator] = &[
+                &SyntaxNodeGenerator,
+                &BuilderGenerator,
+                &MetaGenerator,
+                &ValidNodeGenerator,
+                &TokenKindGenerator,
+            ];
 
             if check {
-                let stale = check_generators(generators, &model, &output_dir)
+                let stale = check_generators(generators, &model, &src_dir)
                     .expect("failed to check generators");
                 if stale.is_empty() {
                     println!("All generated files are up-to-date.");
                 } else {
                     eprintln!("The following generated files are out of date:");
-                    for stem in &stale {
-                        eprintln!("  {stem}.rs");
+                    for file in &stale {
+                        eprintln!("  {file}");
                     }
                     eprintln!("Run `cargo xtask codegen` to regenerate.");
                     process::exit(1);
                 }
             } else {
-                run_generators(generators, &model, &output_dir).expect("failed to run generators");
-                println!("Generated files written to {}", output_dir.display());
+                run_generators(generators, &model, &src_dir).expect("failed to run generators");
+                println!("Generated files written below {}", src_dir.display());
             }
+        }
+        Commands::DiffGrammar { production, exact } => {
+            let lrm_file = workspace_root.join("xtask/doc/vhdl-08.ungram");
+            let modified_file = workspace_root.join("xtask/doc/vhdl-08-modified.ungram");
+            let book_dir = workspace_root.join("book/src/lrm-differences");
+            let nesting = if exact {
+                diff::Nesting::Exact
+            } else {
+                diff::Nesting::Flattened
+            };
+            diff::diff_grammar(
+                &lrm_file,
+                &modified_file,
+                &book_dir,
+                production.as_deref(),
+                nesting,
+            )
+            .expect("failed to diff the grammars");
+        }
+        Commands::LintDocs { check } => {
+            // Runs via cargo, so that xtask itself does not depend on `vhdl_syntax`
+            let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+            let mut command = Command::new(cargo);
+            command.current_dir(workspace_root).args([
+                "run",
+                "--quiet",
+                "--package",
+                "vhdl-lint-docs",
+                "--",
+            ]);
+            if check {
+                command.arg("--check");
+            }
+            let status = command.status().expect("failed to run vhdl-lint-docs");
+            process::exit(status.code().unwrap_or(1));
         }
     }
 }

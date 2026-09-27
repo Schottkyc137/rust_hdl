@@ -1,0 +1,68 @@
+---
+source: vhdl_syntax/src/parser/error_recovery.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+architecture arch of ent is
+begin
+    p1 : process (all) is
+    p1;
+
+    p : postponed foo;
+end arch;
+
+
+== tree ==
+DesignFile
+  DesignUnit
+    ArchitectureBody
+      ArchitecturePreamble
+        Keyword(Architecture)
+        Identifier 'arch'
+        Keyword(Of)
+        Name
+          NameDesignatorPrefix
+            Identifier 'ent'
+        Keyword(Is)
+      DeclarationStatementSeparator
+        Keyword(Begin)
+      ArchitectureStatementPart
+        ProcessStatement
+          StmtLabel
+            Identifier 'p1'
+            Colon
+          ProcessPreamble
+            Keyword(Process)
+            ParenthesizedProcessSensitivityList
+              LeftPar
+              AllSensitivityList
+                Keyword(All)
+              RightPar
+            Keyword(Is)
+          ProcessStatementPart
+            ProcedureCallStatement
+              Name
+                NameDesignatorPrefix
+                  Identifier 'p1'
+              SemiColon
+            StmtLabel
+              Identifier 'p'
+              Colon
+            Keyword(Postponed)
+            ProcedureCallStatement
+              Name
+                NameDesignatorPrefix
+                  Identifier 'foo'
+              SemiColon
+          ProcessEpilogue
+            Keyword(End)
+            Identifier 'arch'
+            SemiColon
+  Eof
+
+== diagnostics ==
+3:26 expected 'type', 'subtype', 'component', 'impure', 'pure', 'function', 'procedure', 'package', 'for', 'file', 'shared', 'variable', 'constant', 'signal', 'attribute', 'use', 'alias', 'group' or 'disconnect'
+3:26 expected DeclarationStatementSeparator
+6:9..6:18 unexpected 'postponed'
+7:4 expected 'process'
+7:10 expected ArchitectureEpilogue

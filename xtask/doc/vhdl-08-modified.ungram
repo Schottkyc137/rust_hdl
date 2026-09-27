@@ -1,0 +1,1381 @@
+// The VHDL syntax as actually modelled by `vhdl_syntax`, in ungrammar form.
+//
+// This is the input to `cargo xtask codegen`, which generates
+// `vhdl_syntax/src/syntax/generated/` from it. `vhdl-08.ungram` next to this
+// file is the unmodified LRM grammar, kept for comparison.
+//
+// Legend:
+//
+// //            -- comment
+// // § X.Y.Z    -- LRM Chapter of the production
+// 'ident'       -- keyword or punct token (terminal)
+// '#ident'      -- generic token (terminal)
+// A B           -- sequence
+// A | B         -- alternation
+// A*            -- zero or more repetition
+// A?            -- zero or one repetition
+// (A)           -- same as A
+// label:A       -- named occurrence (renames the generated accessor)
+//==============================================================================
+// § 11: Concurrent Statements
+//==============================================================================
+BlockHeader =
+  generic_part:(GenericClause generic_map:(GenericMapAspect ';')?)?
+  port_part:(PortClause port_map:(PortMapAspect ';')?)?
+
+BlockStatement =
+  stmt_label:(Label ':')
+  block_preamble:('block' parenthesized_condition:('(' Condition ')')? 'is'?)
+  BlockHeader
+  BlockDeclarativePart
+  declaration_statement_separator:'begin'
+  BlockStatementPart
+  block_epilogue:('end' 'block' Label? ';')
+
+BlockDeclarativePart =
+  BlockDeclarativeItem*
+
+BlockStatementPart =
+  ConcurrentStatement*
+
+CaseGenerateAlternative =
+  'when' stmt_label:(Label ':')? Choices '=>' GenerateStatementBody
+
+CaseGenerateStatement =
+  stmt_label:(Label ':')
+  case_generate_preamble:('case' Expression 'generate')
+  CaseGenerateAlternative CaseGenerateAlternative*
+  generate_epilogue:('end' 'generate' Label? ';')
+
+ComponentInstantiationStatement =
+  stmt_label:(Label ':') InstantiatedUnit GenericMapAspect? PortMapAspect? ';'
+
+// A procedure with zero arguments (`proc_call: foo;`) and a component instantiation (`inst: cmp;`) without generic / port
+// maps are indistinguishable.
+ConcurrentProcedureCallOrComponentInstantiationStatement =
+  stmt_label:(Label ':')? 'postponed'? Name ';'
+
+ConcurrentAssertionStatement =
+  stmt_label:(Label ':')? 'postponed'? Assertion ';'
+
+ConcurrentSimpleSignalAssignment =
+  stmt_label:(Label ':')?
+  'postponed'?
+  Target
+  '<='
+  'guarded'?
+  DelayMechanism?
+  Waveform
+  ';'
+
+ConcurrentConditionalSignalAssignment =
+  stmt_label:(Label ':')?
+  'postponed'?
+  Target
+  '<='
+  'guarded'?
+  DelayMechanism?
+  ConditionalWaveforms
+  ';'
+
+ConcurrentSelectedSignalAssignment =
+  stmt_label:(Label ':')?
+  'postponed'?
+  selected_assignment_preamble:('with' Expression 'select' '?'?)
+  Target
+  '<='
+  'guarded'?
+  DelayMechanism?
+  SelectedWaveforms
+  ';'
+
+GenerateStatement = 
+ ForGenerateStatement
+| IfGenerateStatement
+| CaseGenerateStatement
+
+ConcurrentSignalAssignmentStatement =
+  ConcurrentSimpleSignalAssignment
+| ConcurrentConditionalSignalAssignment
+| ConcurrentSelectedSignalAssignment
+
+
+ConcurrentStatement =
+  BlockStatement
+| ProcessStatement
+| ConcurrentProcedureCallOrComponentInstantiationStatement
+| ConcurrentAssertionStatement
+| ConcurrentSignalAssignmentStatement
+| ComponentInstantiationStatement
+| GenerateStatement
+
+// | PslDirective  -- add here if PSL is supported
+
+ForGenerateStatement =
+  stmt_label:(Label ':')
+  for_generate_preamble:('for' ParameterSpecification 'generate')
+  GenerateStatementBody
+  generate_epilogue:('end' 'generate' Label? ';')
+
+GenerateStatementBody =
+  generate_body_declarations:(BlockDeclarativePart declaration_statement_separator:'begin')?
+  ConcurrentStatement*
+  generate_body_epilogue:('end' Label? ';')?
+
+IfGenerateStatement =
+  stmt_label:(Label ':')
+  if_generate_if:('if' stmt_label:(Label ':')? Condition 'generate' GenerateStatementBody)
+  if_generate_elsif:(
+    'elsif'
+    stmt_label:(Label ':')?
+    Condition
+    'generate'
+    GenerateStatementBody
+  )*
+  if_generate_else:('else' stmt_label:(Label ':')? 'generate' GenerateStatementBody)?
+  generate_epilogue:('end' 'generate' Label? ';')
+
+InstantiatedUnit =
+  instantiated_component:('component'? Name)
+  // LRM has `"entity" name [ "(" identifier ")" ]`. The `(identifier)`
+  // architecture-disambiguation is absorbed as a `ParenthesizedName` tail.
+| instantiated_entity:('entity' Name)
+| instantiated_configuration:('configuration' Name)
+
+SensitivityList =
+  Name (',' Name)*
+
+ProcessSensitivityList =
+  all_sensitivity_list:'all' | SensitivityList
+
+ProcessStatement =
+  stmt_label:(Label ':')?
+  process_preamble:(
+    'postponed'?
+    'process'
+    parenthesized_process_sensitivity_list:('(' ProcessSensitivityList ')')?
+    'is'?
+  )
+  ProcessDeclarativePart
+  declaration_statement_separator:'begin'
+  ProcessStatementPart
+  process_epilogue:('end' 'postponed'? 'process' Label? ';')
+
+ProcessDeclarativePart =
+  ProcessDeclarativeItem*
+
+ProcessStatementPart =
+  SequentialStatement*
+
+ProcessDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+//==============================================================================
+// § 6: Declarations
+//==============================================================================
+BlockDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| SignalDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| ComponentDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| ConfigurationSpecification
+| DisconnectionSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+// | PslPropertyDeclaration  -- add here if PSL is supported
+// | PslSequenceDeclaration  -- add here if PSL is supported
+// | PslClockDeclaration     -- add here if PSL is supported
+// LRM:
+//   actual_part       ::= actual_designator | name "(" actual_designator ")"
+//                       | type_mark "(" actual_designator ")"
+//   actual_designator ::= [inertial] expression | subtype_indication | open
+//
+// Disambiguation between `Expression` and `SubtypeIndication` is done at
+// parse time by lookahead: the only syntactic discriminator is a second
+// name following the first (the resolution_function_name + type_mark
+// pattern, or the `(element_resolution)` + type_mark pattern). The wrapped
+// `name "(" actual_designator ")"` forms collapse into `Expression`
+// because `Name` accepts a `ParenthesizedName` tail; analysis disambiguates
+// type conversions / resolution functions later.
+ActualPartBody =
+  actual_part_expression:Expression
+| actual_part_subtype_indication:SubtypeIndication
+| actual_part_open:'open'
+
+ActualPart =
+  'inertial'? ActualPartBody
+
+AliasDeclaration =
+  'alias'
+  AliasDesignator
+  alias_subtype:(':' SubtypeIndication)?
+  'is'
+  Name
+  Signature?
+  ';'
+
+OperatorSymbol =
+  '#string_literal'
+
+AliasDesignator =
+  '#identifier' | '#character_literal' | OperatorSymbol
+
+FormalPart =
+  Name
+
+// LRM has `name | name "(" formal_designator ")" | type_mark "(" formal_designator ")"`.
+// The `name "(" ... ")"` and `type_mark "(" ... ")"` forms reduce to a `Name`
+// with a `ParenthesizedName` tail, so a plain `Name` covers all cases.
+AssociationElement =
+  formal:(FormalPart '=>')? ActualPart
+
+AssociationList =
+  AssociationElement (',' AssociationElement)*
+
+TypeMark =
+  Name
+
+AttributeDeclaration =
+  'attribute' '#identifier' ':' TypeMark ';'
+
+ComponentDeclaration =
+  component_declaration_preamble:('component' '#identifier' 'is'?)
+  GenericClause?
+  PortClause?
+  component_declaration_epilogue:('end' 'component' SimpleName? ';')
+
+ConstantDeclaration =
+  'constant'
+  IdentifierList
+  ':'
+  SubtypeIndication
+  initial_value:(':=' Expression)?
+  ';'
+
+ArrayElementResolution =
+  ResolutionIndication
+
+ElementResolution =
+  ArrayElementResolution
+| record_resolution_element_resolution:RecordResolution
+
+EntityClassEntry =
+  EntityClass '<>'?
+
+EntityClassEntryList =
+  EntityClassEntry (',' EntityClassEntry)*
+
+FileDeclaration =
+  'file' IdentifierList ':' SubtypeIndication FileOpenInformation? ';'
+
+FileLogicalName =
+  Expression
+
+FileOpenInformation =
+  file_open_kind:('open' Expression)? 'is' FileLogicalName
+
+FullTypeDeclaration =
+  'type' '#identifier' 'is' TypeDefinition ';'
+
+GenericList =
+  InterfaceList
+
+GenericClause =
+  'generic' '(' GenericList ')' ';'
+
+GenericMapAspect =
+  'generic' 'map' '(' AssociationList ')'
+
+// LRM has `"group" identifier ":" name "(" group_constituent_list ")" ";"`.
+// The `(group_constituent_list)` is absorbed as a `ParenthesizedName` tail on
+// the preceding `Name`, so no explicit list/parens are needed here.
+GroupDeclaration =
+  'group' '#identifier' ':' Name ';'
+
+GroupTemplateDeclaration =
+  'group' '#identifier' 'is' '(' EntityClassEntryList ')' ';'
+
+InterfaceTypeDeclaration =
+  InterfaceIncompleteTypeDeclaration
+
+InterfaceDeclaration =
+  InterfaceObjectDeclaration
+| InterfaceFileDeclaration
+| InterfaceTypeDeclaration
+| InterfaceSubprogramDeclaration
+| InterfacePackageDeclaration
+
+InterfaceFileDeclaration =
+  'file' IdentifierList ':' SubtypeIndication
+
+FormalParameterList =
+  InterfaceList
+
+InterfaceFunctionSpecification =
+  purity:('pure' | 'impure')?
+  'function'
+  Designator
+  parameter_list:('parameter'? parenthesized_interface_list:('(' FormalParameterList ')'))?
+  'return'
+  TypeMark
+
+InterfaceIncompleteTypeDeclaration =
+  'type' '#identifier'
+
+InterfaceList =
+  InterfaceElement (';' InterfaceElement)*
+
+InterfaceElement =
+  InterfaceDeclaration
+
+// A non-file interface object (constant/signal/variable)
+InterfaceObjectDeclaration =
+  InterfaceObjectClass?
+  IdentifierList
+  ':'
+  Mode?
+  SubtypeIndication
+  'bus'?
+  initial_value:(':=' Expression)?
+
+InterfaceObjectClass =
+  'constant' | 'signal' | 'variable'
+
+InterfacePackageDeclaration =
+  interface_package_declaration_preamble:('package' '#identifier' 'is')
+  'new'
+  Name
+  InterfacePackageGenericMapAspect
+
+InterfacePackageGenericMapAspect =
+  'generic' 'map' '(' InterfacePackageGenericMapAspectInner ')'
+
+InterfacePackageGenericMapAspectInner =
+  interface_package_generic_map_aspect_box:'<>'
+| interface_package_generic_map_aspect_default:'default'
+| interface_package_generic_map_aspect_associations:AssociationList
+
+InterfaceProcedureSpecification =
+  'procedure'
+  Designator
+  parameter_list:('parameter'? parenthesized_interface_list:('(' FormalParameterList ')'))?
+
+InterfaceSubprogramDeclaration =
+  InterfaceSubprogramSpecification
+  subprogram_default:('is' InterfaceSubprogramDefault)?
+
+InterfaceSubprogramDefault =
+  interface_subprogram_default_name:Name
+| interface_subprogram_default_box:'<>'
+
+InterfaceSubprogramSpecification =
+  InterfaceProcedureSpecification | InterfaceFunctionSpecification
+
+Mode =
+  'in' | 'out' | 'inout' | 'buffer' | 'linkage'
+
+PortList =
+  InterfaceList
+
+PortClause =
+  'port' '(' PortList ')' ';'
+
+PortMapAspect =
+  'port' 'map' '(' AssociationList ')'
+
+RecordElementResolution =
+  SimpleName ResolutionIndication
+
+RecordResolution =
+  RecordElementResolution (',' RecordElementResolution)*
+
+// TODO: Is the 'element_resolution_resolution_indication' required? (Could potentially be replaced by Element Resolution directly)
+ResolutionIndication =
+  name_resolution_indication:Name
+| parenthesized_element_resolution:('(' element_resolution_resolution_indication:ElementResolution ')')
+
+SignalDeclaration =
+  'signal'
+  IdentifierList
+  ':'
+  SubtypeIndication
+  SignalKind?
+  initial_value:(':=' Expression)?
+  ';'
+
+SignalKind =
+  'register' | 'bus'
+
+SubtypeDeclaration =
+  'subtype' '#identifier' 'is' SubtypeIndication ';'
+
+// LRM has `[resolution_indication] type_mark [constraint]`. Here `type_mark`
+// becomes `Name`, and constraints (range/index/record) are absorbed as
+// `NameTail` items, so no explicit `Constraint` slot is needed.
+SubtypeIndication =
+  ResolutionIndication? TypeMark
+
+TypeDeclaration =
+  FullTypeDeclaration | IncompleteTypeDeclaration
+
+TypeDefinition =
+  ScalarTypeDefinition
+| CompositeTypeDefinition
+| AccessTypeDefinition
+| FileTypeDefinition
+| ProtectedTypeDefinition
+
+VariableDeclaration =
+  'shared'?
+  'variable'
+  IdentifierList
+  ':'
+  SubtypeIndication
+  initial_value:(':=' Expression)?
+  ';'
+
+//==============================================================================
+// § 3: Design entities and configuration
+//==============================================================================
+ArchitectureBody =
+  architecture_preamble:('architecture' '#identifier' 'of' Name 'is')
+  ArchitectureDeclarativePart
+  declaration_statement_separator:'begin'
+  ArchitectureStatementPart
+  architecture_epilogue:('end' 'architecture'? SimpleName? ';')
+
+ArchitectureDeclarativePart =
+  BlockDeclarativeItem*
+
+ArchitectureStatementPart =
+  ConcurrentStatement*
+
+ConfigurationItem =
+  block_configuration_item:BlockConfiguration | ComponentConfiguration
+
+BlockSpecification = Name
+
+BlockConfiguration =
+  block_configuration_preamble:('for' BlockSpecification)
+  UseClause*
+  ConfigurationItem*
+  block_configuration_epilogue:('end' 'for' ';')
+
+ComponentConfiguration =
+  component_configuration_preamble:('for' ComponentSpecification)
+  binding:(BindingIndication ';')?
+  verification_unit_binding:(VerificationUnitBindingIndication ';')*
+  BlockConfiguration?
+  component_configuration_epilogue:('end' 'for' ';')
+
+ConfigurationDeclaration =
+  configuration_declaration_preamble:('configuration' '#identifier' 'of' Name 'is')
+  ConfigurationDeclarativePart
+  verification_unit_binding:(VerificationUnitBindingIndication ';')*
+  BlockConfiguration
+  configuration_declaration_epilogue:('end' 'configuration'? SimpleName? ';')
+
+ConfigurationDeclarativePart =
+  ConfigurationDeclarativeItem*
+
+ConfigurationDeclarativeItem =
+  use_clause_declaration:UseClause | AttributeSpecification | GroupDeclaration
+
+EntityDeclaration =
+  entity_declaration_preamble:('entity' '#identifier' 'is')
+  EntityHeader
+  EntityDeclarativePart
+  entity_statements:(declaration_statement_separator:'begin' EntityStatementPart)?
+  entity_declaration_epilogue:('end' 'entity'? SimpleName? ';')
+
+EntityDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| SignalDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| DisconnectionSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+// | PSL_Property_Declaration
+// | PSL_Sequence_Declaration
+// | PSL_Clock_Declaration
+EntityDeclarativePart =
+  EntityDeclarativeItem*
+
+EntityStatementPart =
+  EntityStatement*
+
+EntityStatement =
+  ConcurrentAssertionStatement
+| ConcurrentProcedureCallOrComponentInstantiationStatement
+| ProcessStatement
+
+EntityHeader =
+  GenericClause? PortClause?
+
+//==============================================================================
+// § 13: Design Units
+//==============================================================================
+ContextClause =
+  ContextItem*
+
+ContextDeclaration =
+  context_declaration_preamble:('context' '#identifier' 'is')
+  ContextClause
+  context_declaration_epilogue:('end' 'context'? SimpleName? ';')
+
+ContextReference =
+  'context' name_list:(Name (',' Name)*) ';'
+
+ContextItem =
+  LibraryClause | use_clause_context_item:UseClause | ContextReference
+
+DesignFile =
+  DesignUnit DesignUnit* '#eof'
+
+DesignUnit =
+  ContextClause LibraryUnit
+
+LogicalName =
+  '#identifier'
+
+LogicalNameList =
+  LogicalName (',' LogicalName)*
+
+LibraryClause =
+  'library' LogicalNameList ';'
+
+LibraryUnit =
+  PrimaryUnit | SecondaryUnit
+
+PrimaryUnit =
+  EntityDeclaration
+| ConfigurationDeclaration
+| primary_unit_package_declaration:PackageDeclaration
+| package_instantiation_declaration_primary_unit:PackageInstantiationDeclaration
+| ContextDeclaration
+
+// PslVerificationUnit -- add here if PSL is supported
+SecondaryUnit =
+  ArchitectureBody | secondary_unit_package_body:PackageBody
+
+//==============================================================================
+// § 9: Expression
+//==============================================================================
+Literal =
+ '#abstract_literal'
+| '#character_literal'
+| '#string_literal'
+| '#bit_string_literal'
+| 'null'
+
+ParenthesizedExpressionOrAggregate =
+  '('
+  element_association_list:(ElementAssociation (',' ElementAssociation)*)
+  ')'
+
+UnaryOperator =
+  '??'
+| '+'
+| '-'
+| 'abs'
+| 'not'
+| 'and'
+| 'or'
+| 'nand'
+| 'nor'
+| 'xor'
+| 'xnor'
+
+UnaryExpression =
+  UnaryOperator Expression
+
+BinaryOperator =
+  'and'
+| 'or'
+| 'nand'
+| 'nor'
+| 'xor'
+| 'xnor'
+| '='
+| '/='
+| '<'
+| '<='
+| '>'
+| '>='
+| '?='
+| '?/='
+| '?<='
+| '?<'
+| '?>'
+| '?>='
+| 'sll'
+| 'srl'
+| 'sla'
+| 'sra'
+| 'rol'
+| 'ror'
+| '+'
+| '-'
+| '&'
+| '*'
+| '/'
+| 'mod'
+| 'rem'
+| '**'
+  // `to`/`downto` are folded into `BinaryOperator` so an `a to b` range
+  // parses as a `BinaryExpression`, removing the need for a separate `range`
+  // production.
+| 'to'
+| 'downto'
+
+Lhs =
+  Expression
+
+Rhs =
+  Expression
+
+BinaryExpression =
+  Lhs BinaryOperator Rhs
+
+QualifiedExpression =
+  TypeMark '\'' ParenthesizedExpressionOrAggregate
+
+Expression =
+  literal_expression:Literal
+| physical_literal_expression:PhysicalLiteral
+| UnaryExpression
+| BinaryExpression
+| ParenthesizedExpressionOrAggregate
+| Allocator
+| name_expression:Name
+| QualifiedExpression
+
+Aggregate =
+  '('
+  element_association_list:(ElementAssociation (',' ElementAssociation)*)
+  ')'
+
+// LRM has `new subtype_indication | new qualified_expression`. Additionally:
+// "A subtype indication that is part of an allocator shall not include a resolution indication" (LRM 9.3.7)
+// Applying unification yields: `allocator ::= name`:
+// LRM: `allocator ::= new subtype_indication | new qualified_expression`.
+// Both forms are subsumed by `Expression` (subtype_indication is reached as
+// `NameExpression` with optional constraints on the underlying `Name`);
+// analysis sorts the two cases out later.
+Allocator =
+  'new' Expression
+
+Choice =
+  expression_choice:Expression | others_choice:'others'
+
+Choices =
+  Choice ('|' Choice)*
+
+ElementAssociation =
+  element_choices:(Choices '=>')? Expression
+
+//==============================================================================
+// § 8: Names
+//==============================================================================
+AbsolutePathname =
+  '.' PartialPathname
+
+// `(expression)` after the attribute designator becomes a separate
+// `ParenthesizedName` tail on the enclosing `Name`. The signature brackets
+// are also a name tail position; analysis associates them with this attribute.
+AttributeName =
+  Signature? '\'' AttributeDesignator
+
+// `range` and `subtype` are reserved words yet are valid attribute designators.
+AttributeDesignator =
+  '#identifier' | 'range' | 'subtype'
+
+ExternalName =
+  ExternalConstantName | ExternalSignalName | ExternalVariableName
+
+ExternalConstantName =
+  '<<' 'constant' ExternalPathname ':' SubtypeIndication '>>'
+
+ExternalSignalName =
+  '<<' 'signal' ExternalPathname ':' SubtypeIndication '>>'
+
+ExternalVariableName =
+  '<<' 'variable' ExternalPathname ':' SubtypeIndication '>>'
+
+ExternalPathname =
+  PackagePathname | AbsolutePathname | RelativePathname
+
+PackagePathname =
+  '@' package_path:('#identifier' ('.' '#identifier')*)
+
+RelativePathname =
+  up_level:('^' '.')* PartialPathname
+
+PartialPathname =
+  PathnameElement ('.' PathnameElement)*
+
+PathnameElement =
+  '#identifier' parenthesized_expression:('(' Expression ')')?
+
+Label =
+  '#identifier'
+
+Designator =
+  '#identifier' | OperatorSymbol
+
+NameDesignator =
+  '#identifier' | '#string_literal' | '#character_literal'
+
+Name =
+  Prefix
+  NameTail*
+  // `RangeConstraint` appears here so the constraint of a `subtype_indication`
+  // (e.g. `integer range 1 to 10`) parses as a `Name` followed by a tail —
+  // see the comment on `SubtypeIndication`.
+  RangeConstraint?
+
+Prefix =
+  ExternalName | name_designator_prefix:NameDesignator
+
+Suffix =
+  SimpleName | '#character_literal' | OperatorSymbol | 'all'
+
+SelectedName =
+  '.' Suffix
+
+// Indexed names, slice names, function calls, type conversions, and the
+// `group_constituent_list` of a group declaration all collapse to this
+// parenthesized association list. Analysis decides which one it is.
+ParenthesizedName =
+  '(' AssociationList ')'
+
+NameTail =
+  SelectedName | ParenthesizedName | AttributeName
+
+//==============================================================================
+// § 12: Scope and Visibility
+//==============================================================================
+UseClause =
+  'use' name_list:(Name  (',' Name)*) ';'
+
+//==============================================================================
+// § 10: Sequential Statements
+//==============================================================================
+Assertion =
+  'assert'
+  Condition
+  report_clause:('report' Expression)?
+  severity_clause:('severity' Expression)?
+
+AssertionStatement =
+  stmt_label:(Label ':')? Assertion ';'
+
+CaseStatementAlternative =
+  case_statement_alternative_preamble:('when' Choices '=>')
+  SequenceOfStatements
+
+CaseStatement =
+  case_statement_preamble:(stmt_label:(Label ':')? 'case' '?'? Expression 'is')
+  CaseStatementAlternative CaseStatementAlternative*
+  case_statement_epilogue:('end' 'case' '?'? Label? ';')
+
+ConditionClause =
+  'until' Condition
+
+Condition =
+  Expression
+
+ConditionalExpressions =
+  when_expression:(Expression 'when' Condition)
+  else_when_expression:('else' Expression 'when' Condition)*
+  else_expression:('else' Expression)?
+
+ConditionalForceAssignment =
+  stmt_label:(Label ':')?
+  Target
+  '<='
+  'force'
+  ForceMode?
+  ConditionalExpressions
+  ';'
+
+ConditionalSignalAssignment =
+  ConditionalWaveformAssignment | ConditionalForceAssignment
+
+ConditionalVariableAssignment =
+  stmt_label:(Label ':')? Target ':=' ConditionalExpressions ';'
+
+ConditionalWaveformAssignment =
+  stmt_label:(Label ':')? Target '<=' DelayMechanism? ConditionalWaveforms ';'
+
+ConditionalWaveforms =
+  when_waveform:(Waveform 'when' Condition)
+  else_when_waveform:('else' Waveform 'when' Condition)*
+  else_waveform:('else' Waveform)?
+
+DelayMechanism =
+  transport_delay_mechanism:'transport'
+| inertial_delay_mechanism:(reject_clause:('reject' Expression)? 'inertial')
+
+ExitStatement =
+  stmt_label:(Label ':')? 'exit' Label? when_clause:('when' Condition)? ';'
+
+ForceMode =
+  'in' | 'out'
+
+IfStatement =
+  if_statement_preamble:(stmt_label:(Label ':')? 'if' Condition 'then')
+  SequenceOfStatements
+  if_statement_elsif:('elsif' Condition 'then' SequenceOfStatements)*
+  if_statement_else:('else' SequenceOfStatements)?
+  if_statement_epilogue:('end' 'if' Label? ';')
+
+IterationScheme =
+  while_scheme:('while' Condition) | for_scheme:('for' ParameterSpecification)
+
+LoopStatement =
+  loop_statement_preamble:(stmt_label:(Label ':')? IterationScheme? 'loop')
+  SequenceOfStatements
+  loop_statement_epilogue:('end' 'loop' Label? ';')
+
+NextStatement =
+  stmt_label:(Label ':')? 'next' Label? when_clause:('when' Condition)? ';'
+
+NullStatement =
+  stmt_label:(Label ':')? 'null' ';'
+
+ParameterSpecification =
+  '#identifier' 'in' Expression
+
+ProcedureCall = Name
+
+ProcedureCallStatement =
+  stmt_label:(Label ':')? ProcedureCall ';'
+
+ReportStatement =
+  stmt_label:(Label ':')?
+  'report'
+  Expression
+  severity_clause:('severity' Expression)?
+  ';'
+
+ReturnStatement =
+  stmt_label:(Label ':')? 'return' Expression? ';'
+
+SelectedExpressionItem =
+  Expression 'when' Choices
+
+SelectedExpressions =
+  SelectedExpressionItem (',' SelectedExpressionItem)*
+
+SelectedForceAssignment =
+  stmt_label:(Label ':')?
+  selected_assignment_preamble:('with' Expression 'select' '?'?)
+  Target
+  '<='
+  'force'
+  ForceMode?
+  SelectedExpressions
+  ';'
+
+SelectedWaveformItem =
+  Waveform 'when' Choices
+
+SelectedWaveforms =
+  SelectedWaveformItem (',' SelectedWaveformItem)*
+
+SelectedSignalAssignment =
+  SelectedWaveformAssignment | SelectedForceAssignment
+
+SelectedVariableAssignment =
+  stmt_label:(Label ':')?
+  selected_assignment_preamble:('with' Expression 'select' '?'?)
+  Target
+  ':='
+  SelectedExpressions
+  ';'
+
+SelectedWaveformAssignment =
+  stmt_label:(Label ':')?
+  selected_assignment_preamble:('with' Expression 'select' '?'?)
+  Target
+  '<='
+  DelayMechanism?
+  SelectedWaveforms
+  ';'
+
+SensitivityClause =
+  'on' SensitivityList
+
+SequentialStatement =
+  WaitStatement
+| AssertionStatement
+| ReportStatement
+| SignalAssignmentStatement
+| VariableAssignmentStatement
+| ProcedureCallStatement
+| IfStatement
+| CaseStatement
+| LoopStatement
+| NextStatement
+| ExitStatement
+| ReturnStatement
+| NullStatement
+
+SignalAssignmentStatement =
+  SimpleSignalAssignment
+| ConditionalSignalAssignment
+| SelectedSignalAssignment
+
+SimpleForceAssignment =
+  stmt_label:(Label ':')? Target '<=' 'force' ForceMode? Expression ';'
+
+SimpleReleaseAssignment =
+  stmt_label:(Label ':')? Target '<=' 'release' ForceMode? ';'
+
+SimpleWaveformAssignment =
+  stmt_label:(Label ':')? Target '<=' DelayMechanism? Waveform ';'
+
+SimpleSignalAssignment =
+  SimpleWaveformAssignment | SimpleForceAssignment | SimpleReleaseAssignment
+
+SimpleVariableAssignment =
+  stmt_label:(Label ':')? Target ':=' Expression ';'
+
+Target =
+  name_target:Name | aggregate_target:Aggregate
+
+TimeoutClause =
+  'for' Expression
+
+VariableAssignmentStatement =
+  SimpleVariableAssignment
+| ConditionalVariableAssignment
+| SelectedVariableAssignment
+
+WaitStatement =
+  stmt_label:(Label ':')?
+  'wait'
+  SensitivityClause?
+  ConditionClause?
+  TimeoutClause?
+  ';'
+
+WaveformElement =
+  Expression after_clause:('after' Expression)?
+
+Waveform =
+  waveform_elements:(WaveformElement (',' WaveformElement)*)
+| unaffected_waveform:'unaffected'
+
+SequenceOfStatements =
+  SequentialStatement*
+
+//==============================================================================
+// § 7: Specification
+//==============================================================================
+AttributeSpecification =
+  'attribute' '#identifier' 'of' EntitySpecification 'is' Expression ';'
+
+BindingIndication =
+  binding_use_clause:('use' EntityAspect)? GenericMapAspect? PortMapAspect?
+
+ComponentSpecification =
+  InstantiationList ':' Name
+
+CompoundConfigurationSpecification =
+  component_configuration_preamble:('for' ComponentSpecification)
+  BindingIndication
+  ';'
+  verification_unit_binding:(VerificationUnitBindingIndication ';')
+  verification_unit_binding:(VerificationUnitBindingIndication ';')*
+  component_configuration_epilogue:('end' 'for' ';')
+
+ConfigurationSpecification =
+  SimpleConfigurationSpecification | CompoundConfigurationSpecification
+
+DisconnectionSpecification =
+  'disconnect' GuardedSignalSpecification 'after' Expression ';'
+
+EntityAspect =
+  entity_entity_aspect:('entity' Name)
+| entity_configuration_aspect:('configuration' Name)
+| entity_open_aspect:'open'
+
+EntityClass =
+  'entity'
+| 'architecture'
+| 'configuration'
+| 'procedure'
+| 'function'
+| 'package'
+| 'type'
+| 'subtype'
+| 'constant'
+| 'signal'
+| 'variable'
+| 'component'
+| 'label'
+| 'literal'
+| 'units'
+| 'group'
+| 'file'
+| 'property'
+| 'sequence'
+
+EntityDesignator =
+  EntityTag Signature?
+
+EntityNameList =
+  entity_designator_list:(EntityDesignator (',' EntityDesignator)*)
+| entity_name_list_others:'others'
+| entity_name_list_all:'all'
+
+EntitySpecification =
+  EntityNameList ':' EntityClass
+
+SimpleName =
+  '#identifier'
+
+EntityTag =
+  SimpleName | '#character_literal' | OperatorSymbol
+
+GuardedSignalSpecification =
+  SignalList ':' TypeMark
+
+InstantiationList =
+  instantiation_list_list:(Label (',' Label)*)
+| instantiation_list_others:'others'
+| instantiation_list_all:'all'
+
+SignalList =
+  signal_list_list:(Name (',' Name)*)
+| signal_list_others:'others'
+| signal_list_all:'all'
+
+SimpleConfigurationSpecification =
+  component_configuration_preamble:('for' ComponentSpecification)
+  BindingIndication
+  ';'
+  component_configuration_epilogue:('end' 'for' ';')?
+
+VerificationUnitBindingIndication =
+  'use' 'vunit' VerificationUnitList
+
+VerificationUnitList =
+  Name (',' Name)*
+
+//==============================================================================
+// § 4: Subprograms and packages
+//==============================================================================
+SubprogramDeclaration =
+  SubprogramSpecification ';'
+
+SubprogramSpecification =
+  ProcedureSpecification | FunctionSpecification
+
+ProcedureSpecification =
+  'procedure'
+  Designator
+  SubprogramHeader
+  parameter_list:('parameter'? parenthesized_interface_list:('(' FormalParameterList ')'))?
+
+FunctionSpecification =
+  purity:('pure' | 'impure')?
+  'function'
+  Designator
+  SubprogramHeader
+  parameter_list:('parameter'? parenthesized_interface_list:('(' FormalParameterList ')'))?
+  'return'
+  TypeMark
+
+SubprogramHeader =
+  (subprogram_header_generic_clause:('generic' '(' GenericList ')')
+  GenericMapAspect?)?
+
+SubprogramBody =
+  subprogram_body_preamble:(SubprogramSpecification 'is')
+  SubprogramDeclarativePart
+  declaration_statement_separator:'begin'
+  SubprogramStatementPart
+  subprogram_body_epilogue:('end' SubprogramKind? Designator? ';')
+
+SubprogramDeclarativePart =
+  SubprogramDeclarativeItem*
+
+SubprogramStatementPart =
+  SequentialStatement*
+
+SubprogramDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+SubprogramKind =
+  'procedure' | 'function'
+
+SubprogramInstantiationDeclaration =
+  subprogram_instantiation_declaration_preamble:(SubprogramKind '#identifier' 'is' 'new' Name Signature?)
+  GenericMapAspect?
+  ';'
+
+PackageDeclaration =
+  package_preamble:('package' '#identifier' 'is')
+  PackageHeader
+  PackageDeclarativePart
+  package_epilogue:('end' 'package'? SimpleName? ';')
+
+PackageDeclarativePart =
+  PackageDeclarativeItem*
+
+PackageDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| SignalDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| ComponentDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| DisconnectionSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+// | PSL_Property_Declaration
+// | PSL_Sequence_Declaration
+
+PackageHeader =
+  (GenericClause generic_map:(GenericMapAspect ';')?)?
+
+PackageBody =
+  package_body_preamble:('package' 'body' SimpleName 'is')
+  PackageBodyDeclarativePart
+  package_body_epilogue:('end' end_package_body:('package' 'body')? SimpleName? ';')
+
+PackageBodyDeclarativePart =
+  PackageBodyDeclarativeItem*
+
+PackageBodyDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+PackageInstantiationDeclaration =
+  package_instantiation_preamble:('package' '#identifier' 'is' 'new' Name)
+  GenericMapAspect?
+  ';'
+
+Signature =
+  '[' type_mark_list:(TypeMark (',' TypeMark)*)? return_type:('return' TypeMark)? ']'
+
+//==============================================================================
+// § 5: Types
+//==============================================================================
+AccessTypeDefinition =
+  'access' SubtypeIndication
+
+ArrayTypeDefinition =
+  UnboundedArrayDefinition | ConstrainedArrayDefinition
+
+CompositeTypeDefinition =
+  ArrayTypeDefinition | RecordTypeDefinition
+
+ConstrainedArrayDefinition =
+  'array' IndexConstraint 'of' SubtypeIndication
+
+// DiscreteRange
+// LRM 5.3.2.1: "If a subtype indication appears as a discrete range, the subtype indication shall not contain a resolution indication."
+// Without a resolution indication, discrete_range collapses into a simple `expression`:
+//
+// discrete_range ::= discrete_subtype_indication | range
+//
+// - discrete_subtype_indication ::= type_mark [ constraint ]
+//   * type_mark is the same as a name
+//   * As part of the broadening strategy, name absorbs constraint (due to ambiguity)
+// - range ::= range_attribute_name | simple_expression direction simple_expression
+//   * As part of the broadening strategy, the second form (expression direction expression) is absorbed into expression
+ElementDeclaration =
+  IdentifierList ':' ElementSubtypeDefinition ';'
+
+ElementSubtypeDefinition =
+  SubtypeIndication
+
+EnumerationLiteral =
+  '#identifier' | '#character_literal'
+
+EnumerationTypeDefinition =
+  '(' enumeration_list:(EnumerationLiteral (',' EnumerationLiteral)*) ')'
+
+FileTypeDefinition =
+  'file' 'of' TypeMark
+
+IdentifierList =
+  '#identifier' (',' '#identifier')*
+
+IncompleteTypeDeclaration =
+  'type' '#identifier' ';'
+
+IndexSubtypeDefinition =
+  TypeMark 'range' '<>'
+
+PhysicalLiteral =
+  '#abstract_literal'? Name
+
+PhysicalTypeDefinition =
+  RangeConstraint
+  unit_declarations:('units' PrimaryUnitDeclaration SecondaryUnitDeclaration*)
+  physical_type_definition_epilogue:('end' 'units' SimpleName?)
+
+PrimaryUnitDeclaration =
+  '#identifier' ';'
+
+ProtectedTypeBody =
+  protected_type_body_preamble:('protected' 'body')
+  ProtectedTypeBodyDeclarativePart
+  protected_type_body_epilogue:('end' 'protected' 'body' SimpleName?)
+
+ProtectedTypeBodyDeclarativePart =
+  ProtectedTypeBodyDeclarativeItem*
+
+ProtectedTypeBodyDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramBody
+| SubprogramInstantiationDeclaration
+| package_declaration_item:PackageDeclaration
+| package_body_declaration:PackageBody
+| package_instantiation_declaration_item:PackageInstantiationDeclaration
+| TypeDeclaration
+| SubtypeDeclaration
+| ConstantDeclaration
+| VariableDeclaration
+| FileDeclaration
+| AliasDeclaration
+| AttributeDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+| GroupTemplateDeclaration
+| GroupDeclaration
+
+ProtectedTypeDeclaration =
+  protected_preamble:'protected'
+  ProtectedTypeDeclarativePart
+  protected_type_declaration_epilogue:('end' 'protected' SimpleName?)
+
+ProtectedTypeDeclarativePart =
+  ProtectedTypeDeclarativeItem*
+
+ProtectedTypeDeclarativeItem =
+  SubprogramDeclaration
+| SubprogramInstantiationDeclaration
+| AttributeSpecification
+| use_clause_declaration:UseClause
+
+ProtectedTypeDefinition =
+  ProtectedTypeDeclaration | ProtectedTypeBody
+
+// `to`/`downto` are now `BinaryOperator`s, so an `a to b` range parses as a
+// `BinaryExpression`. `range_constraint` therefore takes a plain expression.
+RangeConstraint =
+  'range' Expression
+
+RecordTypeDefinition =
+  record_type_definition_preamble:'record'
+  record_element_declarations:(ElementDeclaration ElementDeclaration*)
+  record_type_definition_epilogue:('end' 'record' SimpleName?)
+
+ScalarTypeDefinition =
+  EnumerationTypeDefinition
+| numeric_type_definition:RangeConstraint
+| PhysicalTypeDefinition
+
+SecondaryUnitDeclaration =
+  '#identifier' '=' PhysicalLiteral ';'
+
+IndexConstraint =
+  '(' expression_list:(Expression (',' Expression)*) ')'
+
+UnboundedArrayDefinition =
+  'array'
+  '('
+  index_subtype_definition_list:(IndexSubtypeDefinition (',' IndexSubtypeDefinition)*)
+  ')'
+  'of'
+  SubtypeIndication

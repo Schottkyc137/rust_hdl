@@ -5,13 +5,14 @@ expression: "to_test_text(Parser::actual_part, \"(resolve) bit_vector\")"
 ActualPart
   ActualPartSubtypeIndication
     SubtypeIndication
-      ParenthesizedElementResolutionResolutionIndication
+      ParenthesizedElementResolution
         LeftPar
         ElementResolutionResolutionIndication
-          ResolutionIndicationElementResolution
-            NameResolutionIndication
-              Name
+          NameResolutionIndication
+            Name
+              NameDesignatorPrefix
                 Identifier 'resolve'
         RightPar
       Name
-        Identifier 'bit_vector'
+        NameDesignatorPrefix
+          Identifier 'bit_vector'

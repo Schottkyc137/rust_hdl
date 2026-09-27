@@ -10,22 +10,25 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
-    pub fn signature(&mut self) {
+    pub(crate) fn signature(&mut self) {
         // LRM §4.5.3
         // signature ::= `[` [ name { `,` name } ] [ `return` name ] `]`;
-        self.start_node(Signature);
-        self.expect_token(LeftSquare);
+        self.node(Signature, |p| {
+            p.expect_token(LeftSquare);
 
-        if !self.next_is_one_of([Keyword(Kw::Return), RightSquare]) {
-            self.name_list();
-        }
+            if !p.next_is_one_of([Keyword(Kw::Return), RightSquare]) {
+                p.separated_list(TypeMarkList, Parser::name, Comma);
+            }
 
-        if self.opt_token(Keyword(Kw::Return)) {
-            self.name();
-        }
+            if p.next_is(Keyword(Kw::Return)) {
+                p.node(ReturnType, |p| {
+                    p.skip(); // Kw::Return
+                    p.name();
+                });
+            }
 
-        self.expect_token(RightSquare);
-        self.end_node();
+            p.expect_token(RightSquare);
+        });
     }
 }
 

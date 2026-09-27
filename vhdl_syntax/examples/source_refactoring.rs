@@ -1,3 +1,9 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
+
 //! Shows how a user can refactor source code based on parsed input.
 //! The goal of this executable is to replace every entity named 'foo' with a new entity named
 //! 'no_longer_foo'.
@@ -8,11 +14,8 @@
 //! function that is applied to every node. The function returns [RewriteAction::Leave], if the
 //! node is to be left as-is. However, the user can also return [RewriteAction::Change] to
 //! change the current node into a different one.
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this file,
-// You can obtain one at http://mozilla.org/MPL/2.0/.
-//
-// Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
+
+use vhdl_syntax::fmt::write::FormatToExt;
 use vhdl_syntax::parser;
 use vhdl_syntax::syntax::node::SyntaxElement;
 use vhdl_syntax::syntax::rewrite::RewriteAction;
@@ -21,7 +24,7 @@ use vhdl_syntax::syntax::EntityDeclarationBuilder;
 use vhdl_syntax::syntax::EntityDeclarationEpilogueBuilder;
 use vhdl_syntax::syntax::EntityDeclarationPreambleBuilder;
 use vhdl_syntax::syntax::EntityDeclarationSyntax;
-use vhdl_syntax::tokens::Trivia;
+use vhdl_syntax::tokens::TriviaBuf;
 use vhdl_syntax::tokens::TriviaPiece;
 
 fn main() {
@@ -50,36 +53,38 @@ end foobar;
     let replacement_entity = EntityDeclarationBuilder::new(
         EntityDeclarationPreambleBuilder::new(b"no_longer_foo")
             // Clear the default-inserted space before the `entity` token
-            .with_entity_token_trivia(Trivia::new()),
+            .with_entity_token_trivia(TriviaBuf::new()),
     )
     .with_entity_declaration_epilogue(
         EntityDeclarationEpilogueBuilder::new()
             // Replace space between 'is' and 'end' with newline
-            .with_end_token_trivia(Trivia::from([TriviaPiece::LineFeeds(1)]))
-            .with_identifier_token(b"no_longer_foo")
-            .with_semi_colon_token_trivia(Trivia::new()),
+            .with_end_token_trivia(TriviaBuf::from([TriviaPiece::LineFeeds(1)]))
+            .with_simple_name(b"no_longer_foo")
+            .with_semi_colon_token_trivia(TriviaBuf::new()),
     )
     .build();
 
-    let new_file = file.raw().rewrite(|node| match node {
-        SyntaxElement::Node(node) => match EntityDeclarationSyntax::cast(node.clone()) {
-            // If the syntax node is an entity and is named 'foo', replace it with the replacement entity.
-            Some(ent)
-                if ent
-                    .entity_declaration_preamble()
-                    .and_then(|preamble| preamble.name_token())
-                    .is_some_and(|tok| tok.text() == "foo") =>
-            {
-                RewriteAction::Change(SyntaxElement::Node(replacement_entity.raw()))
-            }
-            // If the syntax node is not an entity, or the name of the entity is not 'foo', leave the node as-is
-            _ => RewriteAction::Leave,
-        },
-        SyntaxElement::Token(_) => RewriteAction::Leave,
-    });
+    let new_file = file
+        .rewrite(|node| match node {
+            SyntaxElement::Node(node) => match EntityDeclarationSyntax::cast(node.clone()) {
+                // If the syntax node is an entity and is named 'foo', replace it with the replacement entity.
+                Some(ent)
+                    if ent
+                        .entity_declaration_preamble()
+                        .and_then(|preamble| preamble.identifier_token())
+                        .is_some_and(|tok| tok.text() == "foo") =>
+                {
+                    RewriteAction::Change(SyntaxElement::Node(replacement_entity.raw()))
+                }
+                // If the syntax node is not an entity, or the name of the entity is not 'foo', leave the node as-is
+                _ => RewriteAction::Leave,
+            },
+            SyntaxElement::Token(_) => RewriteAction::Leave,
+        })
+        .expect("the design file still has content");
 
     assert_eq!(
-        format!("{}", new_file),
+        format!("{}", new_file.display()),
         "\
 entity no_longer_foo is
 end no_longer_foo;

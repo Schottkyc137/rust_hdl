@@ -53,6 +53,7 @@ pub enum DeclarationItem<'a> {
     Attribute(&'a AttributeDeclaration),
     Alias(&'a AliasDeclaration),
     SubprogramDecl(&'a SubprogramSpecification),
+    ReturnIdentifier(&'a WithDecl<Ident>),
     Subprogram(&'a SubprogramBody),
     SubprogramInstantiation(&'a SubprogramInstantiation),
     Package(&'a PackageDeclaration),
@@ -518,7 +519,6 @@ impl Search for ProcessStatement {
             sensitivity_list,
             decl,
             statements,
-            end_label_pos: _,
             ..
         } = self;
         if let Some(sensitivity_list) = sensitivity_list {
@@ -560,7 +560,6 @@ impl Search for LabeledConcurrentStatement {
                     index_name: _,
                     discrete_range,
                     body,
-                    end_label_pos: _,
                     ..
                 } = gen;
                 return_if_found!(discrete_range.search(ctx, searcher));
@@ -948,8 +947,28 @@ fn search_pos_expr(
             _ => NotFound,
         },
         Expression::Parenthesized(expr) => {
-            search_pos_expr(ctx, &expr.span.pos(ctx), &expr.item, searcher)
+            search_pos_conditional_expr(ctx, &expr.span.pos(ctx), &expr.item, searcher)
         }
+    }
+}
+
+fn search_pos_conditional_expr(
+    ctx: &dyn TokenAccess,
+    pos: &SrcPos,
+    expr: &ConditionalExpression,
+    searcher: &mut impl Searcher,
+) -> SearchResult {
+    match expr {
+        ConditionalExpression::Simple(expr) => search_pos_expr(ctx, pos, expr, searcher),
+        ConditionalExpression::Conditional(conditionals) => {
+            search_conditionals(conditionals, true, searcher, ctx)
+        }
+    }
+}
+
+impl Search for WithTokenSpan<ConditionalExpression> {
+    fn search(&self, ctx: &dyn TokenAccess, searcher: &mut impl Searcher) -> SearchResult {
+        search_pos_conditional_expr(ctx, &self.span.pos(ctx), &self.item, searcher)
     }
 }
 
@@ -991,7 +1010,12 @@ impl Search for AssociationElement {
 
         match actual.item {
             ActualPart::Expression(ref expr) => {
-                return_if_found!(search_pos_expr(ctx, &actual.pos(ctx), expr, searcher));
+                return_if_found!(search_pos_conditional_expr(
+                    ctx,
+                    &actual.pos(ctx),
+                    expr,
+                    searcher
+                ));
             }
             ActualPart::Open => {}
         }
@@ -1376,6 +1400,17 @@ fn search_subpgm_inner(
         SubprogramSpecification::Function(ref decl) => {
             return_if_found!(decl.header.search(ctx, searcher));
             return_if_found!(decl.parameter_list.search(ctx, searcher));
+            if let Some(return_identifier) = &decl.return_identifier {
+                return_if_found!(searcher
+                    .search_decl(
+                        ctx,
+                        FoundDeclaration::new(
+                            &return_identifier.decl,
+                            DeclarationItem::ReturnIdentifier(return_identifier)
+                        )
+                    )
+                    .or_not_found());
+            }
             decl.return_type.search(ctx, searcher)
         }
         SubprogramSpecification::Procedure(ref decl) => {
@@ -1830,6 +1865,7 @@ impl FoundDeclaration<'_> {
             DeclarationItem::ForGenerateIndex(..) => None,
             DeclarationItem::Subprogram(value) => value.end_ident_pos,
             DeclarationItem::SubprogramDecl(..) => None,
+            DeclarationItem::ReturnIdentifier(..) => None,
             DeclarationItem::Object(..) => None,
             DeclarationItem::ElementDeclaration(..) => None,
             DeclarationItem::EnumerationLiteral(..) => None,
@@ -1898,6 +1934,9 @@ impl std::fmt::Display for DeclarationItem<'_> {
             }
             DeclarationItem::SubprogramDecl(ref value) => {
                 write!(f, "{value}")
+            }
+            DeclarationItem::ReturnIdentifier(value) => {
+                write!(f, "subtype {}", value.tree)
             }
             DeclarationItem::SubprogramInstantiation(ref value) => {
                 write!(f, "{value};")

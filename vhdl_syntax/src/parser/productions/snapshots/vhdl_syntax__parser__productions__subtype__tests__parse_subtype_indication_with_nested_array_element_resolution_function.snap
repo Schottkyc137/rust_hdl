@@ -1,0 +1,20 @@
+---
+source: vhdl_syntax/src/parser/productions/subtype.rs
+expression: "to_test_text(Parser::subtype_indication, \"((resolved)) unresolved_slv_array\")"
+---
+SubtypeIndication
+  ParenthesizedElementResolution
+    LeftPar
+    ElementResolutionResolutionIndication
+      ParenthesizedElementResolution
+        LeftPar
+        ElementResolutionResolutionIndication
+          NameResolutionIndication
+            Name
+              NameDesignatorPrefix
+                Identifier 'resolved'
+        RightPar
+    RightPar
+  Name
+    NameDesignatorPrefix
+      Identifier 'unresolved_slv_array'

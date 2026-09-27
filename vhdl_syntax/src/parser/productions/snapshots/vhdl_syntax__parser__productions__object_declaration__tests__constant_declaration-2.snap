@@ -13,8 +13,10 @@ ConstantDeclaration
   Colon
   SubtypeIndication
     Name
-      Identifier 'std_ulogic'
-  ColonEq
-  LiteralExpression
-    CharacterLiteral ''0''
+      NameDesignatorPrefix
+        Identifier 'std_ulogic'
+  InitialValue
+    ColonEq
+    LiteralExpression
+      CharacterLiteral ''0''
   SemiColon

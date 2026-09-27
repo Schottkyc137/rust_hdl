@@ -1,0 +1,44 @@
+---
+source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+u_cpu: entity work.cpu
+  port map (
+    clk => clk
+  )
+
+== tree ==
+ComponentInstantiationStatement
+  StmtLabel
+    Identifier 'u_cpu'
+    Colon
+  InstantiatedEntity
+    Keyword(Entity)
+    Name
+      NameDesignatorPrefix
+        Identifier 'work'
+      SelectedName
+        Dot
+        Identifier 'cpu'
+  PortMapAspect
+    Keyword(Port)
+    Keyword(Map)
+    LeftPar
+    AssociationList
+      AssociationElement
+        Formal
+          Name
+            NameDesignatorPrefix
+              Identifier 'clk'
+          RightArrow
+        ActualPart
+          ActualPartExpression
+            NameExpression
+              Name
+                NameDesignatorPrefix
+                  Identifier 'clk'
+    RightPar
+
+== diagnostics ==
+4:4 expected ';'

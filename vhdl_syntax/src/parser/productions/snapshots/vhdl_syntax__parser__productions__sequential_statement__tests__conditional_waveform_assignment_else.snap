@@ -1,28 +1,32 @@
 ---
 source: vhdl_syntax/src/parser/productions/sequential_statement.rs
-expression: "to_test_text(Parser::sequential_statement,\n\"\\\ndata_processing_state <= processing when processing_data else idle;\")"
+expression: "stmt_to_test_text(\"\\\ndata_processing_state <= processing when processing_data else idle;\")"
 ---
 ConditionalWaveformAssignment
   NameTarget
     Name
-      Identifier 'data_processing_state'
+      NameDesignatorPrefix
+        Identifier 'data_processing_state'
   LTE
   ConditionalWaveforms
-    ConditionalWaveform
+    WhenWaveform
       WaveformElements
         WaveformElement
           NameExpression
             Name
-              Identifier 'processing'
+              NameDesignatorPrefix
+                Identifier 'processing'
       Keyword(When)
       NameExpression
         Name
-          Identifier 'processing_data'
-    ConditionalWaveformElseItem
+          NameDesignatorPrefix
+            Identifier 'processing_data'
+    ElseWaveform
       Keyword(Else)
       WaveformElements
         WaveformElement
           NameExpression
             Name
-              Identifier 'idle'
+              NameDesignatorPrefix
+                Identifier 'idle'
   SemiColon

@@ -1,0 +1,20 @@
+---
+source: vhdl_syntax/src/parser/productions/design.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+library ieee
+
+== tree ==
+DesignFile
+  DesignUnit
+    ContextClause
+      LibraryClause
+        Keyword(Library)
+        LogicalNameList
+          Identifier 'ieee'
+  Eof
+
+== diagnostics ==
+1:13 expected ';'
+1:13 expected 'architecture', 'package', 'entity', 'configuration' or 'context'

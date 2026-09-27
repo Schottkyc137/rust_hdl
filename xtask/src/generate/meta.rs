@@ -29,7 +29,10 @@ fn generate_meta(model: &Model) -> TokenStream {
         .all_nodes()
         .filter_map(|node| match node {
             Node::Items(seq) => Some(seq.name.clone()),
-            Node::Choices(_) => None,
+            Node::List(list) => Some(list.kind.clone()),
+            // Neither has a `NodeKind` variant: a choice is abstract, an alias is a second
+            // name for a node that carries its own layout.
+            Node::Choices(_) | Node::Alias(_) => None,
         })
         .collect();
     entries.sort();
@@ -37,7 +40,7 @@ fn generate_meta(model: &Model) -> TokenStream {
     let arms: Vec<TokenStream> = entries
         .iter()
         .map(|name| {
-            let nk = format_ident!("{}", name);
+            let nk = format_ident!("{}", name.as_str());
             let syntax = syntax_type_ident(name);
             quote! { NodeKind::#nk => #syntax::META }
         })

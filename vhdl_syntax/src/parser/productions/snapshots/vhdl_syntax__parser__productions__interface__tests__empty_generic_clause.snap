@@ -1,11 +1,16 @@
 ---
 source: vhdl_syntax/src/parser/productions/interface.rs
-expression: "to_test_text(Parser::generic_clause, \"generic();\",)"
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
 ---
+== source ==
+generic();
+
+== tree ==
 GenericClause
-  GenericClausePreamble
-    Keyword(Generic)
-    LeftPar
-  GenericClauseEpilogue
-    RightPar
-    SemiColon
+  Keyword(Generic)
+  LeftPar
+  RightPar
+  SemiColon
+
+== diagnostics ==
+1:9 expected InterfaceList

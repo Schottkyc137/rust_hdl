@@ -6,18 +6,22 @@ WaitStatement
   Keyword(Wait)
   SensitivityClause
     Keyword(On)
-    NameList
+    SensitivityList
       Name
-        Identifier 'foo'
+        NameDesignatorPrefix
+          Identifier 'foo'
   ConditionClause
     Keyword(Until)
     NameExpression
       Name
-        Identifier 'bar'
+        NameDesignatorPrefix
+          Identifier 'bar'
   TimeoutClause
     Keyword(For)
-    PhysicalLiteral
-      AbstractLiteral '2'
-      Name
-        Identifier 'ns'
+    PhysicalLiteralExpression
+      PhysicalLiteral
+        AbstractLiteral '2'
+        Name
+          NameDesignatorPrefix
+            Identifier 'ns'
   SemiColon

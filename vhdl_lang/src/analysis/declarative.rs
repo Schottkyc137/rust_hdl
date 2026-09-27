@@ -413,15 +413,9 @@ impl<'a> AnalyzeContext<'a, '_> {
 
                 if let Some(ref mut expr) = object_decl.expression {
                     if let Ok(ref subtype) = subtype {
-                        self.expr_pos_with_ttyp(
-                            scope,
-                            subtype.type_mark(),
-                            expr.span,
-                            &mut expr.item,
-                            diagnostics,
-                        )?;
+                        self.cond_expr_with_ttyp(scope, subtype.type_mark(), expr, diagnostics)?;
                     } else {
-                        self.expr_unknown_ttyp(scope, expr, diagnostics)?;
+                        self.cond_expr_unknown_ttyp(scope, expr, diagnostics)?;
                     }
                 }
 
@@ -644,7 +638,9 @@ impl<'a> AnalyzeContext<'a, '_> {
         diagnostics: &mut dyn DiagnosticHandler,
     ) -> EvalResult<EntRef<'a>> {
         let typ = self.resolve_subtype_indication(scope, &mut view.typ, diagnostics)?;
-        let record_region = match typ.type_mark().kind() {
+        // LRM 6.5.2: The subtype indication of a mode view declaration shall denote an
+        // unresolved record type or subtype, hence resolve to the base type before checking.
+        let record_region = match typ.type_mark().base_type().kind() {
             Type::Record(region) => region,
             _ => {
                 let diag = Diagnostic::new(
@@ -749,13 +745,7 @@ impl<'a> AnalyzeContext<'a, '_> {
             Ok(NamedEntities::Single(ent)) => {
                 ident.set_unique_reference(ent);
                 if let Some(attr_ent) = AttributeEnt::from_any(ent) {
-                    self.expr_pos_with_ttyp(
-                        scope,
-                        attr_ent.typ(),
-                        expr.span,
-                        &mut expr.item,
-                        diagnostics,
-                    )?;
+                    self.cond_expr_with_ttyp(scope, attr_ent.typ(), expr, diagnostics)?;
                     attr_ent
                 } else {
                     diagnostics.add(
@@ -1080,7 +1070,7 @@ impl<'a> AnalyzeContext<'a, '_> {
                     let Type::Array {
                         indexes: _,
                         elem_type,
-                    } = declared_subtype.type_mark().kind()
+                    } = declared_subtype.type_mark().base_type().kind()
                     else {
                         bail!(
                             diagnostics,
@@ -1091,7 +1081,9 @@ impl<'a> AnalyzeContext<'a, '_> {
                             )
                         );
                     };
-                    if *elem_type != view_ent.subtype().type_mark() {
+                    // The element type only has to be of the same type as the view,
+                    // it may be an arbitrary subtype thereof.
+                    if elem_type.base_type() != view_ent.subtype().base_type() {
                         bail!(
                             diagnostics,
                             Diagnostic::new(
@@ -1107,7 +1099,9 @@ impl<'a> AnalyzeContext<'a, '_> {
                     }
                 }
                 ModeViewIndicationKind::Record => {
-                    if declared_subtype.type_mark() != view_ent.subtype().type_mark() {
+                    // LRM 6.5.2: the subtype indication only has to denote the same type as
+                    // the view; any subtype of that type is legal here.
+                    if declared_subtype.base_type() != view_ent.subtype().base_type() {
                         bail!(
                             diagnostics,
                             Diagnostic::new(
@@ -1151,15 +1145,9 @@ impl<'a> AnalyzeContext<'a, '_> {
 
         if let Some(ref mut expression) = mode.expression {
             if let Ok(ref subtype) = subtype {
-                self.expr_pos_with_ttyp(
-                    scope,
-                    subtype.type_mark(),
-                    expression.span,
-                    &mut expression.item,
-                    diagnostics,
-                )?;
+                self.cond_expr_with_ttyp(scope, subtype.type_mark(), expression, diagnostics)?;
             } else {
-                self.expr_unknown_ttyp(scope, expression, diagnostics)?
+                self.cond_expr_unknown_ttyp(scope, expression, diagnostics)?
             }
         }
 

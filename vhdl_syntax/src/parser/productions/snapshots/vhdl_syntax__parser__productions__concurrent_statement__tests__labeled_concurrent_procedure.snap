@@ -3,11 +3,12 @@ source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
 expression: "stmt_to_test_text(\"name: foo(clk);\",)"
 ---
 ConcurrentProcedureCallOrComponentInstantiationStatement
-  Label
+  StmtLabel
     Identifier 'name'
     Colon
   Name
-    Identifier 'foo'
+    NameDesignatorPrefix
+      Identifier 'foo'
     ParenthesizedName
       LeftPar
       AssociationList
@@ -16,6 +17,7 @@ ConcurrentProcedureCallOrComponentInstantiationStatement
             ActualPartExpression
               NameExpression
                 Name
-                  Identifier 'clk'
+                  NameDesignatorPrefix
+                    Identifier 'clk'
       RightPar
   SemiColon

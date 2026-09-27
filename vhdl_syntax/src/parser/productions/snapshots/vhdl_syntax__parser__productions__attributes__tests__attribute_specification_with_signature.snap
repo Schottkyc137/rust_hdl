@@ -12,9 +12,11 @@ AttributeSpecification
         Identifier 'foo'
         Signature
           LeftSquare
-          Keyword(Return)
-          Name
-            Identifier 'natural'
+          ReturnType
+            Keyword(Return)
+            Name
+              NameDesignatorPrefix
+                Identifier 'natural'
           RightSquare
     Colon
     Keyword(Function)

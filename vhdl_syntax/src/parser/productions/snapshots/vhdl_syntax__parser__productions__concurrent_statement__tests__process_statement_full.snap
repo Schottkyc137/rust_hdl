@@ -3,7 +3,7 @@ source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
 expression: "stmt_to_test_text(\"\\\nprocess (all) is\n  variable foo : boolean;\nbegin\n  foo <= true;\n  wait;\nend process;\",)"
 ---
 ProcessStatement
-  ProcessStatementPreamble
+  ProcessPreamble
     Keyword(Process)
     ParenthesizedProcessSensitivityList
       LeftPar
@@ -11,7 +11,7 @@ ProcessStatement
         Keyword(All)
       RightPar
     Keyword(Is)
-  Declarations
+  ProcessDeclarativePart
     VariableDeclaration
       Keyword(Variable)
       IdentifierList
@@ -19,26 +19,29 @@ ProcessStatement
       Colon
       SubtypeIndication
         Name
-          Identifier 'boolean'
+          NameDesignatorPrefix
+            Identifier 'boolean'
       SemiColon
   DeclarationStatementSeparator
     Keyword(Begin)
-  SequentialStatements
+  ProcessStatementPart
     SimpleWaveformAssignment
       NameTarget
         Name
-          Identifier 'foo'
+          NameDesignatorPrefix
+            Identifier 'foo'
       LTE
       WaveformElements
         WaveformElement
           NameExpression
             Name
-              Identifier 'true'
+              NameDesignatorPrefix
+                Identifier 'true'
       SemiColon
     WaitStatement
       Keyword(Wait)
       SemiColon
-  ProcessStatementEpilogue
+  ProcessEpilogue
     Keyword(End)
     Keyword(Process)
     SemiColon

@@ -1,0 +1,43 @@
+---
+source: vhdl_syntax/src/parser/productions/package.rs
+expression: "to_test_text(Parser::package,\n\"\\\npackage pkg_name is\n  generic (\n    type foo\n  );\n  generic map (\n    foo => bar\n  );\nend package;\")"
+---
+PackageDeclaration
+  PackagePreamble
+    Keyword(Package)
+    Identifier 'pkg_name'
+    Keyword(Is)
+  PackageHeader
+    GenericClause
+      Keyword(Generic)
+      LeftPar
+      InterfaceList
+        InterfaceIncompleteTypeDeclaration
+          Keyword(Type)
+          Identifier 'foo'
+      RightPar
+      SemiColon
+    GenericMap
+      GenericMapAspect
+        Keyword(Generic)
+        Keyword(Map)
+        LeftPar
+        AssociationList
+          AssociationElement
+            Formal
+              Name
+                NameDesignatorPrefix
+                  Identifier 'foo'
+              RightArrow
+            ActualPart
+              ActualPartExpression
+                NameExpression
+                  Name
+                    NameDesignatorPrefix
+                      Identifier 'bar'
+        RightPar
+      SemiColon
+  PackageEpilogue
+    Keyword(End)
+    Keyword(Package)
+    SemiColon

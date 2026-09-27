@@ -3,21 +3,23 @@ source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
 expression: "stmt_to_test_text(\"\\\nname : block (cond = true)\nbegin\nend block;\",)"
 ---
 BlockStatement
+  StmtLabel
+    Identifier 'name'
+    Colon
   BlockPreamble
-    Label
-      Identifier 'name'
-      Colon
     Keyword(Block)
-    ParenthesizedExpression
+    ParenthesizedCondition
       LeftPar
       BinaryExpression
         NameExpression
           Name
-            Identifier 'cond'
+            NameDesignatorPrefix
+              Identifier 'cond'
         EQ
         NameExpression
           Name
-            Identifier 'true'
+            NameDesignatorPrefix
+              Identifier 'true'
       RightPar
   DeclarationStatementSeparator
     Keyword(Begin)

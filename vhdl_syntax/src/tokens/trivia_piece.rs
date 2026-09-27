@@ -4,62 +4,21 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
-use std::{
-    borrow::Cow,
-    io::{self, Write},
-};
+use std::io::{self, Write};
 
-use crate::latin_1::Latin1Str;
-
-/// A comment
-///
-/// Because VHDL allows comments to have any encoding,
-/// this implementation makes no assumption as to that and is simply
-/// backed by bytes. Utility methods exist to get the value with different
-/// encodings.
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Comment {
-    inner: Vec<u8>,
-}
-
-impl Comment {
-    pub fn new(bytes: impl Into<Vec<u8>>) -> Comment {
-        Comment {
-            inner: bytes.into(),
-        }
-    }
-
-    pub fn as_latin1(&self) -> &Latin1Str {
-        Latin1Str::new(&self.inner)
-    }
-
-    pub fn as_utf8(&self) -> Result<&str, std::str::Utf8Error> {
-        str::from_utf8(&self.inner)
-    }
-
-    pub fn to_utf8_lossy(&self) -> Cow<'_, str> {
-        String::from_utf8_lossy(&self.inner)
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.inner
-    }
-
-    pub fn byte_len(&self) -> usize {
-        self.inner.len()
-    }
-}
+use crate::tokens::comment::Comment;
 
 /// Single trivia pieces that can be combined to form [Trivia](crate::tokens::Trivia) tokens.
 #[derive(Clone, Eq, PartialEq, Debug)]
+// ANCHOR: trivia-piece
 pub enum TriviaPiece {
-    /// Horizontal tabs '\t' (a.k.a regular tabs) characters
+    /// Horizontal tab '\t' characters
     HorizontalTabs(usize),
-    /// Vertical tabs '\v' characters
+    /// Vertical tab '\v' characters
     VerticalTabs(usize),
-    /// newline '\r' characters
+    /// Carriage return '\r' characters
     CarriageReturns(usize),
-    /// Carriage return ('\r') + newline ('\n') feeds
+    /// Carriage return + line feed ("\r\n") pairs
     CarriageReturnLineFeeds(usize),
     /// newline '\n' characters
     LineFeeds(usize),
@@ -73,9 +32,8 @@ pub enum TriviaPiece {
     Spaces(usize),
     /// Non breaking space characters
     NonBreakingSpaces(usize),
-    /// Any trivia not covered by the other branches
-    Unexpected(Vec<u8>),
 }
+// ANCHOR_END: trivia-piece
 
 impl TriviaPiece {
     /// Returns the length of this trivia piece.
@@ -85,9 +43,7 @@ impl TriviaPiece {
             HorizontalTabs(n) | VerticalTabs(n) | CarriageReturns(n) | LineFeeds(n)
             | FormFeeds(n) | Spaces(n) | NonBreakingSpaces(n) => *n,
             CarriageReturnLineFeeds(n) => *n * 2,
-            LineComment(str) => 2 + str.byte_len(),
-            BlockComment(str) => 4 + str.byte_len(),
-            Unexpected(unexpected) => unexpected.len(),
+            LineComment(str) | BlockComment(str) => str.byte_len(),
         }
     }
 
@@ -136,18 +92,9 @@ impl TriviaPiece {
             CarriageReturnLineFeeds(n) => write_repeated(writer, b"\r\n", *n),
             LineFeeds(n) => write_repeated(writer, b"\n", *n),
             FormFeeds(n) => write_repeated(writer, &[0x0Cu8], *n),
-            LineComment(comment) => {
-                writer.write_all(b"--")?;
-                writer.write_all(comment.as_bytes())
-            }
-            BlockComment(comment) => {
-                writer.write_all(b"/*")?;
-                writer.write_all(comment.as_bytes())?;
-                writer.write_all(b"*/")
-            }
+            LineComment(comment) | BlockComment(comment) => writer.write_all(comment.as_bytes()),
             Spaces(n) => write_repeated(writer, b" ", *n),
             NonBreakingSpaces(n) => write_repeated(writer, &[0xA0u8], *n),
-            Unexpected(unexpected) => writer.write_all(unexpected),
         }
     }
 }

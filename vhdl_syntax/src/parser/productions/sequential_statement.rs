@@ -4,287 +4,300 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::{CompletedMarker, Precede};
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{AstNode, SequentialStatementSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
-    pub fn wait_statement(&mut self) {
-        self.start_node(WaitStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Wait);
-        if self.next_is(Keyword(Kw::On)) {
-            self.start_node(SensitivityClause);
-            self.skip();
-            self.name_list();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::Until)) {
-            self.start_node(ConditionClause);
-            self.skip();
-            self.expression();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::For)) {
-            self.start_node(TimeoutClause);
-            self.skip();
-            self.expression();
-            self.end_node();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn wait_statement(&mut self) -> CompletedMarker {
+        self.node(WaitStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Wait);
+            if p.next_is(Keyword(Kw::On)) {
+                p.node(SensitivityClause, |p| {
+                    p.skip();
+                    p.sensitivity_list();
+                });
+            }
+            if p.next_is(Keyword(Kw::Until)) {
+                p.node(ConditionClause, |p| {
+                    p.skip();
+                    p.expression();
+                });
+            }
+            if p.next_is(Keyword(Kw::For)) {
+                p.node(TimeoutClause, |p| {
+                    p.skip();
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn assert_statement(&mut self) {
-        self.start_node(AssertionStatement);
-        self.opt_label();
-        self.assertion();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn assert_statement(&mut self) -> CompletedMarker {
+        self.node(AssertionStatement, |p| {
+            p.opt_label();
+            p.assertion();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn report_statement(&mut self) {
-        self.start_node(ReportStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Report);
-        self.expression();
-        if self.next_is(Keyword(Kw::Severity)) {
-            self.skip();
-            self.expression();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn report_statement(&mut self) -> CompletedMarker {
+        self.node(ReportStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Report);
+            p.expression();
+            if p.next_is(Keyword(Kw::Severity)) {
+                p.node(SeverityClause, |p| {
+                    p.skip(); // Kw::Severity
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn next_statement(&mut self) {
-        self.start_node(NextStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Next);
-        self.opt_identifier();
-        if self.next_is(Keyword(Kw::When)) {
-            self.skip();
-            self.expression();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn next_statement(&mut self) -> CompletedMarker {
+        self.node(NextStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Next);
+            p.opt_identifier();
+            if p.next_is(Keyword(Kw::When)) {
+                p.node(WhenClause, |p| {
+                    p.skip(); // Kw::When
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn exit_statement(&mut self) {
-        self.start_node(ExitStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Exit);
-        self.opt_identifier();
-        if self.next_is(Keyword(Kw::When)) {
-            self.skip();
-            self.expression();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn exit_statement(&mut self) -> CompletedMarker {
+        self.node(ExitStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Exit);
+            p.opt_identifier();
+            if p.next_is(Keyword(Kw::When)) {
+                p.node(WhenClause, |p| {
+                    p.skip(); // Kw::When
+                    p.expression();
+                });
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn return_statement(&mut self) {
-        self.start_node(ReturnStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Return);
-        if !self.next_is(SemiColon) {
-            self.expression();
-        }
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn return_statement(&mut self) -> CompletedMarker {
+        self.node(ReturnStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Return);
+            if !p.next_is(SemiColon) {
+                p.expression();
+            }
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn null_statement(&mut self) {
-        self.start_node(NullStatement);
-        self.opt_label();
-        self.expect_kw(Kw::Null);
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn null_statement(&mut self) -> CompletedMarker {
+        self.node(NullStatement, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Null);
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn if_statement(&mut self) {
-        self.start_node(IfStatement);
-        self.if_statement_preamble();
-        self.sequential_statements();
-        while self.next_is(Keyword(Kw::Elsif)) {
-            self.start_node(IfStatementElsif);
-            self.skip();
-            self.condition();
-            self.expect_kw(Kw::Then);
-            self.sequential_statements();
-            self.end_node();
-        }
-        if self.next_is(Keyword(Kw::Else)) {
-            self.start_node(IfStatementElse);
-            self.skip();
-            self.sequential_statements();
-            self.end_node();
-        }
-        self.if_statement_epilogue();
-        self.end_node();
+    pub(crate) fn if_statement(&mut self) -> CompletedMarker {
+        self.node(IfStatement, |p| {
+            p.if_statement_preamble();
+            p.sequence_of_statements();
+            while p.next_is(Keyword(Kw::Elsif)) {
+                p.node(IfStatementElsif, |p| {
+                    p.skip();
+                    p.condition();
+                    p.expect_kw(Kw::Then);
+                    p.sequence_of_statements();
+                });
+            }
+            if p.next_is(Keyword(Kw::Else)) {
+                p.node(IfStatementElse, |p| {
+                    p.skip();
+                    p.sequence_of_statements();
+                });
+            }
+            p.if_statement_epilogue();
+        })
     }
 
-    pub fn if_statement_preamble(&mut self) {
-        self.start_node(IfStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::If);
-        self.condition();
-        self.expect_kw(Kw::Then);
-        self.end_node();
+    pub(crate) fn if_statement_preamble(&mut self) {
+        self.node(IfStatementPreamble, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::If);
+            p.condition();
+            p.expect_kw(Kw::Then);
+        });
     }
 
-    pub fn if_statement_epilogue(&mut self) {
-        self.start_node(IfStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::If)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn if_statement_epilogue(&mut self) {
+        self.node(IfStatementEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::If)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn case_statement(&mut self) {
-        self.start_node(CaseStatement);
-        self.case_statement_preamble();
-        while self.next_is(Keyword(Kw::When)) {
-            self.case_statement_alternative();
-        }
-        self.case_statement_epilogue();
-        self.end_node();
+    pub(crate) fn case_statement(&mut self) -> CompletedMarker {
+        self.node(CaseStatement, |p| {
+            p.case_statement_preamble();
+            p.case_statement_alternative();
+            while p.next_is(Keyword(Kw::When)) {
+                p.case_statement_alternative();
+            }
+            p.case_statement_epilogue();
+        })
     }
 
-    pub fn case_statement_preamble(&mut self) {
-        self.start_node(CaseStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::Case);
-        self.opt_token(Que);
-        self.expression();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+    pub(crate) fn case_statement_preamble(&mut self) {
+        self.node(CaseStatementPreamble, |p| {
+            p.opt_label();
+            p.expect_kw(Kw::Case);
+            p.opt_token(Que);
+            p.expression();
+            p.expect_kw(Kw::Is);
+        });
     }
 
-    pub fn case_statement_epilogue(&mut self) {
-        self.start_node(CaseStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Case)]);
-        self.opt_token(Que);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn case_statement_epilogue(&mut self) {
+        self.node(CaseStatementEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Case)]);
+            p.opt_token(Que);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn case_statement_alternative(&mut self) {
-        self.start_node(CaseStatementAlternative);
-        self.case_statement_alternative_preamble();
-        self.sequential_statements();
-        self.end_node();
+    pub(crate) fn case_statement_alternative(&mut self) {
+        self.node(CaseStatementAlternative, |p| {
+            p.case_statement_alternative_preamble();
+            p.sequence_of_statements();
+        });
     }
 
-    pub fn case_statement_alternative_preamble(&mut self) {
-        self.start_node(CaseStatementAlternativePreamble);
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.expect_token(RightArrow);
-        self.end_node();
+    pub(crate) fn case_statement_alternative_preamble(&mut self) {
+        self.node(CaseStatementAlternativePreamble, |p| {
+            p.expect_kw(Kw::When);
+            p.choices();
+            p.expect_token(RightArrow);
+        });
     }
 
-    pub fn aggregate(&mut self) {
-        self.start_node(Aggregate);
-        self.aggregate_inner();
-        self.end_node();
+    pub(crate) fn aggregate(&mut self) {
+        self.node(Aggregate, |p| {
+            p.aggregate_inner();
+        });
     }
 
     pub(crate) fn aggregate_inner(&mut self) {
         self.expect_token(LeftPar);
-        self.separated_list(Parser::element_association, Comma);
+        self.separated_list(ElementAssociationList, Parser::element_association, Comma);
         self.expect_token(RightPar);
     }
 
-    pub fn element_association(&mut self) {
-        self.start_node(ElementAssociation);
-        let has_choices = matches!(
-            self.lookahead_max_token_index(usize::MAX, [RightArrow, Comma]),
-            Ok((RightArrow, _))
-        );
-        if has_choices {
-            self.choices();
-            self.expect_token(RightArrow);
-        }
-        self.expression();
-        self.end_node();
+    pub(crate) fn element_association(&mut self) {
+        self.node(ElementAssociation, |p| {
+            let has_choices = matches!(
+                p.lookahead_max_token_index(usize::MAX, [RightArrow, Comma]),
+                Ok((RightArrow, _))
+            );
+            if has_choices {
+                p.node(ElementChoices, |p| {
+                    p.choices();
+                    p.expect_token(RightArrow);
+                });
+            }
+            p.expression();
+        });
     }
 
-    pub fn loop_statement(&mut self) {
-        self.start_node(LoopStatement);
-        self.loop_statement_preamble();
-        self.sequential_statements();
-        self.loop_statement_epilogue();
-        self.end_node();
+    pub(crate) fn loop_statement(&mut self) -> CompletedMarker {
+        self.node(LoopStatement, |p| {
+            p.loop_statement_preamble();
+            p.sequence_of_statements();
+            p.loop_statement_epilogue();
+        })
     }
 
-    pub fn loop_statement_preamble(&mut self) {
-        self.start_node(LoopStatementPreamble);
-        self.opt_label();
-        self.opt_iteration_scheme();
-        self.expect_kw(Kw::Loop);
-        self.end_node();
+    pub(crate) fn loop_statement_preamble(&mut self) {
+        self.node(LoopStatementPreamble, |p| {
+            p.opt_label();
+            p.opt_iteration_scheme();
+            p.expect_kw(Kw::Loop);
+        });
     }
 
-    pub fn loop_statement_epilogue(&mut self) {
-        self.start_node(LoopStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Loop)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn loop_statement_epilogue(&mut self) {
+        self.node(LoopStatementEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Loop)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
     fn opt_iteration_scheme(&mut self) {
         if self.next_is(Keyword(Kw::While)) {
-            self.start_node(WhileIterationScheme);
-            self.skip();
-            self.condition();
-            self.end_node();
+            self.node(WhileScheme, |p| {
+                p.skip();
+                p.condition();
+            });
         } else if self.next_is(Keyword(Kw::For)) {
-            self.start_node(ForIterationScheme);
-            self.skip();
-            self.parameter_specification();
-            self.end_node();
+            self.node(ForScheme, |p| {
+                p.skip();
+                p.parameter_specification();
+            });
         }
     }
 
-    pub fn iteration_scheme(&mut self) {
-        if !self.next_is_one_of([Keyword(Kw::While), Keyword(Kw::For)]) {
-            self.expect_tokens_err([Keyword(Kw::While), Keyword(Kw::For)]);
-            return;
-        }
-        self.opt_iteration_scheme();
-    }
-
-    pub fn sequential_statements(&mut self) {
-        self.start_node(SequentialStatements);
-        loop {
-            match self.peek_token() {
-                Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
-                _ => self.sequential_statement(),
+    pub(crate) fn sequential_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
+        let allowed_nodes = choice_options(layout);
+        self.node(node_kind, |p| {
+            let mut guard = StallGuard::new();
+            while guard.should_continue(p) {
+                match p.peek_token() {
+                    Eof | Keyword(Kw::End | Kw::Else | Kw::Elsif | Kw::When) => break,
+                    _ => {
+                        if let Some(stmt) = p.sequential_statement() {
+                            p.check_node_is_allowed(&stmt, allowed_nodes);
+                        }
+                    }
+                }
             }
-        }
-        self.end_node();
+        });
+    }
+
+    pub(crate) fn sequence_of_statements(&mut self) {
+        self.sequential_statements(SequenceOfStatements, SequentialStatementSyntax::META);
     }
 
     fn opt_force_mode(&mut self) {
         self.opt_tokens([Keyword(Kw::In), Keyword(Kw::Out)]);
     }
 
-    pub fn selected_expressions(&mut self) {
-        self.start_node(SelectedExpressions);
-        self.separated_list(Parser::selected_expression, Comma);
-        self.end_node();
+    pub(crate) fn selected_expressions(&mut self) {
+        self.separated_list(SelectedExpressions, Parser::selected_expression, Comma);
     }
 
     fn selected_expression(&mut self) {
-        self.start_node(SelectedExpressionItem);
-        self.expression();
-        self.expect_kw(Kw::When);
-        self.choices();
-        self.end_node();
+        self.node(SelectedExpressionItem, |p| {
+            p.expression();
+            p.expect_kw(Kw::When);
+            p.choices();
+        });
     }
 
     fn sequential_statement_start(&mut self) -> TokenKind {
@@ -295,174 +308,199 @@ impl Parser {
         }
     }
 
-    pub fn sequential_statement(&mut self) {
+    pub(crate) fn sequential_statement(&mut self) -> Option<CompletedMarker> {
         match self.sequential_statement_start() {
-            Keyword(Kw::Wait) => self.wait_statement(),
-            Keyword(Kw::Assert) => self.assert_statement(),
-            Keyword(Kw::Report) => self.report_statement(),
-            Keyword(Kw::If) => self.if_statement(),
-            Keyword(Kw::Case) => self.case_statement(),
-            Keyword(Kw::For | Kw::Loop | Kw::While) => self.loop_statement(),
-            Keyword(Kw::Next) => self.next_statement(),
-            Keyword(Kw::Exit) => self.exit_statement(),
-            Keyword(Kw::Return) => self.return_statement(),
-            Keyword(Kw::Null) => self.null_statement(),
+            Keyword(Kw::Wait) => Some(self.wait_statement()),
+            Keyword(Kw::Assert) => Some(self.assert_statement()),
+            Keyword(Kw::Report) => Some(self.report_statement()),
+            Keyword(Kw::If) => Some(self.if_statement()),
+            Keyword(Kw::Case) => Some(self.case_statement()),
+            Keyword(Kw::For | Kw::Loop | Kw::While) => Some(self.loop_statement()),
+            Keyword(Kw::Next) => Some(self.next_statement()),
+            Keyword(Kw::Exit) => Some(self.exit_statement()),
+            Keyword(Kw::Return) => Some(self.return_statement()),
+            Keyword(Kw::Null) => Some(self.null_statement()),
             Keyword(Kw::With) => {
-                let checkpoint = self.checkpoint();
-                self.start_node(SelectedAssignmentPreamble);
+                let unknown = self.start_unknown();
                 self.opt_label();
-                self.skip();
-                self.expression();
-                self.expect_kw(Kw::Select);
-                self.opt_token(Que);
-                self.end_node();
+                self.selected_assignment_preamble();
                 self.target();
-                match self.peek_token() {
+                let marker = match self.peek_token() {
                     LTE => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
-                            self.start_node_at(checkpoint, SelectedForceAssignment);
+                            let marker = unknown.resolve(self, SelectedForceAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
                             self.selected_expressions();
+                            marker
                         } else {
-                            self.start_node_at(checkpoint, SelectedWaveformAssignment);
+                            let marker = unknown.resolve(self, SelectedWaveformAssignment);
                             self.skip();
                             self.opt_delay_mechanism();
                             self.selected_waveforms();
+                            marker
                         }
                     }
                     ColonEq => {
-                        self.start_node_at(checkpoint, SelectedVariableAssignment);
+                        let marker = unknown.resolve(self, SelectedVariableAssignment);
                         self.skip();
                         self.selected_expressions();
+                        marker
                     }
-                    _ => self.expect_tokens_err([LTE, ColonEq]),
-                }
+                    _ => {
+                        let marker = unknown.resolve(self, SelectedWaveformAssignment);
+                        self.expect_tokens_recover([LTE, ColonEq]);
+                        marker
+                    }
+                };
                 self.expect_token(SemiColon);
-                self.end_node();
+                Some(marker.complete(self))
             }
             Identifier | LeftPar | LtLt => {
-                let checkpoint = self.checkpoint();
+                let unknown = self.start_unknown();
                 self.opt_label();
-                self.target();
-                match self.peek_token() {
+                // A procedure call's callee is a plain `Name`; an assignment's
+                // left-hand side is a `Target`. They are told apart by the
+                // operator that follows (`:=`/`<=` assign, `;` call), and an
+                // aggregate is only ever an assignment target. So parse the name
+                // bare and wrap it in `NameTarget` only when an assignment
+                // operator follows.
+                if self.next_is(LeftPar) {
+                    self.node(AggregateTarget, |p| {
+                        p.aggregate();
+                    });
+                } else {
+                    let name = self.name();
+                    if self.next_is_one_of([ColonEq, LTE]) {
+                        name.precede(self, NameTarget).complete(self);
+                    }
+                }
+                let marker = match self.peek_token() {
                     ColonEq => {
                         self.skip();
-                        let cond_expr_checkpoint = self.checkpoint();
-                        self.expression();
+                        let expression = self.expression();
                         if self.next_is(Keyword(Kw::When)) {
-                            self.start_node_at(checkpoint, ConditionalVariableAssignment);
-                            self.start_node_at(cond_expr_checkpoint, ConditionalExpressions);
-                            self.start_node_at(cond_expr_checkpoint, ConditionalExpression);
+                            let marker = unknown.resolve(self, ConditionalVariableAssignment);
+                            let when = expression.precede(self, WhenExpression);
                             self.skip();
                             self.expression();
-                            self.end_node();
+                            let when_expression = when.complete(self);
+                            let expressions = when_expression.precede(self, ConditionalExpressions);
                             self.conditional_else(
                                 Parser::expression,
-                                ConditionalElseWhenExpression,
-                                ConditionalElseItem,
+                                ElseWhenExpression,
+                                ElseExpression,
                             );
-                            self.end_node();
+                            expressions.complete(self);
+                            marker
                         } else {
-                            self.start_node_at(checkpoint, SimpleVariableAssignment);
+                            unknown.resolve(self, SimpleVariableAssignment)
                         }
                     }
                     LTE => {
                         if self.next_nth_is(Keyword(Kw::Force), 1) {
                             self.skip_n(2);
                             self.opt_force_mode();
-                            let cond_expr_checkpoint = self.checkpoint();
-                            self.expression();
+                            let expression = self.expression();
                             if self.next_is(Keyword(Kw::When)) {
-                                self.start_node_at(checkpoint, ConditionalForceAssignment);
-                                self.start_node_at(cond_expr_checkpoint, ConditionalWaveforms);
-                                self.start_node_at(cond_expr_checkpoint, ConditionalWaveform);
+                                let marker = unknown.resolve(self, ConditionalForceAssignment);
+                                let when = expression.precede(self, WhenExpression);
                                 self.skip();
                                 self.expression();
-                                self.end_node();
+                                let when_expression = when.complete(self);
+                                let expressions =
+                                    when_expression.precede(self, ConditionalExpressions);
                                 self.conditional_else(
-                                    Parser::waveform,
-                                    ConditionalElseWhenExpression,
-                                    ConditionalElseItem,
+                                    Parser::expression,
+                                    ElseWhenExpression,
+                                    ElseExpression,
                                 );
-                                self.end_node();
+                                expressions.complete(self);
+                                marker
                             } else {
-                                self.start_node_at(checkpoint, SimpleForceAssignment);
+                                unknown.resolve(self, SimpleForceAssignment)
                             }
                         } else if self.next_nth_is(Keyword(Kw::Release), 1) {
-                            self.start_node_at(checkpoint, SimpleReleaseAssignment);
+                            let marker = unknown.resolve(self, SimpleReleaseAssignment);
                             self.skip_n(2);
                             self.opt_force_mode();
+                            marker
                         } else {
                             self.skip();
                             self.opt_delay_mechanism();
-                            let wvfm_checkpoint = self.checkpoint();
-                            self.waveform();
+                            let waveform = self.waveform();
                             if self.next_is(Keyword(Kw::When)) {
-                                self.start_node_at(checkpoint, ConditionalWaveformAssignment);
-                                self.start_node_at(wvfm_checkpoint, ConditionalWaveforms);
-                                self.start_node_at(wvfm_checkpoint, ConditionalWaveform);
+                                let marker = unknown.resolve(self, ConditionalWaveformAssignment);
+                                let when = waveform.precede(self, WhenWaveform);
                                 self.skip();
                                 self.expression();
-                                self.end_node();
+                                let when_waveform = when.complete(self);
+                                let waveforms = when_waveform.precede(self, ConditionalWaveforms);
                                 self.conditional_else(
                                     Parser::waveform,
-                                    ConditionalWaveformElseWhenExpression,
-                                    ConditionalWaveformElseItem,
+                                    ElseWhenWaveform,
+                                    ElseWaveform,
                                 );
-                                self.end_node();
+                                waveforms.complete(self);
+                                marker
                             } else {
-                                self.start_node_at(checkpoint, SimpleWaveformAssignment);
+                                unknown.resolve(self, SimpleWaveformAssignment)
                             }
                         }
                     }
-                    SemiColon => {
-                        self.start_node_at(checkpoint, ProcedureCallStatement);
+                    SemiColon => unknown.resolve(self, ProcedureCallStatement),
+                    _ => {
+                        let marker = unknown.resolve(self, ProcedureCallStatement);
+                        self.expect_tokens_recover([LTE, ColonEq, SemiColon]);
+                        marker
                     }
-                    _ => self.expect_tokens_err([LTE, ColonEq, SemiColon]),
-                }
+                };
                 self.expect_token(SemiColon);
-                self.end_node();
+                Some(marker.complete(self))
             }
-            _ => self.expect_tokens_err([
-                Keyword(Kw::Wait),
-                Keyword(Kw::Assert),
-                Keyword(Kw::Report),
-                Keyword(Kw::If),
-                Keyword(Kw::Case),
-                Keyword(Kw::For),
-                Keyword(Kw::Loop),
-                Keyword(Kw::While),
-                Keyword(Kw::Next),
-                Keyword(Kw::Exit),
-                Keyword(Kw::Return),
-                Keyword(Kw::Null),
-                Keyword(Kw::With),
-                Identifier,
-                LeftPar,
-                LtLt,
-            ]),
+            _ => {
+                // consume label for error recovery
+                self.opt_label();
+                self.expect_tokens_recover([
+                    Keyword(Kw::Wait),
+                    Keyword(Kw::Assert),
+                    Keyword(Kw::Report),
+                    Keyword(Kw::If),
+                    Keyword(Kw::Case),
+                    Keyword(Kw::For),
+                    Keyword(Kw::Loop),
+                    Keyword(Kw::While),
+                    Keyword(Kw::Next),
+                    Keyword(Kw::Exit),
+                    Keyword(Kw::Return),
+                    Keyword(Kw::Null),
+                    Keyword(Kw::With),
+                    Identifier,
+                    LeftPar,
+                    LtLt,
+                ]);
+                None
+            }
         }
     }
 
-    fn conditional_else(
+    pub(crate) fn conditional_else<T>(
         &mut self,
-        item: impl Fn(&mut Parser),
+        item: impl Fn(&mut Parser) -> T,
         else_when_node: NodeKind,
         else_node: NodeKind,
     ) {
         while self.next_is(Keyword(Kw::Else)) {
-            let local_checkpoint = self.checkpoint();
+            let unknown = self.start_unknown();
             self.skip();
             item(self);
             if self.next_is(Keyword(Kw::When)) {
-                self.start_node_at(local_checkpoint, else_when_node);
+                let marker = unknown.resolve(self, else_when_node);
                 self.skip();
                 self.condition();
-                self.end_node();
+                marker.complete(self);
             } else {
-                self.start_node_at(local_checkpoint, else_node);
-                self.end_node();
+                unknown.complete(self, else_node);
                 break;
             }
         }
@@ -742,90 +780,67 @@ end loop;"
         ));
     }
 
+    fn stmt_to_test_text(input: &str) -> String {
+        to_test_text(Parser::sequential_statement, input)
+    }
+
     #[test]
     fn simple_signal_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "foo(0) <= bar(1,2) after 2 ns;"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("foo(0) <= bar(1,2) after 2 ns;"));
     }
 
     #[test]
     fn simple_signal_force_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "foo(0) <= force bar(1,2);"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("foo(0) <= force bar(1,2);"));
     }
 
     #[test]
     fn simple_signal_release_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "foo(0) <= release;"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("foo(0) <= release;"));
     }
 
     #[test]
     fn signal_assignment_external_name() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "<< signal dut.foo : boolean  >> <= bar(1,2);"
         ));
     }
 
     #[test]
     fn simple_signal_assignment_delay_mechanism() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "foo(0) <= transport bar(1,2);"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("foo(0) <= transport bar(1,2);"));
     }
 
     #[test]
     fn simple_variable_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "foo(0) := bar(1,2);"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("foo(0) := bar(1,2);"));
     }
 
     #[test]
     fn variable_assignment_external_name() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "<< variable dut.foo : boolean >> := bar(1,2);"
         ));
     }
 
     #[test]
     fn simple_aggregate_variable_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "(foo, 1 => bar) := bar;"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("(foo, 1 => bar) := bar;"));
     }
 
     #[test]
     fn labeled_aggregate_variable_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "name: (foo, 1 => bar) := bar;"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("name: (foo, 1 => bar) := bar;"));
     }
 
     #[test]
     fn labeled_simple_variable_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "name: foo(0) := bar(1,2);"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("name: foo(0) := bar(1,2);"));
     }
 
     #[test]
     fn selected_variable_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 with x(0) + 1 select
    foo(0) := bar(1,2) when 0|1,
@@ -835,9 +850,18 @@ with x(0) + 1 select
     }
 
     #[test]
+    fn labeled_selected_variable_assignment() {
+        insta::assert_snapshot!(stmt_to_test_text(
+            "\
+lbl: with x select
+   foo := bar when others;
+        "
+        ));
+    }
+
+    #[test]
     fn conditional_variable_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 foo(0) := bar(1,2) when cond = true;
         "
@@ -846,8 +870,7 @@ foo(0) := bar(1,2) when cond = true;
 
     #[test]
     fn conditional_signal_force_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 foo(0) <= force bar(1,2) when cond;
         "
@@ -856,8 +879,7 @@ foo(0) <= force bar(1,2) when cond;
 
     #[test]
     fn conditional_variable_assignment_several() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 foo(0) := bar(1,2) when cond = true else expr2 when cond2;
         "
@@ -866,8 +888,7 @@ foo(0) := bar(1,2) when cond = true else expr2 when cond2;
 
     #[test]
     fn conditional_variable_assignment_else() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 foo(0) := bar(1,2) when cond = true else expr2;
         "
@@ -876,8 +897,7 @@ foo(0) := bar(1,2) when cond = true else expr2;
 
     #[test]
     fn conditional_signal_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 foo(0) <= bar(1,2) after 2 ns when cond;
         "
@@ -886,8 +906,7 @@ foo(0) <= bar(1,2) after 2 ns when cond;
 
     #[test]
     fn conditional_waveform_assignment_else() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 data_processing_state <= processing when processing_data else idle;"
         ));
@@ -895,8 +914,7 @@ data_processing_state <= processing when processing_data else idle;"
 
     #[test]
     fn selected_signal_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 with x(0) + 1 select
    foo(0) <= transport bar(1,2) after 2 ns when 0|1,
@@ -907,8 +925,7 @@ with x(0) + 1 select
 
     #[test]
     fn selected_signal_force_assignment() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
+        insta::assert_snapshot!(stmt_to_test_text(
             "\
 with x(0) + 1 select
    foo(0) <= force bar(1,2) when 0|1,
@@ -917,20 +934,122 @@ with x(0) + 1 select
     }
 
     #[test]
+    fn labeled_selected_signal_assignment() {
+        insta::assert_snapshot!(stmt_to_test_text(
+            "\
+lbl: with x select
+   foo <= bar when others;
+        "
+        ));
+    }
+
+    #[test]
+    fn labeled_selected_signal_force_assignment() {
+        insta::assert_snapshot!(stmt_to_test_text(
+            "\
+lbl: with x select
+   foo <= force bar when others;
+        "
+        ));
+    }
+
+    #[test]
     fn procedure_call_statement() {
-        insta::assert_snapshot!(to_test_text(Parser::sequential_statement, "foo(1, 2);"));
+        insta::assert_snapshot!(stmt_to_test_text("foo(1, 2);"));
     }
 
     #[test]
     fn procedure_call_statement_no_args() {
-        insta::assert_snapshot!(to_test_text(Parser::sequential_statement, "foo;"));
+        insta::assert_snapshot!(stmt_to_test_text("foo;"));
     }
 
     #[test]
     fn procedure_call_with_qualified_expression() {
-        insta::assert_snapshot!(to_test_text(
-            Parser::sequential_statement,
-            "foo(l, string'(\"L: \"));"
-        ));
+        insta::assert_snapshot!(stmt_to_test_text("foo(l, string'(\"L: \"));"));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn if_missing_then() {
+        assert_recovery_snapshot!(
+            "\
+if cond
+  x := 1;
+end if;",
+            Parser::if_statement
+        );
+    }
+
+    #[test]
+    fn if_missing_end_if() {
+        assert_recovery_snapshot!(
+            "\
+if cond then
+  x := 1;",
+            Parser::if_statement
+        );
+    }
+
+    #[test]
+    fn empty_case_statement() {
+        assert_recovery_snapshot!(
+            "\
+case sel is
+end case;",
+            Parser::case_statement
+        );
+    }
+
+    #[test]
+    fn case_missing_is() {
+        assert_recovery_snapshot!(
+            "\
+case sel
+  when 0 => null;
+end case;",
+            Parser::case_statement
+        );
+    }
+
+    #[test]
+    fn loop_missing_end() {
+        assert_recovery_snapshot!(
+            "\
+loop
+  x := 1;",
+            Parser::loop_statement
+        );
+    }
+
+    #[test]
+    fn wait_missing_semicolon() {
+        assert_recovery_snapshot!("wait", Parser::wait_statement);
+    }
+
+    #[test]
+    fn sequential_statement_stall() {
+        assert_recovery_snapshot!(
+            "\
+function f return integer is
+begin
+    use work.all;      -- `use` in SubprogramBody follow
+end;
+        ",
+            Parser::subprogram_body
+        );
+    }
+
+    #[test]
+    fn sequential_statement_lone_label() {
+        assert_recovery_snapshot!(
+            "\
+function f return integer is
+begin
+    p:
+end;
+        ",
+            Parser::subprogram_body
+        );
     }
 }

@@ -1,0 +1,40 @@
+---
+source: vhdl_syntax/src/parser/productions/entity_declaration.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+entity my_ent is
+    generic();
+    port();
+begin
+end my_ent;
+
+
+== tree ==
+EntityDeclaration
+  EntityDeclarationPreamble
+    Keyword(Entity)
+    Identifier 'my_ent'
+    Keyword(Is)
+  EntityHeader
+    GenericClause
+      Keyword(Generic)
+      LeftPar
+      RightPar
+      SemiColon
+    PortClause
+      Keyword(Port)
+      LeftPar
+      RightPar
+      SemiColon
+  EntityStatements
+    DeclarationStatementSeparator
+      Keyword(Begin)
+  EntityDeclarationEpilogue
+    Keyword(End)
+    Identifier 'my_ent'
+    SemiColon
+
+== diagnostics ==
+2:13 expected InterfaceList
+3:10 expected InterfaceList

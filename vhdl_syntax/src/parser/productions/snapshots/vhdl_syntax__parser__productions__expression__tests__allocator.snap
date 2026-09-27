@@ -6,15 +6,17 @@ Allocator
   Keyword(New)
   QualifiedExpression
     Name
-      Identifier 'integer_vector'
+      NameDesignatorPrefix
+        Identifier 'integer_vector'
     Tick
     ParenthesizedExpressionOrAggregate
       LeftPar
-      ElementAssociation
-        LiteralExpression
-          AbstractLiteral '0'
-      Comma
-      ElementAssociation
-        LiteralExpression
-          AbstractLiteral '1'
+      ElementAssociationList
+        ElementAssociation
+          LiteralExpression
+            AbstractLiteral '0'
+        Comma
+        ElementAssociation
+          LiteralExpression
+            AbstractLiteral '1'
       RightPar

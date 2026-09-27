@@ -1,0 +1,25 @@
+---
+source: vhdl_syntax/src/parser/productions/interface.rs
+expression: "$crate :: parser :: test_utils :: render_recovery(code, & tree, & diags)"
+---
+== source ==
+port (clk in std_logic);
+
+== tree ==
+PortClause
+  Keyword(Port)
+  LeftPar
+  InterfaceList
+    InterfaceObjectDeclaration
+      IdentifierList
+        Identifier 'clk'
+      Keyword(In)
+      SubtypeIndication
+        Name
+          NameDesignatorPrefix
+            Identifier 'std_logic'
+  RightPar
+  SemiColon
+
+== diagnostics ==
+1:10 expected ':'

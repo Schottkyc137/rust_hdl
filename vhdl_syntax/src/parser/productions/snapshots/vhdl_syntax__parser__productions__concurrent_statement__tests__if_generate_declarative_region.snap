@@ -3,24 +3,27 @@ source: vhdl_syntax/src/parser/productions/concurrent_statement.rs
 expression: "stmt_to_test_text(\"\\\ngen: if cond = true generate\nbegin\nend generate;\",)"
 ---
 IfGenerateStatement
-  IfGenerateStatementPreamble
-    Label
-      Identifier 'gen'
-      Colon
+  StmtLabel
+    Identifier 'gen'
+    Colon
+  IfGenerateIf
     Keyword(If)
     BinaryExpression
       NameExpression
         Name
-          Identifier 'cond'
+          NameDesignatorPrefix
+            Identifier 'cond'
       EQ
       NameExpression
         Name
-          Identifier 'true'
+          NameDesignatorPrefix
+            Identifier 'true'
     Keyword(Generate)
-  GenerateStatementBody
-    DeclarationStatementSeparator
-      Keyword(Begin)
-  IfGenerateStatementEpilogue
+    GenerateStatementBody
+      GenerateBodyDeclarations
+        DeclarationStatementSeparator
+          Keyword(Begin)
+  GenerateEpilogue
     Keyword(End)
     Keyword(Generate)
     SemiColon

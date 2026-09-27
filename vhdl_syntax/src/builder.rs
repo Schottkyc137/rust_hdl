@@ -17,16 +17,17 @@
 //! ```
 //! use vhdl_syntax::builder::Identifier;
 //! use vhdl_syntax::syntax::{AstNode, EntityDeclarationPreambleBuilder};
+//! use vhdl_syntax::fmt::write::FormatToExt;
 //!
 //! let node = EntityDeclarationPreambleBuilder::new(Identifier::from(b"my_entity")).build();
-//! assert_eq!(node.raw().to_string(), " entity my_entity is");
+//! assert_eq!(node.display().to_string(), " entity my_entity is");
 //! ```
 
 use crate::latin_1::{char_to_latin1, Latin1Str, Latin1String, NonLatin1CharError};
-use crate::tokens::{Keyword, Token, TokenKind, Trivia, TriviaPiece};
+use crate::tokens::{Keyword, Token, TokenKind, TriviaBuf, TriviaPiece};
 
-fn default_trivia() -> Trivia {
-    Trivia::from([TriviaPiece::Spaces(1)])
+fn default_trivia() -> TriviaBuf {
+    TriviaBuf::from([TriviaPiece::Spaces(1)])
 }
 
 macro_rules! domain_type {
@@ -37,7 +38,7 @@ macro_rules! domain_type {
 
         impl $name {
             /// Override the leading trivia (default: one space).
-            pub fn with_trivia(mut self, trivia: Trivia) -> Self {
+            pub fn with_trivia(mut self, trivia: TriviaBuf) -> Self {
                 self.0.set_leading_trivia(trivia);
                 self
             }
@@ -129,7 +130,7 @@ impl TryFrom<String> for Identifier {
 
 #[test]
 fn from_token_works_for_correctly_kinded_tokens() {
-    let tok = Token::new(TokenKind::Identifier, b"foo", Trivia::default());
+    let tok = Token::new(TokenKind::Identifier, b"foo", TriviaBuf::default());
     let id = Identifier::from(tok);
     let out: Token = id.into();
     assert_eq!(out.text(), "foo");
@@ -141,7 +142,7 @@ fn from_token_panics_with_wong_kind() {
     let tok = Token::new(
         TokenKind::AbstractLiteral,
         b"42".as_slice(),
-        Trivia::default(),
+        TriviaBuf::default(),
     );
     let _ = Identifier::from(tok);
 }
@@ -163,7 +164,7 @@ domain_type!(
 );
 
 impl AbstractLiteral {
-    fn new(text: impl Into<Box<Latin1Str>>) -> Self {
+    fn new(text: impl AsRef<Latin1Str>) -> Self {
         AbstractLiteral(Token::new(
             TokenKind::AbstractLiteral,
             text,
@@ -327,7 +328,7 @@ impl CharLiteral {
         let text = [b'\'', byte, b'\''];
         CharLiteral(Token::new(
             TokenKind::CharacterLiteral,
-            &text,
+            text,
             default_trivia(),
         ))
     }

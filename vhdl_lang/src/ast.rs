@@ -230,7 +230,7 @@ pub enum ElementAssociation {
 /// LRM 6.5.7 Association Lists
 #[derive(PartialEq, Debug, Clone)]
 pub enum ActualPart {
-    Expression(Expression),
+    Expression(ConditionalExpression),
     Open,
 }
 
@@ -287,6 +287,12 @@ pub struct QualifiedExpression {
     pub expr: WithTokenSpan<Expression>,
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub enum ConditionalExpression {
+    Simple(Expression),
+    Conditional(Box<Conditionals<WithTokenSpan<Expression>>>),
+}
+
 /// LRM 9. Expressions
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
@@ -311,7 +317,7 @@ pub enum Expression {
 
     /// LRM 9.3.7 Allocators
     New(Box<WithTokenSpan<Allocator>>),
-    Parenthesized(Box<WithTokenSpan<Expression>>),
+    Parenthesized(Box<WithTokenSpan<ConditionalExpression>>),
 }
 
 /// An identifier together with the lexical source location it occurs in.
@@ -382,24 +388,27 @@ pub struct RecordElementResolution {
 #[derive(PartialEq, Debug, Clone)]
 pub enum ResolutionIndication {
     FunctionName(WithTokenSpan<Name>),
-    ArrayElement(WithTokenSpan<Name>),
-    Record(WithTokenSpan<Vec<RecordElementResolution>>),
+    Element(WithTokenSpan<ElementResolution>),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum ElementResolution {
+    Array(Box<ResolutionIndication>),
+    Record(Vec<RecordElementResolution>),
 }
 
 impl HasTokenSpan for ResolutionIndication {
     fn get_start_token(&self) -> TokenId {
         match self {
             ResolutionIndication::FunctionName(name) => name.get_start_token(),
-            ResolutionIndication::ArrayElement(name) => name.get_start_token() - 1,
-            ResolutionIndication::Record(record) => record.get_start_token(),
+            ResolutionIndication::Element(element) => element.get_start_token(),
         }
     }
 
     fn get_end_token(&self) -> TokenId {
         match self {
             ResolutionIndication::FunctionName(name) => name.get_end_token(),
-            ResolutionIndication::ArrayElement(name) => name.get_end_token() + 1,
-            ResolutionIndication::Record(record) => record.get_end_token(),
+            ResolutionIndication::Element(element) => element.get_end_token(),
         }
     }
 }
@@ -566,7 +575,7 @@ pub struct AttributeSpecification {
     pub entity_name: EntityName,
     pub colon_token: TokenId,
     pub entity_class: EntityClass,
-    pub expr: WithTokenSpan<Expression>,
+    pub expr: WithTokenSpan<ConditionalExpression>,
 }
 
 /// LRM 7.2 Attribute specification
@@ -676,7 +685,7 @@ pub struct ObjectDeclaration {
     pub colon_token: TokenId,
     pub idents: Vec<WithDecl<Ident>>,
     pub subtype_indication: SubtypeIndication,
-    pub expression: Option<WithTokenSpan<Expression>>,
+    pub expression: Option<WithTokenSpan<ConditionalExpression>>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -718,6 +727,7 @@ pub struct FunctionSpecification {
     pub designator: WithDecl<WithToken<SubprogramDesignator>>,
     pub header: Option<SubprogramHeader>,
     pub parameter_list: Option<InterfaceList>,
+    pub return_identifier: Option<WithDecl<Ident>>,
     pub return_type: WithTokenSpan<Name>,
 }
 
@@ -810,7 +820,7 @@ pub struct SimpleModeIndication {
     pub class: ObjectClass,
     pub subtype_indication: SubtypeIndication,
     pub bus: bool,
-    pub expression: Option<WithTokenSpan<Expression>>,
+    pub expression: Option<WithTokenSpan<ConditionalExpression>>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

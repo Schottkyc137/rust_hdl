@@ -7,7 +7,7 @@ EntityDeclaration
     Keyword(Entity)
     Identifier 'myent'
     Keyword(Is)
-  Declarations
+  EntityDeclarativePart
     ConstantDeclaration
       Keyword(Constant)
       IdentifierList
@@ -15,10 +15,12 @@ EntityDeclaration
       Colon
       SubtypeIndication
         Name
-          Identifier 'natural'
-      ColonEq
-      LiteralExpression
-        AbstractLiteral '0'
+          NameDesignatorPrefix
+            Identifier 'natural'
+      InitialValue
+        ColonEq
+        LiteralExpression
+          AbstractLiteral '0'
       SemiColon
   EntityDeclarationEpilogue
     Keyword(End)

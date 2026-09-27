@@ -1,28 +1,33 @@
 ---
 source: vhdl_syntax/src/parser/productions/sequential_statement.rs
-expression: "to_test_text(Parser::sequential_statement, \"(foo, 1 => bar) := bar;\")"
+expression: "stmt_to_test_text(\"(foo, 1 => bar) := bar;\")"
 ---
 SimpleVariableAssignment
   AggregateTarget
     Aggregate
       LeftPar
-      ElementAssociation
-        NameExpression
-          Name
-            Identifier 'foo'
-      Comma
-      ElementAssociation
-        Choices
-          ExpressionChoice
-            LiteralExpression
-              AbstractLiteral '1'
-        RightArrow
-        NameExpression
-          Name
-            Identifier 'bar'
+      ElementAssociationList
+        ElementAssociation
+          NameExpression
+            Name
+              NameDesignatorPrefix
+                Identifier 'foo'
+        Comma
+        ElementAssociation
+          ElementChoices
+            Choices
+              ExpressionChoice
+                LiteralExpression
+                  AbstractLiteral '1'
+            RightArrow
+          NameExpression
+            Name
+              NameDesignatorPrefix
+                Identifier 'bar'
       RightPar
   ColonEq
   NameExpression
     Name
-      Identifier 'bar'
+      NameDesignatorPrefix
+        Identifier 'bar'
   SemiColon

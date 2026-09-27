@@ -4,193 +4,205 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
-use crate::parser::builder::Checkpoint;
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
-use crate::syntax::NodeKind;
+use crate::syntax::NodeKind::{self, ConfigurationDeclarativePart};
 use crate::tokens::TokenKind::*;
 use crate::tokens::{Keyword as Kw, TokenKind};
 
 impl Parser {
-    pub fn configuration_declaration(&mut self) {
-        self.start_node(NodeKind::ConfigurationDeclaration);
-        self.configuration_declaration_preamble();
-        self.start_node(NodeKind::ConfigurationDeclarationItems);
-        self.configuration_declarative_part();
-        if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-            self.start_node(NodeKind::SemiColonTerminatedVerificationUnitBindingIndication);
-            self.verification_unit_binding_indication();
-            self.expect_token(SemiColon);
-            self.end_node();
+    pub(crate) fn configuration_declaration(&mut self) {
+        self.node(NodeKind::ConfigurationDeclaration, |p| {
+            p.configuration_declaration_preamble();
+            p.configuration_declarative_part();
+            while p.next_is(Keyword(Kw::Use)) && p.next_nth_is(Keyword(Kw::Vunit), 1) {
+                p.node(NodeKind::VerificationUnitBinding, |p| {
+                    p.verification_unit_binding_indication();
+                    p.expect_token(SemiColon);
+                });
+            }
+            p.block_configuration();
+            p.configuration_declaration_epilogue();
+        });
+    }
+
+    pub(crate) fn configuration_declaration_preamble(&mut self) {
+        self.node(NodeKind::ConfigurationDeclarationPreamble, |p| {
+            p.expect_kw(Kw::Configuration);
+            p.identifier();
+            p.expect_kw(Kw::Of);
+            p.name();
+            p.expect_kw(Kw::Is);
+        });
+    }
+
+    pub(crate) fn configuration_declaration_epilogue(&mut self) {
+        self.node(NodeKind::ConfigurationDeclarationEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Configuration));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub(crate) fn group_declaration_or_template_declaration(&mut self) -> CompletedMarker {
+        if self.next_nth_is(Keyword(Kw::Is), 2) {
+            self.group_template_declaration()
+        } else {
+            self.group_declaration()
         }
-        self.block_configuration();
-        self.end_node();
-        self.configuration_declaration_epilogue();
-        self.end_node();
     }
 
-    pub fn configuration_declaration_preamble(&mut self) {
-        self.start_node(NodeKind::ConfigurationDeclarationPreamble);
-        self.expect_kw(Kw::Configuration);
-        self.identifier();
-        self.expect_kw(Kw::Of);
-        self.name();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+    pub(crate) fn group_template_declaration(&mut self) -> CompletedMarker {
+        self.node(NodeKind::GroupTemplateDeclaration, |p| {
+            p.expect_kw(Kw::Group);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+            p.expect_token(LeftPar);
+            p.entity_class_entry_list();
+            p.expect_token(RightPar);
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn configuration_declaration_epilogue(&mut self) {
-        self.start_node(NodeKind::ConfigurationDeclarationEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Configuration));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn group_declaration(&mut self) -> CompletedMarker {
+        self.node(NodeKind::GroupDeclaration, |p| {
+            p.expect_kw(Kw::Group);
+            p.identifier();
+            p.expect_token(Colon);
+            p.name();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn configuration_declarative_part(&mut self) {
-        loop {
-            if self.next_is(Keyword(Kw::Use)) && !self.next_nth_is(Keyword(Kw::Vunit), 1) {
-                self.use_clause_declaration();
-            } else if self.next_is(Keyword(Kw::Group)) {
-                unimplemented!("Group declarations");
-            } else if self.next_is(Keyword(Kw::Attribute)) {
-                self.attribute_specification();
+    pub(crate) fn entity_class_entry(&mut self) {
+        self.node(NodeKind::EntityClassEntry, |p| {
+            p.entity_class();
+            p.opt_token(BOX);
+        });
+    }
+
+    pub(crate) fn entity_class_entry_list(&mut self) {
+        self.separated_list(
+            NodeKind::EntityClassEntryList,
+            Parser::entity_class_entry,
+            Comma,
+        );
+    }
+
+    pub(crate) fn configuration_declarative_part(&mut self) {
+        self.node(ConfigurationDeclarativePart, |p| loop {
+            if p.next_is(Keyword(Kw::Use)) && !p.next_nth_is(Keyword(Kw::Vunit), 1) {
+                p.use_clause_declaration();
+            } else if p.next_is(Keyword(Kw::Group)) {
+                p.group_declaration();
+            } else if p.next_is(Keyword(Kw::Attribute)) {
+                p.attribute_specification();
             } else {
                 break;
+            }
+        });
+    }
+
+    pub(crate) fn configuration_item(&mut self) {
+        match self.peek_nth_token(1) {
+            Keyword(Kw::All | Kw::Others) => self.component_configuration(),
+            Identifier if self.next_nth_is(Comma, 2) || self.next_nth_is(Colon, 2) => {
+                self.component_configuration()
+            }
+            Identifier => {
+                self.node(NodeKind::BlockConfigurationItem, |p| {
+                    p.block_configuration();
+                });
+            }
+            _ => {
+                self.expect_kw(Kw::For);
+                self.expect_tokens_recover([Keyword(Kw::All), Keyword(Kw::Others), Identifier]);
             }
         }
     }
 
-    pub fn configuration_item(&mut self) {
-        let checkpoint = self.checkpoint();
-        self.expect_kw(Kw::For);
-        self.configuration_item_known_keyword(checkpoint);
+    pub(crate) fn block_configuration(&mut self) {
+        self.node(NodeKind::BlockConfiguration, |p| {
+            p.block_configuration_preamble();
+            p.block_configuration_known_spec();
+        });
     }
 
-    pub fn block_configuration(&mut self) {
-        self.start_node(NodeKind::BlockConfiguration);
-        self.block_configuration_preamble();
-        self.block_configuration_known_spec();
-        self.end_node();
-    }
-
-    pub fn block_configuration_preamble(&mut self) {
-        self.start_node(NodeKind::BlockConfigurationPreamble);
-        self.expect_kw(Kw::For);
-        self.name();
-        self.end_node();
+    pub(crate) fn block_configuration_preamble(&mut self) {
+        self.node(NodeKind::BlockConfigurationPreamble, |p| {
+            p.expect_kw(Kw::For);
+            p.name();
+        });
     }
 
     fn block_configuration_known_spec(&mut self) {
-        self.start_node(NodeKind::BlockConfigurationItems);
         while self.next_is(Keyword(Kw::Use)) {
             self.use_clause();
         }
         while self.next_is(Keyword(Kw::For)) {
             self.configuration_item();
         }
-        self.end_node();
         self.block_configuration_epilogue();
     }
 
-    pub fn block_configuration_epilogue(&mut self) {
-        self.start_node(NodeKind::BlockConfigurationEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
-        self.end_node();
+    pub(crate) fn block_configuration_epilogue(&mut self) {
+        self.node(NodeKind::BlockConfigurationEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
+        });
     }
 
-    fn configuration_item_known_keyword(&mut self, item_checkpoint: Checkpoint) {
-        match self.peek_token() {
-            tok @ Keyword(Kw::All | Kw::Others) => {
-                self.start_node_at(item_checkpoint, NodeKind::ComponentConfiguration);
-                self.start_node_at(item_checkpoint, NodeKind::ComponentConfigurationPreamble);
-                self.start_node(NodeKind::ComponentSpecification);
-                if tok == Keyword(Kw::All) {
-                    self.start_node(NodeKind::InstantiationListAll);
-                } else {
-                    self.start_node(NodeKind::InstantiationListOthers);
-                }
-                self.skip();
-                self.end_node();
-                self.expect_token(Colon);
-                self.name();
-                self.end_node();
-                self.end_node();
-                self.component_configuration_known_spec();
-                self.end_node();
-            }
-            Identifier => {
-                if self.next_nth_is(Comma, 1) {
-                    self.start_node_at(item_checkpoint, NodeKind::ComponentConfiguration);
-                    self.start_node_at(item_checkpoint, NodeKind::ComponentConfigurationPreamble);
-                    self.start_node(NodeKind::ComponentSpecification);
-                    self.start_node(NodeKind::InstantiationListList);
-                    self.separated_list(Parser::identifier, Comma);
-                    self.end_node();
-                    self.expect_token(Colon);
-                    self.name();
-                    self.end_node();
-                    self.end_node();
-                    self.component_configuration_known_spec();
-                    self.end_node();
-                } else {
-                    let checkpoint = self.checkpoint();
-                    self.name();
-                    match self.peek_token() {
-                        Colon => {
-                            self.start_node_at(item_checkpoint, NodeKind::ComponentConfiguration);
-                            self.start_node_at(
-                                item_checkpoint,
-                                NodeKind::ComponentConfigurationPreamble,
-                            );
-                            self.start_node_at(checkpoint, NodeKind::ComponentSpecification);
-                            self.start_node_at(checkpoint, NodeKind::InstantiationListList);
-                            self.end_node();
-                            self.skip();
-                            self.name();
-                            self.end_node();
-                            self.end_node();
-                            self.component_configuration_known_spec();
-                            self.end_node();
-                        }
-                        _ => {
-                            self.start_node_at(item_checkpoint, NodeKind::BlockConfigurationItem);
-                            self.block_configuration_known_spec();
-                            self.end_node();
-                        }
-                    }
-                }
-            }
-            _ => self.expect_tokens_err([Keyword(Kw::All), Keyword(Kw::Others), Identifier]),
-        }
+    fn component_configuration(&mut self) {
+        self.node(NodeKind::ComponentConfiguration, |p| {
+            p.node(NodeKind::ComponentConfigurationPreamble, |p| {
+                p.expect_kw(Kw::For);
+                p.node(NodeKind::ComponentSpecification, |p| {
+                    match p.peek_token() {
+                        Keyword(Kw::All) => p.skip_into_node(NodeKind::InstantiationListAll),
+                        Keyword(Kw::Others) => p.skip_into_node(NodeKind::InstantiationListOthers),
+                        _ => p.separated_list(
+                            NodeKind::InstantiationListList,
+                            Parser::identifier,
+                            Comma,
+                        ),
+                    };
+                    p.expect_token(Colon);
+                    p.name();
+                });
+            });
+            p.component_configuration_known_spec();
+        });
     }
 
-    pub fn component_configuration_epilogue(&mut self) {
-        self.start_node(NodeKind::ComponentConfigurationEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
-        self.end_node();
+    pub(crate) fn component_configuration_epilogue(&mut self) {
+        self.node(NodeKind::ComponentConfigurationEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::For), SemiColon]);
+        });
     }
 
     fn component_configuration_known_spec(&mut self) {
-        self.start_node(NodeKind::ComponentConfigurationItems);
-        if self.next_is_one_of([Keyword(Kw::Use), Keyword(Kw::Generic), Keyword(Kw::Port)])
-            && !self.next_nth_is(Keyword(Kw::Vunit), 1)
+        // surprisingly, a `;` is a legal `binding`
+        if self.next_is_one_of([
+            Keyword(Kw::Use),
+            Keyword(Kw::Generic),
+            Keyword(Kw::Port),
+            SemiColon,
+        ]) && !self.next_nth_is(Keyword(Kw::Vunit), 1)
         {
-            self.start_node(NodeKind::SemiColonTerminatedBindingIndication);
-            self.binding_indication();
-            self.expect_token(TokenKind::SemiColon);
-            self.end_node();
+            self.node(NodeKind::Binding, |p| {
+                p.binding_indication();
+                p.expect_token(TokenKind::SemiColon);
+            });
         }
-        if self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
-            self.start_node(NodeKind::SemiColonTerminatedVerificationUnitBindingIndication);
-            self.verification_unit_binding_indication();
-            self.expect_token(SemiColon);
-            self.end_node();
+        while self.next_is(Keyword(Kw::Use)) && self.next_nth_is(Keyword(Kw::Vunit), 1) {
+            self.node(NodeKind::VerificationUnitBinding, |p| {
+                p.verification_unit_binding_indication();
+                p.expect_token(SemiColon);
+            });
         }
         if self.next_is(Keyword(Kw::For)) {
             self.block_configuration();
         }
-        self.end_node();
         self.component_configuration_epilogue();
     }
 }
@@ -392,6 +404,84 @@ end configuration cfg;",
         insta::assert_snapshot!(to_test_text(
             Parser::configuration_specification,
             "for all : lib.pkg.comp use entity work.foo(rtl); use vunit bar, baz; end for;",
+        ));
+    }
+
+    #[test]
+    fn configuration_declaration_multiple_vunit_binding_indications() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::configuration_declaration,
+            "\
+configuration cfg of ent is
+    use vunit foo;
+    use vunit bar;
+    for baz
+    end for;
+end configuration cfg ;",
+        ));
+    }
+
+    #[test]
+    fn configuration_with_empty_binding() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::component_configuration,
+            "\
+for i, i : name;
+end for;
+"
+        ));
+    }
+
+    #[test]
+    fn component_configuration_with_multiple_vunit_bindings() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::component_configuration,
+            "\
+for others: name
+    use vunit name;
+    use vunit name;
+end for;
+"
+        ));
+    }
+
+    #[test]
+    fn simple_group_template_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group resource is (label);",
+        ));
+    }
+
+    #[test]
+    fn group_template_declaration_with_multiple_entries() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group pin2pin is (signal, signal);",
+        ));
+    }
+
+    #[test]
+    fn group_template_declaration_with_infinite_entry() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group dependency is (label, signal <>);",
+        ));
+    }
+
+    #[test]
+    fn simple_group_declaration() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group g1 : resource (l1);",
+        ));
+    }
+
+    #[test]
+    fn group_declaration_with_multiple_constituents() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::group_declaration_or_template_declaration,
+            "group g2 : pin2pin (sig_a, sig_b);",
         ));
     }
 }

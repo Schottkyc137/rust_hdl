@@ -4,30 +4,35 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::{SemiColon, *};
 
 impl Parser {
-    pub fn package_instantiation_declaration(&mut self) {
-        self.start_node(PackageInstantiationDeclaration);
-        self.start_node(PackageInstantiation);
-        self.package_instantiation_preamble();
-        self.opt_generic_map_aspect();
-        self.end_node();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn package_instantiation_declaration(&mut self) -> CompletedMarker {
+        self.node(
+            PackageInstantiationDeclarationItem,
+            Parser::package_instantiation,
+        )
     }
 
-    pub fn package_instantiation_preamble(&mut self) {
-        self.start_node(PackageInstantiationPreamble);
-        self.expect_kw(Kw::Package);
-        self.identifier();
-        self.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
-        self.name();
+    pub(crate) fn package_instantiation(&mut self) {
+        self.node(PackageInstantiationDeclaration, |p| {
+            p.package_instantiation_preamble();
+            p.opt_generic_map_aspect();
+            p.expect_token(SemiColon);
+        });
+    }
 
-        self.end_node();
+    pub(crate) fn package_instantiation_preamble(&mut self) {
+        self.node(PackageInstantiationPreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.identifier();
+            p.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
+            p.name();
+        });
     }
 }
 

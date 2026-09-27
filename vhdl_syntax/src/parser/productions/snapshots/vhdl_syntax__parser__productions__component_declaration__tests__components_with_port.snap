@@ -7,22 +7,20 @@ ComponentDeclaration
     Keyword(Component)
     Identifier 'foo'
     Keyword(Is)
-  ComponentDeclarationItems
-    PortClause
-      PortClausePreamble
-        Keyword(Port)
-        LeftPar
-      InterfaceList
-        InterfaceConstantDeclaration
-          IdentifierList
-            Identifier 'foo'
-          Colon
-          SubtypeIndication
-            Name
+  PortClause
+    Keyword(Port)
+    LeftPar
+    InterfaceList
+      InterfaceObjectDeclaration
+        IdentifierList
+          Identifier 'foo'
+        Colon
+        SubtypeIndication
+          Name
+            NameDesignatorPrefix
               Identifier 'natural'
-      PortClauseEpilogue
-        RightPar
-        SemiColon
+    RightPar
+    SemiColon
   ComponentDeclarationEpilogue
     Keyword(End)
     Keyword(Component)

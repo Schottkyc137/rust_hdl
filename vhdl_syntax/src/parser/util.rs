@@ -1,14 +1,15 @@
-use crate::parser::builder::Checkpoint;
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 /// (private) utility functions used when parsing
-use crate::parser::diagnostics::ParserDiagnostic;
-use crate::parser::diagnostics::ParserError::*;
+use crate::parser::error::{SyntaxErr, SyntaxErrKind};
+use crate::parser::marker::{CompletedMarker, Marker, UnknownMarker};
 use crate::parser::Parser;
+use crate::syntax::child::ChildKind;
 use crate::syntax::green::GreenNode;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind;
 use crate::tokens::{Keyword, TokenKind};
 
@@ -29,7 +30,6 @@ use crate::tokens::{Keyword, TokenKind};
 ///     A, B => { /*...*/ }
 /// )
 /// ```
-#[macro_export]
 macro_rules! match_next_token {
     ($parser:expr, $($body:tt)*) => {
         match_next_token!(@inner $parser, [[ $($body)* ]], [[ $($body)* ]])
@@ -37,28 +37,10 @@ macro_rules! match_next_token {
     (@inner $parser:expr, [[ $($($pattern:pat_param),+ => $action:expr),+ $(,)? ]], [[ $($($pattern_expr:expr),+ => $_action_expr:expr),+ $(,)? ]]) => {
         match $parser.peek_token() {
             $($($pattern)|+ => $action),+,
-            $crate::tokens::token_kind::TokenKind::Eof => $parser.eof_err(),
-            _ => $parser.expect_tokens_err([$($($pattern_expr),+),+])
-        }
-    };
-}
-
-/// Allows match-style syntax for tokens.
-/// This function consumes the next token, if found.
-/// If the token was not seen, or the parser is at EOF, this function pushes an error.
-#[macro_export]
-macro_rules! match_next_token_consume {
-    ($parser:expr, $($body:tt)*) => {
-        match_next_token_consume!(@inner $parser, [[ $($body)* ]], [[ $($body)* ]])
-    };
-    (@inner $parser:expr, [[ $($($pattern:pat_param),+ => $action:expr),+ ]], [[ $($($pattern_expr:expr),+ => $_action_expr:expr),+ ]]) => {
-        match $parser.peek_token() {
-            $($($pattern)|+ => {
-                $parser.skip();
-                $action
-            }),+
-            $crate::tokens::token_kind::TokenKind::Eof => $parser.eof_err(),
-            _ => $parser.expect_tokens_err([$($($pattern_expr),+),+])
+            _ => {
+                $parser.expect_tokens_recover([$($($pattern_expr),+),+]);
+                Default::default()
+            }
         }
     };
 }
@@ -72,10 +54,57 @@ pub enum LookaheadError {
     TokenKindNotFound,
 }
 
+/// Guards a parsing loop against hangs by detecting lack of forward progress.
+///
+/// Call [`StallGuard::should_continue`] at the top of the loop. It returns
+/// `false` once an entire iteration consumed no input (no token was pushed),
+/// which means the loop is stalled and must stop. The first call always
+/// returns `true` to prime the guard before the loop body has run.
+pub(crate) struct StallGuard {
+    last_token_index: Option<usize>,
+}
+
+impl StallGuard {
+    pub(crate) fn new() -> StallGuard {
+        StallGuard {
+            last_token_index: None,
+        }
+    }
+
+    pub(crate) fn should_continue(&mut self, parser: &mut Parser) -> bool {
+        let current = parser.token_index();
+        let Some(last) = self.last_token_index else {
+            self.last_token_index = Some(current);
+            return true;
+        };
+        self.last_token_index = Some(current);
+        current > last
+    }
+}
+
+pub(crate) const fn choice_options(layout: &Layout) -> &[NodeKind] {
+    match layout {
+        Layout::Choice(choice) => choice.options,
+        _ => panic!("Not a layout choice"),
+    }
+}
+
 impl Parser {
+    /// Record an error. The parser says only what went wrong; where it lands
+    /// follows from the kind and from where this sits in the event stream.
+    pub(crate) fn push_err(&mut self, kind: SyntaxErrKind) {
+        self.builder.push_err(kind);
+    }
+
+    pub(crate) fn check_node_is_allowed(&mut self, marker: &CompletedMarker, allowed: &[NodeKind]) {
+        if !allowed.contains(&marker.kind()) {
+            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Node(marker.kind())));
+        }
+    }
+
     pub(crate) fn skip(&mut self) {
-        if let Some(token) = self.token_stream.next() {
-            self.builder.push(token);
+        if let Some((token, err)) = self.token_stream.next() {
+            self.builder.push(token, err);
         }
     }
 
@@ -93,15 +122,12 @@ impl Parser {
     }
 
     pub(crate) fn expect_token(&mut self, kind: TokenKind) {
-        if let Some(token) = self.token_stream.next_if(|token| token.kind() == kind) {
-            self.builder.push(token);
+        if let Some((token, err)) = self.token_stream.next_if(|token| token.kind() == kind) {
+            self.builder.push(token, err);
             return;
         }
-        // TODO: what are possible recovery strategies?
-        // - Leave as is
-        // - Insert pseudo-token
-        self.skip();
-        self.expect_tokens_err([kind]);
+
+        self.expect_tokens_recover([kind]);
     }
 
     pub(crate) fn expect_tokens<const N: usize>(&mut self, kinds: [TokenKind; N]) {
@@ -119,7 +145,7 @@ impl Parser {
                 return Some(kind);
             }
         }
-        self.expect_tokens_err(kinds);
+        self.expect_tokens_recover(kinds);
         None
     }
 
@@ -154,8 +180,8 @@ impl Parser {
     }
 
     pub(crate) fn opt_token(&mut self, kind: TokenKind) -> bool {
-        if let Some(token) = self.token_stream.next_if(|token| token.kind() == kind) {
-            self.builder.push(token);
+        if let Some((token, err)) = self.token_stream.next_if(|token| token.kind() == kind) {
+            self.builder.push(token, err);
             true
         } else {
             false
@@ -166,51 +192,40 @@ impl Parser {
         &mut self,
         kinds: [TokenKind; N],
     ) -> Option<TokenKind> {
-        if let Some(token) = self
+        if let Some((token, err)) = self
             .token_stream
             .next_if(|token| kinds.contains(&token.kind()))
         {
             let kind = token.kind();
-            self.builder.push(token);
+            self.builder.push(token, err);
             Some(kind)
         } else {
             None
         }
     }
 
-    pub(crate) fn start_node(&mut self, kind: NodeKind) {
-        self.builder.start_node(kind)
+    pub(crate) fn start_node(&mut self, kind: NodeKind) -> Marker {
+        let marker = self.builder.start_node(kind);
+        self.recovery.push(kind);
+        marker
     }
 
-    pub(crate) fn end_node(&mut self) {
-        self.builder.end_node()
+    pub(crate) fn node(
+        &mut self,
+        kind: NodeKind,
+        builder: impl FnOnce(&mut Parser),
+    ) -> CompletedMarker {
+        let marker = self.start_node(kind);
+        builder(self);
+        marker.complete(self)
     }
 
-    pub(crate) fn checkpoint(&mut self) -> Checkpoint {
-        self.builder.checkpoint()
+    pub(crate) fn start_unknown(&mut self) -> UnknownMarker {
+        self.builder.start_unknown()
     }
 
-    pub(crate) fn start_node_at(&mut self, checkpoint: Checkpoint, kind: NodeKind) {
-        self.builder.start_node_at(checkpoint, kind)
-    }
-
-    pub(crate) fn eof_err(&mut self) {
-        if !self.unexpected_eof {
-            self.unexpected_eof = true;
-            self.diagnostics
-                .push(ParserDiagnostic::new(self.builder.current_pos(), Eof))
-        }
-    }
-
-    pub(crate) fn expect_tokens_err(&mut self, tokens: impl Into<Box<[TokenKind]>>) {
-        self.diagnostics.push(ParserDiagnostic::new(
-            self.builder.current_pos(),
-            ExpectingTokens(tokens.into()),
-        ));
-    }
-
-    pub(crate) fn end(self) -> (GreenNode, Vec<ParserDiagnostic>) {
-        (self.builder.end(), self.diagnostics)
+    pub(crate) fn end(self) -> (GreenNode, Vec<SyntaxErr>) {
+        self.builder.end()
     }
 
     pub(crate) fn lookahead_max_token_index<const N: usize>(
@@ -221,10 +236,8 @@ impl Parser {
         self.lookahead_max_token_index_skip_n(maximum_index, 0, kinds)
     }
 
-    pub(crate) fn skip_into_node(&mut self, node: NodeKind) {
-        self.start_node(node);
-        self.skip();
-        self.end_node();
+    pub(crate) fn skip_into_node(&mut self, node: NodeKind) -> CompletedMarker {
+        self.node(node, Parser::skip)
     }
 
     pub(crate) fn lookahead_skip_n<const N: usize>(
@@ -245,25 +258,25 @@ impl Parser {
         skip_n: usize,
         kinds: [TokenKind; N],
     ) -> Result<(TokenKind, usize), (LookaheadError, usize)> {
-        let mut paren_count = 0;
+        let mut depth = 0;
         let mut curr_token_index = self.token_index() + skip_n;
 
-        while curr_token_index <= maximum_index && paren_count >= 0 {
+        while curr_token_index <= maximum_index && depth >= 0 {
             match self.peek_nth_token(curr_token_index - self.token_index()) {
-                TokenKind::LeftPar => paren_count += 1,
-                TokenKind::RightPar => {
-                    // Allow the closing parenthesis to match as well
-                    if paren_count == 0 && kinds.contains(&TokenKind::RightPar) {
-                        return Ok((TokenKind::RightPar, curr_token_index));
+                TokenKind::LeftPar | TokenKind::LeftSquare => depth += 1,
+                tok @ (TokenKind::RightPar | TokenKind::RightSquare) => {
+                    // Allow the closing parenthesis (or bracket) to match as well
+                    if depth == 0 && kinds.contains(&tok) {
+                        return Ok((tok, curr_token_index));
                     }
 
-                    paren_count -= 1;
+                    depth -= 1;
                 }
                 TokenKind::Eof => return Err((LookaheadError::Eof, curr_token_index)),
                 tok => {
                     // To avoid matching tokens in some (potentially recursive) sub expression of some sort,
-                    // only check the current token if we at the outer most grouping layer (`paren_count == 0`).
-                    if paren_count == 0 && kinds.contains(&tok) {
+                    // only check the current token if we at the outer most grouping layer (`depth == 0`).
+                    if depth == 0 && kinds.contains(&tok) {
                         return Ok((tok, curr_token_index));
                     }
                 }

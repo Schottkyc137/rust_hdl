@@ -2,15 +2,16 @@
 source: vhdl_syntax/src/parser/productions/declarations.rs
 expression: "to_test_text(Parser::package_instantiation_declaration,\n\"\\\npackage ident is new lib.foo.bar\n  generic map (\n    foo => bar\n  );\",)"
 ---
-PackageInstantiationDeclaration
-  PackageInstantiation
+PackageInstantiationDeclarationItem
+  PackageInstantiationDeclaration
     PackageInstantiationPreamble
       Keyword(Package)
       Identifier 'ident'
       Keyword(Is)
       Keyword(New)
       Name
-        Identifier 'lib'
+        NameDesignatorPrefix
+          Identifier 'lib'
         SelectedName
           Dot
           Identifier 'foo'
@@ -23,14 +24,16 @@ PackageInstantiationDeclaration
       LeftPar
       AssociationList
         AssociationElement
-          FormalPart
+          Formal
             Name
-              Identifier 'foo'
-          RightArrow
+              NameDesignatorPrefix
+                Identifier 'foo'
+            RightArrow
           ActualPart
             ActualPartExpression
               NameExpression
                 Name
-                  Identifier 'bar'
+                  NameDesignatorPrefix
+                    Identifier 'bar'
       RightPar
-  SemiColon
+    SemiColon

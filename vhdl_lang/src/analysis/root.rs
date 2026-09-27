@@ -182,7 +182,7 @@ impl Library {
                     unit.ident_pos(tokens),
                     format!(
                         "A primary unit has already been declared with name '{}' in library '{}'",
-                        primary_name, &self.name
+                        primary_name, self.name
                     ),
                     ErrorCode::Duplicate,
                 ),
@@ -454,6 +454,15 @@ impl DesignRoot {
         } else {
             // The definition is the same as the declaration
             Some(decl)
+        }
+    }
+
+    pub fn find_type_definition_of<'a>(&'a self, decl: EntRef<'a>) -> Option<EntRef<'a>> {
+        match decl.kind() {
+            AnyEntKind::Object(obj) => Some(obj.subtype.type_mark.inner()),
+            AnyEntKind::File(file) => Some(file.type_mark.inner()),
+            AnyEntKind::ElementDeclaration(elem) => Some(elem.type_mark.inner()),
+            _ => None,
         }
     }
 

@@ -10,15 +10,18 @@ FullTypeDeclaration
     Keyword(Array)
     IndexConstraint
       LeftPar
-      NameExpression
-        Name
-          Identifier 'arr_t'
-          AttributeName
-            Tick
-            Keyword(Range)
+      ExpressionList
+        NameExpression
+          Name
+            NameDesignatorPrefix
+              Identifier 'arr_t'
+            AttributeName
+              Tick
+              Keyword(Range)
       RightPar
     Keyword(Of)
     SubtypeIndication
       Name
-        Identifier 'boolean'
+        NameDesignatorPrefix
+          Identifier 'boolean'
   SemiColon

@@ -7,7 +7,7 @@ DesignFile
     ContextClause
       LibraryClause
         Keyword(Library)
-        IdentifierList
+        LogicalNameList
           Identifier 'ieee'
         SemiColon
       UseClauseContextItem
@@ -15,7 +15,8 @@ DesignFile
           Keyword(Use)
           NameList
             Name
-              Identifier 'ieee'
+              NameDesignatorPrefix
+                Identifier 'ieee'
               SelectedName
                 Dot
                 Identifier 'std_logic_1164'
@@ -28,8 +29,9 @@ DesignFile
         Keyword(Entity)
         Identifier 'my_ent'
         Keyword(Is)
-      DeclarationStatementSeparator
-        Keyword(Begin)
+      EntityStatements
+        DeclarationStatementSeparator
+          Keyword(Begin)
       EntityDeclarationEpilogue
         Keyword(End)
         Identifier 'my_ent'

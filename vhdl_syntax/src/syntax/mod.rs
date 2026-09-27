@@ -1,9 +1,51 @@
-//! AST elements, Syntax Tokens and methods to traverse and rewrite those.
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
+
+//! The syntax tree: Untyped nodes, and typed views.
+//!
+//! The result of parsing a file, or building a VHDL element is a tree of [`SyntaxNode`]s and
+//! [`SyntaxElement`]s. Every node and every token has the same rust type, they are told apart at
+//! runtime by their [`NodeKind`] or [`TokenKind`].
+//! This enables generic tree traversal, rewriting, and pretty-printing.
+//!
+//! On top of the untyped tree sit generated `*Syntax` types, one per production of the VHDL grammar.
+//! They are simply views of the untyped tree with typed accessors with cheap cloning and concurrent
+//! read characteristics.  
+//!
+//! ```
+//! use vhdl_syntax::parser;
+//! use vhdl_syntax::syntax::{AstNode, EntityDeclarationSyntax, NodeKind};
+//!
+//! let (design, _) = parser::parse("\
+//! entity foo is
+//! end foo;
+//! ");
+//!
+//! // Untyped: walk the tree and look at kinds.
+//! let entity = design
+//!     .descendants()
+//!     .find(|node| node.kind() == NodeKind::EntityDeclaration)
+//!     .unwrap();
+//!
+//! // Typed: the same node, addressed by name.
+//! let entity = EntityDeclarationSyntax::cast(entity).unwrap();
+//! let name = entity
+//!     .entity_declaration_preamble()
+//!     .unwrap()
+//!     .identifier_token()
+//!     .unwrap();
+//! assert_eq!(name.text(), "foo");
+//! ```
+//!
+//! # Why is every accessor optional?
+//!
+//! Because the parser never fails, a tree may be missing anything: For example, `entity foo` parses, but the resulting
+//! syntax node has no epilogue.
+
+pub(crate) mod builder;
 pub mod child;
 #[allow(unused)]
 mod generated;
@@ -11,17 +53,21 @@ pub(crate) mod green;
 pub mod meta;
 pub mod node;
 pub mod rewrite;
+pub mod validate;
 pub mod visitor;
 
+use std::ops::Deref;
+
 use crate::syntax::meta::Layout;
-use crate::syntax::node::{SyntaxElement, SyntaxNode};
+pub use crate::syntax::node::{ChildrenWithTokens, SyntaxElement, SyntaxNode, SyntaxToken};
 use crate::syntax::rewrite::RewriteAction;
-use crate::syntax::visitor::Preorder;
+pub use crate::syntax::visitor::{PreorderWithTokens, WalkEvent};
+pub use crate::tokens::TokenKind;
 pub use generated::*;
 
 pub trait AstNode
 where
-    Self: Sized,
+    Self: Sized + Deref<Target = SyntaxNode>,
 {
     /// Static meta-information about this node's layout.
     const META: &'static Layout;
@@ -30,7 +76,9 @@ where
     fn cast_unchecked(node: SyntaxNode) -> Self;
 
     /// Return the underlying Syntax Node.
-    fn raw(&self) -> SyntaxNode;
+    fn raw(&self) -> SyntaxNode {
+        self.deref().clone()
+    }
 
     /// Cast an abstract SyntaxNode into the AstNode described by `Self`.
     fn cast(node: SyntaxNode) -> Option<Self> {
@@ -45,17 +93,20 @@ where
     fn can_cast(node: &SyntaxNode) -> bool {
         match Self::META {
             Layout::Sequence(seq) => node.kind() == seq.kind,
+            Layout::List(list) => node.kind() == list.kind,
             Layout::Choice(choice) => choice.options.contains(&node.kind()),
         }
     }
 
-    /// Walk the tree according to the textual order.
-    fn walk(&self) -> Preorder {
-        Preorder::new(self.raw())
+    fn rewrite(&self, rewrite: impl FnMut(&SyntaxElement) -> RewriteAction) -> Option<Self> {
+        self.raw().rewrite(rewrite).map(Self::cast_unchecked)
     }
 
-    fn rewrite(&self, rewrite: impl FnMut(&SyntaxElement) -> RewriteAction) -> Self {
-        let result = self.raw().rewrite(rewrite);
-        Self::cast_unchecked(result)
+    fn rewrite_nodes(&self, rewrite: impl Fn(&SyntaxNode) -> RewriteAction) -> Option<Self> {
+        self.raw().rewrite_nodes(rewrite).map(Self::cast_unchecked)
+    }
+
+    fn rewrite_tokens(&self, rewrite: impl Fn(&SyntaxToken) -> RewriteAction) -> Option<Self> {
+        self.raw().rewrite_tokens(rewrite).map(Self::cast_unchecked)
     }
 }

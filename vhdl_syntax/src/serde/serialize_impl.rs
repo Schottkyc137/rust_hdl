@@ -9,7 +9,7 @@ use crate::{
         green::{GreenChild, GreenNode, GreenToken},
         node::SyntaxNode,
     },
-    tokens::{trivia_piece::Comment, Token, Trivia, TriviaPiece},
+    tokens::{comment::Comment, Token, Trivia, TriviaPiece},
 };
 
 impl<'a> Serialize for Serializable<'a, GreenChild> {
@@ -136,9 +136,6 @@ impl<'a> Serialize for Serializable<'a, TriviaPiece> {
             }
             TriviaPiece::NonBreakingSpaces(n) => {
                 serializer.serialize_newtype_variant("TriviaPiece", 9, "NonBreakingSpaces", n)
-            }
-            TriviaPiece::Unexpected(items) => {
-                serializer.serialize_newtype_variant("TriviaPiece", 10, "Unexpected", items)
             }
         }
     }

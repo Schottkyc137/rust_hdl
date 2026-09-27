@@ -4,10 +4,27 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::Precede;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::NodeKind;
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
+
+struct PortOrGenericSpec {
+    pub node_kind: NodeKind,
+    pub keyword: Kw,
+}
+
+const PORT_SPEC: PortOrGenericSpec = PortOrGenericSpec {
+    node_kind: PortClause,
+    keyword: Kw::Port,
+};
+
+const GENERIC_SPEC: PortOrGenericSpec = PortOrGenericSpec {
+    node_kind: GenericClause,
+    keyword: Kw::Generic,
+};
 
 impl Parser {
     pub(crate) fn opt_generic_clause(&mut self) {
@@ -16,110 +33,86 @@ impl Parser {
         }
     }
 
-    pub fn generic_clause(&mut self) {
-        self.start_node(GenericClause);
-        self.start_node(GenericClausePreamble);
-        self.expect_kw(Kw::Generic);
-        self.expect_token(LeftPar);
-        self.end_node();
-        if !(self.next_is(RightPar)) {
-            self.interface_list();
-        }
-        self.start_node(GenericClauseEpilogue);
-        self.expect_tokens([RightPar, SemiColon]);
-        self.end_node();
-        self.end_node();
+    pub(crate) fn generic_clause(&mut self) {
+        self.port_or_generic_clause(GENERIC_SPEC);
     }
 
-    pub fn opt_port_clause(&mut self) {
+    pub(crate) fn opt_port_clause(&mut self) {
         if self.next_is(Keyword(Kw::Port)) {
             self.port_clause();
         }
     }
 
-    pub fn port_clause(&mut self) {
-        self.start_node(PortClause);
-        self.start_node(PortClausePreamble);
-        self.expect_kw(Kw::Port);
-        self.expect_token(LeftPar);
-        self.end_node();
-        if !(self.next_is(RightPar)) {
-            self.interface_list();
-        }
-        self.start_node(PortClauseEpilogue);
-        self.expect_tokens([RightPar, SemiColon]);
-        self.end_node();
-        self.end_node();
+    pub(crate) fn port_clause(&mut self) {
+        self.port_or_generic_clause(PORT_SPEC);
     }
 
-    pub fn interface_list(&mut self) {
-        self.start_node(InterfaceList);
-        self.separated_list(Parser::interface_declaration, SemiColon);
-        self.end_node();
+    fn port_or_generic_clause(&mut self, spec: PortOrGenericSpec) {
+        self.node(spec.node_kind, |p| {
+            p.expect_kw(spec.keyword);
+            p.expect_token(LeftPar);
+            p.interface_list();
+            p.expect_tokens([RightPar, SemiColon]);
+        });
     }
 
-    pub fn interface_declaration(&mut self) {
-        match self.peek_token() {
-            Keyword(Kw::Signal | Kw::Constant | Kw::Variable) | Identifier => {
+    pub(crate) fn interface_list(&mut self) {
+        self.separated_list(InterfaceList, Parser::interface_declaration, SemiColon);
+    }
+
+    pub(crate) fn interface_declaration(&mut self) {
+        match_next_token!(self,
+            Keyword(Kw::Signal), Keyword(Kw::Constant), Keyword(Kw::Variable), Identifier => {
                 self.interface_object_declaration();
-            }
+            },
             Keyword(Kw::File) => self.interface_file_declaration(),
             Keyword(Kw::Type) => self.interface_type_declaration(),
-            Keyword(Kw::Function | Kw::Procedure | Kw::Impure | Kw::Pure) => {
+            Keyword(Kw::Function), Keyword(Kw::Procedure), Keyword(Kw::Impure), Keyword(Kw::Pure) => {
                 self.interface_subprogram_declaration()
-            }
+            },
             Keyword(Kw::Package) => self.interface_package_declaration(),
-            _ => self.expect_tokens_err([
-                Keyword(Kw::Signal),
-                Keyword(Kw::Constant),
-                Keyword(Kw::Variable),
-                Identifier,
-                Keyword(Kw::File),
-                Keyword(Kw::Type),
-                Keyword(Kw::Function),
-                Keyword(Kw::Procedure),
-                Keyword(Kw::Impure),
-                Keyword(Kw::Pure),
-            ]),
-        }
+        );
     }
 
-    pub fn interface_file_declaration(&mut self) {
-        self.start_node(InterfaceFileDeclaration);
-        self.expect_kw(Kw::File);
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.subtype_indication();
-        self.end_node();
+    pub(crate) fn interface_file_declaration(&mut self) {
+        self.node(InterfaceFileDeclaration, |p| {
+            p.expect_kw(Kw::File);
+            p.identifier_list();
+            p.expect_token(Colon);
+            p.subtype_indication();
+        });
     }
 
-    pub fn interface_type_declaration(&mut self) {
-        self.start_node(InterfaceIncompleteTypeDeclaration);
-        self.expect_kw(Kw::Type);
-        self.identifier();
-        self.end_node();
+    pub(crate) fn interface_type_declaration(&mut self) {
+        self.node(InterfaceIncompleteTypeDeclaration, |p| {
+            p.expect_kw(Kw::Type);
+            p.identifier();
+        });
     }
 
-    pub fn interface_subprogram_declaration(&mut self) {
-        self.start_node(InterfaceSubprogramDeclaration);
-        self.interface_subprogram_specification();
-        if self.opt_token(Keyword(Kw::Is)) {
-            self.interface_subprogram_default();
-        }
-        self.end_node();
+    pub(crate) fn interface_subprogram_declaration(&mut self) {
+        self.node(InterfaceSubprogramDeclaration, |p| {
+            p.interface_subprogram_specification();
+            if p.next_is(Keyword(Kw::Is)) {
+                p.node(SubprogramDefault, |p| {
+                    p.skip(); // Kw::Is
+                    p.interface_subprogram_default();
+                });
+            }
+        });
     }
 
-    pub fn interface_subprogram_default(&mut self) {
+    pub(crate) fn interface_subprogram_default(&mut self) {
         if self.next_is(BOX) {
             self.skip_into_node(InterfaceSubprogramDefaultBox);
         } else {
-            self.start_node(InterfaceSubprogramDefaultName);
-            self.name();
-            self.end_node();
+            self.node(InterfaceSubprogramDefaultName, |p| {
+                p.name();
+            });
         }
     }
 
-    pub fn interface_subprogram_specification(&mut self) {
+    pub(crate) fn interface_subprogram_specification(&mut self) {
         if self.next_is(Keyword(Kw::Procedure)) {
             self.interface_procedure_specification();
         } else {
@@ -127,90 +120,89 @@ impl Parser {
         }
     }
 
-    pub fn interface_procedure_specification(&mut self) {
-        self.start_node(InterfaceProcedureSpecification);
-        self.expect_kw(Kw::Procedure);
-        self.designator();
-        self.opt_parameter_list();
-        self.end_node();
+    pub(crate) fn interface_procedure_specification(&mut self) {
+        self.node(InterfaceProcedureSpecification, |p| {
+            p.expect_kw(Kw::Procedure);
+            p.designator();
+            p.opt_parameter_list();
+        });
     }
 
-    pub fn interface_function_specification(&mut self) {
-        self.start_node(InterfaceFunctionSpecification);
-        self.opt_function_purity();
-        self.expect_kw(Kw::Function);
-        self.designator();
-        self.opt_parameter_list();
-        self.expect_kw(Kw::Return);
-        self.type_mark();
-        self.end_node();
+    pub(crate) fn interface_function_specification(&mut self) {
+        self.node(InterfaceFunctionSpecification, |p| {
+            p.opt_function_purity();
+            p.expect_kw(Kw::Function);
+            p.designator();
+            p.opt_parameter_list();
+            p.expect_kw(Kw::Return);
+            p.type_mark();
+        });
     }
 
-    pub fn opt_function_purity(&mut self) {
+    pub(crate) fn opt_function_purity(&mut self) {
         self.opt_tokens([Keyword(Kw::Pure), Keyword(Kw::Impure)]);
     }
 
-    pub fn interface_package_declaration(&mut self) {
-        self.start_node(InterfacePackageDeclaration);
-        self.interface_package_declaration_preamble();
-        self.expect_kw(Kw::New);
-        self.name();
-        self.interface_package_generic_map_aspect();
-        self.end_node();
+    pub(crate) fn interface_package_declaration(&mut self) {
+        self.node(InterfacePackageDeclaration, |p| {
+            p.interface_package_declaration_preamble();
+            p.expect_kw(Kw::New);
+            p.name();
+            p.interface_package_generic_map_aspect();
+        });
     }
 
-    pub fn interface_package_declaration_preamble(&mut self) {
-        self.start_node(InterfacePackageDeclarationPreamble);
-        self.expect_kw(Kw::Package);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+    pub(crate) fn interface_package_declaration_preamble(&mut self) {
+        self.node(InterfacePackageDeclarationPreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
     }
 
-    pub fn interface_package_generic_map_aspect(&mut self) {
-        self.start_node(InterfacePackageGenericMapAspect);
-        self.expect_kw(Kw::Generic);
-        self.expect_kw(Kw::Map);
-        self.expect_token(LeftPar);
-        if self.next_is(BOX) {
-            self.skip_into_node(InterfacePackageGenericMapAspectBox);
-        } else if self.next_is(Keyword(Kw::Default)) {
-            self.skip_into_node(InterfacePackageGenericMapAspectDefault);
-        } else {
-            self.start_node(InterfacePackageGenericMapAspectAssociations);
-            self.association_list();
-            self.end_node();
-        }
-        self.expect_token(RightPar);
-        self.end_node();
-    }
-
-    pub fn interface_object_declaration(&mut self) {
-        let checkpoint = self.checkpoint();
-        let tok = self.opt_tokens([
-            Keyword(Kw::Signal),
-            Keyword(Kw::Constant),
-            Keyword(Kw::Variable),
-        ]);
-        match tok {
-            Some(Keyword(Kw::Signal)) => self.start_node_at(checkpoint, InterfaceSignalDeclaration),
-            Some(Keyword(Kw::Variable)) => {
-                self.start_node_at(checkpoint, InterfaceVariableDeclaration)
+    pub(crate) fn interface_package_generic_map_aspect(&mut self) {
+        self.node(InterfacePackageGenericMapAspect, |p| {
+            p.expect_kw(Kw::Generic);
+            p.expect_kw(Kw::Map);
+            p.expect_token(LeftPar);
+            if p.next_is(BOX) {
+                p.skip_into_node(InterfacePackageGenericMapAspectBox);
+            } else if p.next_is(Keyword(Kw::Default)) {
+                p.skip_into_node(InterfacePackageGenericMapAspectDefault);
+            } else {
+                p.node(InterfacePackageGenericMapAspectAssociations, |p| {
+                    p.association_list();
+                });
             }
-            _ => self.start_node_at(checkpoint, InterfaceConstantDeclaration),
-        }
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.opt_mode();
-        self.subtype_indication();
-        self.opt_token(Keyword(Kw::Bus));
-        if self.opt_token(ColonEq) {
-            self.expression();
-        }
-        self.end_node();
+            p.expect_token(RightPar);
+        });
     }
 
-    pub fn opt_mode(&mut self) {
+    pub(crate) fn interface_object_declaration(&mut self) {
+        // The object class (constant/signal/variable) is optional and not
+        // reliably distinguishable here, so a single node covers all three; the
+        // explicit class keyword, when present, is kept as a child.
+        self.node(InterfaceObjectDeclaration, |p| {
+            p.opt_tokens([
+                Keyword(Kw::Signal),
+                Keyword(Kw::Constant),
+                Keyword(Kw::Variable),
+            ]);
+            p.identifier_list();
+            p.expect_token(Colon);
+            p.opt_mode();
+            p.subtype_indication();
+            p.opt_token(Keyword(Kw::Bus));
+            if p.next_is(ColonEq) {
+                p.node(InitialValue, |p| {
+                    p.skip(); // ColonEq
+                    p.expression();
+                });
+            }
+        });
+    }
+
+    pub(crate) fn opt_mode(&mut self) {
         self.opt_tokens([
             Keyword(Kw::In),
             Keyword(Kw::Out),
@@ -220,9 +212,9 @@ impl Parser {
         ]);
     }
 
-    pub fn association_list(&mut self) {
-        self.start_node(AssociationList);
+    pub(crate) fn association_list(&mut self) {
         self.separated_list(
+            AssociationList,
             |parser| {
                 let end_of_element_idx =
                     match parser.lookahead_max_token_index(usize::MAX, [Comma, RightPar]) {
@@ -233,33 +225,27 @@ impl Parser {
             },
             Comma,
         );
-        self.end_node();
     }
 
     fn association_element_bounded(&mut self, max_index: usize) {
-        self.start_node(AssociationElement);
-
-        // TODO: Error handling is done at a bare minimum.
-        if self
-            .lookahead_max_token_index(max_index, [RightArrow])
-            .is_ok()
-        {
-            self.formal_part();
-            self.expect_token(RightArrow);
-        }
-        self.actual_part();
-
-        self.end_node();
+        self.node(AssociationElement, |p| {
+            // TODO: Error handling is done at a bare minimum.
+            if p.lookahead_max_token_index(max_index, [RightArrow]).is_ok() {
+                p.node(Formal, |p| {
+                    p.formal_part();
+                    p.expect_token(RightArrow);
+                });
+            }
+            p.actual_part();
+        });
     }
 
-    pub fn formal_part(&mut self) {
-        self.start_node(FormalPart);
-        self.name();
+    pub(crate) fn formal_part(&mut self) {
         // Note: `self.name()` will already consume any trailing parenthesized names!
-        self.end_node();
+        self.name();
     }
 
-    pub fn actual_part(&mut self) {
+    pub(crate) fn actual_part(&mut self) {
         // actual_part       ::= actual_designator | name "(" actual_designator ")"
         //                     | type_mark "(" actual_designator ")"
         // actual_designator ::= [inertial] expression | subtype_indication | open
@@ -272,68 +258,63 @@ impl Parser {
         // `name "(" actual_designator ")"` collapse into `Expression`
         // because `Name` accepts a `ParenthesizedName` tail; analysis sorts
         // them out later.
-        self.start_node(ActualPart);
-        self.opt_token(Keyword(Kw::Inertial));
+        self.node(ActualPart, |p| {
+            p.opt_token(Keyword(Kw::Inertial));
 
-        if self.next_is(Keyword(Kw::Open)) {
-            self.start_node(ActualPartOpen);
-            self.skip();
-            self.end_node();
-        } else if self.next_is(LeftPar) {
-            // Look past the matching `)`. If a name-starter follows, the
-            // parenthesized group is an `(element_resolution)` and we are in
-            // a subtype_indication; otherwise it is a parenthesized
-            // expression / aggregate.
-            let is_subtype = match self.lookahead_skip_n(1, [RightPar]) {
-                Ok((_, end_index)) => matches!(
-                    self.peek_nth_token(end_index - self.token_index() + 1),
-                    Identifier | StringLiteral | CharacterLiteral | LtLt
-                ),
-                Err(_) => false,
-            };
-            if is_subtype {
-                self.start_node(ActualPartSubtypeIndication);
-                self.subtype_indication();
-                self.end_node();
-            } else {
-                self.start_node(ActualPartExpression);
-                self.expression();
-                self.end_node();
-            }
-        } else if matches!(
-            self.peek_token(),
-            Identifier | StringLiteral | CharacterLiteral | LtLt
-        ) {
-            // The actual_part starts with a name. Parse it greedily; if a
-            // second name follows, the first was a `resolution_function_name`
-            // and we promote to subtype_indication retroactively. Otherwise
-            // the name is the leading primary of an expression.
-            let cp = self.checkpoint();
-            self.name();
-            if matches!(
-                self.peek_token(),
+            if p.next_is(Keyword(Kw::Open)) {
+                p.node(ActualPartOpen, |p| {
+                    p.skip();
+                });
+            } else if p.next_is(LeftPar) {
+                // Look past the matching `)`. If a name-starter follows, the
+                // parenthesized group is an `(element_resolution)` and we are in
+                // a subtype_indication; otherwise it is a parenthesized
+                // expression / aggregate.
+                let is_subtype = match p.lookahead_skip_n(1, [RightPar]) {
+                    Ok((_, end_index)) => matches!(
+                        p.peek_nth_token(end_index - p.token_index() + 1),
+                        Identifier | StringLiteral | CharacterLiteral | LtLt
+                    ),
+                    Err(_) => false,
+                };
+                if is_subtype {
+                    p.node(ActualPartSubtypeIndication, |p| {
+                        p.subtype_indication();
+                    });
+                } else {
+                    p.node(ActualPartExpression, |p| {
+                        p.expression();
+                    });
+                }
+            } else if matches!(
+                p.peek_token(),
                 Identifier | StringLiteral | CharacterLiteral | LtLt
             ) {
-                self.start_node_at(cp, ActualPartSubtypeIndication);
-                self.start_node_at(cp, SubtypeIndication);
-                self.start_node_at(cp, NameResolutionIndication);
-                self.end_node(); // NameResolutionIndication
-                self.name(); // type_mark
-                self.end_node(); // SubtypeIndication
-                self.end_node(); // ActualPartSubtypeIndication
+                // The actual_part starts with a name. Parse it greedily; if a
+                // second name follows, the first was a `resolution_function_name`
+                // and we promote to subtype_indication retroactively. Otherwise
+                // the name is the leading primary of an expression.
+                let name = p.name();
+                if matches!(
+                    p.peek_token(),
+                    Identifier | StringLiteral | CharacterLiteral | LtLt
+                ) {
+                    let resolution = name.precede(p, NameResolutionIndication).complete(p);
+                    let subtype = resolution.precede(p, SubtypeIndication);
+                    p.name(); // type_mark
+                    let subtype = subtype.complete(p);
+                    subtype.precede(p, ActualPartSubtypeIndication).complete(p);
+                } else {
+                    let primary = p.continue_primary_after_name(name);
+                    let expression = p.expression_from_primary(primary);
+                    expression.precede(p, ActualPartExpression).complete(p);
+                }
             } else {
-                self.start_node_at(cp, ActualPartExpression);
-                self.continue_primary_after_name(cp);
-                self.expression_from_primary(cp);
-                self.end_node(); // ActualPartExpression
+                p.node(ActualPartExpression, |p| {
+                    p.expression();
+                });
             }
-        } else {
-            self.start_node(ActualPartExpression);
-            self.expression();
-            self.end_node();
-        }
-
-        self.end_node();
+        });
     }
 }
 
@@ -458,16 +439,6 @@ signal foo : in std_logic;
 constant bar : natural;
 variable xyz : var"
         ));
-    }
-
-    #[test]
-    fn empty_generic_clause() {
-        insta::assert_snapshot!(to_test_text(Parser::generic_clause, "generic();",));
-    }
-
-    #[test]
-    fn empty_port_clause() {
-        insta::assert_snapshot!(to_test_text(Parser::port_clause, "port();",));
     }
 
     #[test]
@@ -600,5 +571,50 @@ package foo is new lib.pkg
 package foo is new lib.pkg
      generic map (default)"
         ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn port_missing_colon() {
+        assert_recovery_snapshot!("port (clk in std_logic);", Parser::port_clause);
+    }
+
+    #[test]
+    fn port_clause_unclosed_paren() {
+        assert_recovery_snapshot!("port (clk : in std_logic;", Parser::port_clause);
+    }
+
+    #[test]
+    fn generic_clause_unclosed_paren() {
+        assert_recovery_snapshot!("generic (width : integer", Parser::generic_clause);
+    }
+
+    #[test]
+    fn empty_generic_clause() {
+        assert_recovery_snapshot!("generic();", Parser::generic_clause);
+    }
+
+    #[test]
+    fn empty_port_clause() {
+        assert_recovery_snapshot!("port();", Parser::port_clause);
+    }
+
+    #[test]
+    fn interface_list_doubled_separator() {
+        assert_recovery_snapshot!(
+            "port (clk : in std_logic;; rst : in std_logic);",
+            Parser::port_clause
+        );
+    }
+
+    #[ignore = "missing list separator is silently mis-parsed (resolution-indication \
+        ambiguity + unanchored separated_list); needs more resilient parsing"]
+    #[test]
+    fn interface_list_missing_separator() {
+        assert_recovery_snapshot!(
+            "clk : in std_logic rst : in std_logic",
+            Parser::interface_list
+        );
     }
 }

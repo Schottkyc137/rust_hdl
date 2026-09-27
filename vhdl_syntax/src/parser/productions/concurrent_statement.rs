@@ -4,99 +4,136 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::error::SyntaxErrKind;
+use crate::parser::marker::{CompletedMarker, Marker, Precede, UnknownMarker};
+use crate::parser::productions::declarations::is_start_of_declarative_part;
+use crate::parser::util::{choice_options, StallGuard};
 use crate::parser::Parser;
+use crate::syntax::child::ChildKind;
+use crate::syntax::meta::Layout;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{
+    AstNode, BlockDeclarativeItemSyntax, ConcurrentStatementSyntax, NodeKind,
+    ProcessDeclarativeItemSyntax, SequentialStatementSyntax,
+};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::{self, *};
 
 impl Parser {
-    pub fn block_statement(&mut self) {
-        self.start_node(BlockStatement);
-        self.block_preamble();
-        self.block_header();
-        self.declarations();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.concurrent_statements();
-        self.block_epilogue();
-        self.end_node();
+    pub(crate) fn block_statement(&mut self) -> CompletedMarker {
+        self.node(BlockStatement, |p| {
+            p.label();
+            p.reject_postponed();
+            p.block_preamble();
+            p.block_header();
+            p.block_declarative_part();
+            p.node(DeclarationStatementSeparator, |p| {
+                p.expect_kw(Kw::Begin);
+            });
+            p.block_statement_part();
+            p.block_epilogue();
+        })
     }
 
-    pub fn block_preamble(&mut self) {
-        self.start_node(BlockPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::Block);
-        if self.next_is(LeftPar) {
-            self.start_node(ParenthesizedExpression);
-            self.skip();
-            self.expression();
-            self.expect_token(RightPar);
-            self.end_node();
-        }
-        self.opt_token(Keyword(Kw::Is));
-        self.end_node();
+    pub(crate) fn block_preamble(&mut self) {
+        self.node(BlockPreamble, |p| {
+            p.expect_kw(Kw::Block);
+            if p.next_is(LeftPar) {
+                p.node(ParenthesizedCondition, |p| {
+                    p.skip(); // LeftPar
+                    p.expression();
+                    p.expect_token(RightPar);
+                });
+            }
+            p.opt_token(Keyword(Kw::Is));
+        });
     }
 
-    pub fn block_epilogue(&mut self) {
-        self.start_node(BlockEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Block)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn block_epilogue(&mut self) {
+        self.node(BlockEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Block)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn block_header(&mut self) {
-        self.start_node(BlockHeader);
-        self.opt_generic_clause();
-        let checkpoint = self.checkpoint();
-        if self.opt_generic_map_aspect() {
-            self.start_node_at(checkpoint, SemiColonTerminatedGenericMapAspect);
-            self.expect_token(SemiColon);
-            self.end_node();
-        }
-        self.opt_port_clause();
-        let checkpoint = self.checkpoint();
-        if self.opt_port_map_aspect() {
-            self.start_node_at(checkpoint, SemiColonTerminatedPortMapAspect);
-            self.expect_token(SemiColon);
-            self.end_node();
-        }
-        self.end_node();
+    pub(crate) fn block_declarative_part(&mut self) {
+        self.declarations(BlockDeclarativePart, BlockDeclarativeItemSyntax::META);
     }
 
-    pub fn concurrent_statements(&mut self) {
-        self.start_node(ConcurrentStatements);
-        loop {
+    pub(crate) fn block_statement_part(&mut self) {
+        self.concurrent_statements(BlockStatementPart, ConcurrentStatementSyntax::META);
+    }
+
+    pub(crate) fn block_header(&mut self) {
+        self.node(BlockHeader, |p| {
+            if p.next_is(Keyword(Kw::Generic)) {
+                p.node(GenericPart, |p| {
+                    p.generic_clause();
+                    if p.next_is(Keyword(Kw::Generic)) {
+                        p.node(GenericMap, |p| {
+                            p.opt_generic_map_aspect();
+                            p.expect_token(SemiColon);
+                        });
+                    }
+                });
+            }
+
+            if p.next_is(Keyword(Kw::Port)) {
+                p.node(PortPart, |p| {
+                    p.port_clause();
+                    if p.next_is(Keyword(Kw::Port)) {
+                        p.node(PortMap, |p| {
+                            p.opt_port_map_aspect();
+                            p.expect_token(SemiColon);
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    pub(crate) fn concurrent_statements(&mut self, node_kind: NodeKind, layout: &Layout) {
+        self.node(node_kind, |p| {
+            p.concurrent_statement_list(choice_options(layout));
+        });
+    }
+
+    fn concurrent_statement_list(&mut self, allowed_nodes: &[NodeKind]) {
+        let mut guard = StallGuard::new();
+        while guard.should_continue(self) {
             match self.peek_token() {
                 Keyword(Kw::End | Kw::Elsif | Kw::Else | Kw::When) | Eof => {
                     break;
                 }
-                _ => self.concurrent_statement(),
+                _ => {
+                    if let Some(statement) = self.concurrent_statement() {
+                        self.check_node_is_allowed(&statement, allowed_nodes);
+                    }
+                }
             }
         }
-        self.end_node();
     }
 
-    pub fn component_instantiated_unit(&mut self) {
-        self.start_node(ComponentInstantiatedUnit);
-        self.opt_token(Keyword(Kw::Component));
-        self.name();
-        self.end_node();
+    pub(crate) fn component_instantiated_unit(&mut self) {
+        self.node(InstantiatedComponent, |p| {
+            p.opt_token(Keyword(Kw::Component));
+            p.name();
+        });
     }
 
-    pub fn entity_instantiated_unit(&mut self) {
-        self.start_node(EntityInstantiatedUnit);
-        self.expect_kw(Kw::Entity);
-        self.name();
-        self.end_node();
+    pub(crate) fn entity_instantiated_unit(&mut self) {
+        self.node(InstantiatedEntity, |p| {
+            p.expect_kw(Kw::Entity);
+            p.name();
+        });
     }
 
-    pub fn configuration_instantiated_unit(&mut self) {
-        self.start_node(ConfigurationInstantiatedUnit);
-        self.expect_kw(Kw::Configuration);
-        self.name();
-        self.end_node();
+    pub(crate) fn configuration_instantiated_unit(&mut self) {
+        self.node(InstantiatedConfiguration, |p| {
+            p.expect_kw(Kw::Configuration);
+            p.name();
+        });
     }
 
     fn peek_concurrent_statement_kind(&mut self) -> TokenKind {
@@ -112,7 +149,7 @@ impl Parser {
         self.peek_nth_token(peek_idx)
     }
 
-    pub fn instantiated_unit(&mut self) {
+    pub(crate) fn instantiated_unit(&mut self) {
         match self.peek_token() {
             Keyword(Kw::Entity) => self.entity_instantiated_unit(),
             Keyword(Kw::Configuration) => self.configuration_instantiated_unit(),
@@ -120,353 +157,379 @@ impl Parser {
         }
     }
 
-    pub fn component_instantiation_statement(&mut self) {
-        self.start_node(ComponentInstantiationStatement);
-        self.opt_label();
-        self.instantiated_unit();
-        self.instantiation_statement_inner();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn component_instantiation_statement(&mut self) -> CompletedMarker {
+        self.node(ComponentInstantiationStatement, |p| {
+            p.label();
+            p.reject_postponed();
+            p.instantiated_unit();
+            p.instantiation_statement_inner();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn concurrent_assertion_statement(&mut self) {
-        self.start_node(ConcurrentAssertionStatement);
-        self.opt_label();
-        self.opt_token(Keyword(Kw::Postponed));
-        self.assertion();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn concurrent_assertion_statement(&mut self) -> CompletedMarker {
+        self.node(ConcurrentAssertionStatement, |p| {
+            p.opt_label();
+            p.opt_token(Keyword(Kw::Postponed));
+            p.assertion();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub(crate) fn concurrent_statement(&mut self) {
+    // Assumes `<=` (LTE) has already been parsed
+    fn signal_assignment_after_lte(&mut self, unknown: UnknownMarker) -> Marker {
+        self.opt_token(Keyword(Kw::Guarded));
+        self.opt_delay_mechanism();
+        let waveform = self.waveform();
+        if self.next_is(Keyword(Kw::When)) {
+            let marker = unknown.resolve(self, ConcurrentConditionalSignalAssignment);
+            let when = waveform.precede(self, WhenWaveform);
+            self.skip();
+            self.expression();
+            let when_waveform = when.complete(self);
+            let waveforms = when_waveform.precede(self, ConditionalWaveforms);
+            self.conditional_else(Parser::waveform, ElseWhenWaveform, ElseWaveform);
+            waveforms.complete(self);
+            marker
+        } else {
+            unknown.resolve(self, ConcurrentSimpleSignalAssignment)
+        }
+    }
+
+    /// Concurrent statements match on `postponed`.
+    /// This rejects them for those that don't accept the keyword (generate statements,
+    /// block statements, ...) to avoid infinite recursion.
+    fn reject_postponed(&mut self) {
+        if self.opt_token(Keyword(Kw::Postponed)) {
+            self.push_err(SyntaxErrKind::Unexpected(ChildKind::Token(Keyword(
+                Kw::Postponed,
+            ))));
+        }
+    }
+
+    pub(crate) fn concurrent_statement(&mut self) -> Option<CompletedMarker> {
         match self.peek_concurrent_statement_kind() {
-            Keyword(Kw::Block) => self.block_statement(),
-            Keyword(Kw::Process) => self.process_statement(),
+            Keyword(Kw::Block) => Some(self.block_statement()),
+            Keyword(Kw::Process) => Some(self.process_statement()),
             Keyword(Kw::Component | Kw::Configuration | Kw::Entity) => {
-                self.component_instantiation_statement()
+                Some(self.component_instantiation_statement())
             }
-            Keyword(Kw::For) => self.for_generate_statement(),
-            Keyword(Kw::If) => self.if_generate_statement(),
-            Keyword(Kw::Case) => self.case_generate_statement(),
-            Keyword(Kw::Assert) => self.concurrent_assertion_statement(),
-            Keyword(Kw::With) => self.concurrent_selected_signal_assignment(),
-            Identifier | LtLt | StringLiteral | CharacterLiteral => {
-                let checkpoint = self.checkpoint();
+            Keyword(Kw::For) => Some(self.for_generate_statement()),
+            Keyword(Kw::If) => Some(self.if_generate_statement()),
+            Keyword(Kw::Case) => Some(self.case_generate_statement()),
+            Keyword(Kw::Assert) => Some(self.concurrent_assertion_statement()),
+            Keyword(Kw::With) => Some(self.concurrent_selected_signal_assignment()),
+            LeftPar => {
+                let unknown = self.start_unknown();
                 self.opt_label();
                 self.opt_token(Keyword(Kw::Postponed));
-                let checkpoint2 = self.checkpoint();
-                self.name();
-                match self.peek_token() {
+                self.node(AggregateTarget, Parser::aggregate);
+                self.expect_token(LTE);
+                let marker = self.signal_assignment_after_lte(unknown);
+                self.expect_token(SemiColon);
+                Some(marker.complete(self))
+            }
+            Identifier | LtLt | StringLiteral | CharacterLiteral => {
+                let unknown = self.start_unknown();
+                self.opt_label();
+                self.opt_token(Keyword(Kw::Postponed));
+                let name = self.name();
+                let marker = match self.peek_token() {
                     LTE => {
-                        self.start_node_at(checkpoint2, NameTarget);
-                        self.end_node();
+                        name.precede(self, NameTarget).complete(self);
                         self.skip();
-                        self.opt_token(Keyword(Kw::Guarded));
-                        self.opt_delay_mechanism();
-                        let waveform_checkpoint = self.checkpoint();
-                        self.waveform();
-                        if self.opt_token(Keyword(Kw::When)) {
-                            self.start_node_at(checkpoint, ConcurrentConditionalSignalAssignment);
-                            self.start_node_at(waveform_checkpoint, ConditionalWaveforms);
-                            self.conditional_waveforms_after_first_when();
-                            self.end_node();
-                        } else {
-                            self.start_node_at(checkpoint, ConcurrentSimpleSignalAssignment);
-                        }
+                        self.signal_assignment_after_lte(unknown)
                     }
                     Keyword(Kw::Port | Kw::Generic) => {
-                        self.start_node_at(checkpoint2, ComponentInstantiatedUnit);
-                        self.end_node();
-                        self.start_node_at(checkpoint, ComponentInstantiationStatement);
+                        name.precede(self, InstantiatedComponent).complete(self);
+                        let marker = unknown.resolve(self, ComponentInstantiationStatement);
                         self.instantiation_statement_inner();
+                        marker
                     }
                     // Could be an instantiated unit without ports and generics
                     // or a procedure call
-                    _ => self.start_node_at(
-                        checkpoint,
+                    _ => unknown.resolve(
+                        self,
                         ConcurrentProcedureCallOrComponentInstantiationStatement,
                     ),
-                }
+                };
                 self.expect_token(SemiColon);
-                self.end_node();
+                Some(marker.complete(self))
             }
             _ => {
-                self.skip();
-                self.expect_tokens_err([Keyword(Kw::Block)])
+                // Consume label and postponed keyword for error recovery
+                self.opt_label();
+                self.opt_token(Keyword(Kw::Postponed));
+                self.expect_tokens_recover([
+                    Keyword(Kw::Block),
+                    Keyword(Kw::Process),
+                    Keyword(Kw::Component),
+                    Keyword(Kw::Configuration),
+                    Keyword(Kw::Entity),
+                    Keyword(Kw::For),
+                    Keyword(Kw::If),
+                    Keyword(Kw::Case),
+                    Keyword(Kw::Assert),
+                    Keyword(Kw::With),
+                    Identifier,
+                    LtLt,
+                    StringLiteral,
+                    CharacterLiteral,
+                ]);
+                None
             }
         }
     }
 
-    /// Parse conditional waveforms, assuming the first `waveform when` is already parsed
-    fn conditional_waveforms_after_first_when(&mut self) {
-        self.expression();
-        while self.next_is(Keyword(Kw::Else)) {
-            let checkpoint = self.checkpoint();
-            self.expect_kw(Kw::Else);
-            self.waveform();
-            if self.opt_token(Keyword(Kw::When)) {
-                self.start_node_at(checkpoint, ConditionalWaveformElseWhenExpression);
-                self.expression();
-                self.end_node();
-            } else {
-                self.start_node_at(checkpoint, ConditionalWaveformElseItem);
-                self.end_node();
-                break;
-            }
-        }
+    pub(crate) fn concurrent_selected_signal_assignment(&mut self) -> CompletedMarker {
+        self.node(ConcurrentSelectedSignalAssignment, |p| {
+            p.opt_label();
+            p.opt_token(Keyword(Kw::Postponed));
+            p.selected_assignment_preamble();
+            p.target();
+            p.expect_token(LTE);
+            p.opt_token(Keyword(Kw::Guarded));
+            p.opt_delay_mechanism();
+            p.selected_waveforms();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn concurrent_selected_signal_assignment(&mut self) {
-        self.start_node(ConcurrentSelectedSignalAssignment);
-        self.concurrent_selected_signal_assignment_preamble();
-        self.target();
-        self.expect_token(LTE);
-        self.opt_token(Keyword(Kw::Guarded));
-        self.opt_delay_mechanism();
-        self.selected_waveforms();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn selected_assignment_preamble(&mut self) {
+        self.node(SelectedAssignmentPreamble, |p| {
+            p.expect_kw(Kw::With);
+            p.expression();
+            p.expect_kw(Kw::Select);
+            p.opt_token(Que);
+        });
     }
 
-    pub fn concurrent_selected_signal_assignment_preamble(&mut self) {
-        self.start_node(ConcurrentSelectedSignalAssignmentPreamble);
-        self.opt_label();
-        self.opt_token(Keyword(Kw::Postponed));
-        self.expect_kw(Kw::With);
-        self.expression();
-        self.expect_kw(Kw::Select);
-        self.opt_token(Que);
-        self.end_node();
-    }
-
-    pub fn target(&mut self) {
+    pub(crate) fn target(&mut self) {
         if self.next_is(LeftPar) {
-            self.start_node(AggregateTarget);
-            self.aggregate();
-            self.end_node();
+            self.node(AggregateTarget, |p| {
+                p.aggregate();
+            });
         } else {
-            self.start_node(NameTarget);
-            self.name();
-            self.end_node();
+            self.node(NameTarget, |p| {
+                p.name();
+            });
         }
     }
 
-    pub fn assertion(&mut self) {
-        self.start_node(Assertion);
-        self.expect_kw(Kw::Assert);
-        self.condition();
-        if self.opt_token(Keyword(Kw::Report)) {
-            self.expression();
-        }
-        if self.opt_token(Keyword(Kw::Severity)) {
-            self.expression();
-        }
-        self.end_node();
+    pub(crate) fn assertion(&mut self) {
+        self.node(Assertion, |p| {
+            p.expect_kw(Kw::Assert);
+            p.condition();
+            if p.next_is(Keyword(Kw::Report)) {
+                p.node(ReportClause, |p| {
+                    p.skip(); // Kw::Report
+                    p.expression();
+                });
+            }
+            if p.next_is(Keyword(Kw::Severity)) {
+                p.node(SeverityClause, |p| {
+                    p.skip(); // Kw::Severity
+                    p.expression();
+                });
+            }
+        });
     }
 
-    pub fn case_generate_statement(&mut self) {
-        self.start_node(CaseGenerateStatement);
-        self.case_generate_preamble();
-        while self.next_is(Keyword(Kw::When)) {
-            self.case_generate_alternative();
-        }
-        self.case_generate_epliogue();
-        self.end_node();
+    pub(crate) fn case_generate_statement(&mut self) -> CompletedMarker {
+        self.node(CaseGenerateStatement, |p| {
+            p.label();
+            p.reject_postponed();
+            p.case_generate_preamble();
+            p.case_generate_alternative();
+            while p.next_is(Keyword(Kw::When)) {
+                p.case_generate_alternative();
+            }
+            p.generate_epilogue();
+        })
     }
 
-    pub fn case_generate_preamble(&mut self) {
-        self.start_node(CaseGenerateStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::Case);
-        self.expression();
-        self.expect_kw(Kw::Generate);
-        self.end_node();
+    pub(crate) fn case_generate_preamble(&mut self) {
+        self.node(CaseGeneratePreamble, |p| {
+            p.expect_kw(Kw::Case);
+            p.expression();
+            p.expect_kw(Kw::Generate);
+        });
     }
 
-    pub fn case_generate_epliogue(&mut self) {
-        self.start_node(CaseGenerateStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn case_generate_alternative(&mut self) {
+        self.node(CaseGenerateAlternative, |p| {
+            p.expect_kw(Kw::When);
+            p.opt_label();
+            p.choices();
+            p.expect_token(RightArrow);
+            p.generate_statement_body();
+        });
     }
 
-    pub fn case_generate_alternative(&mut self) {
-        self.start_node(CaseGenerateAlternative);
-        self.expect_kw(Kw::When);
-        self.opt_label();
-        self.choices();
-        self.expect_token(RightArrow);
-        self.generate_statement_body();
-        self.end_node();
+    pub(crate) fn for_generate_statement(&mut self) -> CompletedMarker {
+        self.node(ForGenerateStatement, |p| {
+            p.label();
+            p.reject_postponed();
+            p.for_generate_preamble();
+            p.generate_statement_body();
+            p.generate_epilogue();
+        })
     }
 
-    pub fn for_generate_statement(&mut self) {
-        self.start_node(ForGenerateStatement);
-        self.for_generate_preamble();
-        self.generate_statement_body();
-        self.for_generate_epilogue();
-        self.end_node();
+    pub(crate) fn for_generate_preamble(&mut self) {
+        self.node(ForGeneratePreamble, |p| {
+            p.expect_kw(Kw::For);
+            p.parameter_specification();
+            p.expect_kw(Kw::Generate);
+        });
     }
 
-    pub fn for_generate_preamble(&mut self) {
-        self.start_node(ForGenerateStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::For);
-        self.parameter_specification();
-        self.expect_kw(Kw::Generate);
-        self.end_node();
+    pub(crate) fn generate_epilogue(&mut self) {
+        self.node(GenerateEpilogue, |p| {
+            p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn for_generate_epilogue(&mut self) {
-        self.start_node(ForGenerateStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn if_generate_if(&mut self) {
+        self.node(IfGenerateIf, |p| {
+            p.expect_kw(Kw::If);
+            p.opt_label();
+            p.expression();
+            p.expect_kw(Kw::Generate);
+            p.generate_statement_body();
+        });
     }
 
-    pub fn if_generate_elsif(&mut self) {
-        self.start_node(IfGenerateElsif);
-        self.skip();
-        self.opt_label();
-        self.condition();
-        self.expect_kw(Kw::Generate);
-        self.generate_statement_body();
-        self.end_node();
+    pub(crate) fn if_generate_elsif(&mut self) {
+        self.node(IfGenerateElsif, |p| {
+            p.skip();
+            p.opt_label();
+            p.condition();
+            p.expect_kw(Kw::Generate);
+            p.generate_statement_body();
+        });
     }
 
-    pub fn if_generate_else(&mut self) {
-        self.start_node(IfGenerateElse);
-        self.skip();
-        self.opt_label();
-        self.expect_kw(Kw::Generate);
-        self.generate_statement_body();
-        self.end_node();
+    pub(crate) fn if_generate_else(&mut self) {
+        self.node(IfGenerateElse, |p| {
+            p.skip();
+            p.opt_label();
+            p.expect_kw(Kw::Generate);
+            p.generate_statement_body();
+        });
     }
 
-    pub fn if_generate_statement(&mut self) {
-        self.start_node(IfGenerateStatement);
-        self.if_generate_statement_preamble();
-        self.generate_statement_body();
-        while self.next_is(Keyword(Kw::Elsif)) {
-            self.if_generate_elsif();
-        }
-        if self.next_is(Keyword(Kw::Else)) {
-            self.if_generate_else();
-        }
-        self.if_generate_statement_epilogue();
-        self.end_node();
+    pub(crate) fn if_generate_statement(&mut self) -> CompletedMarker {
+        self.node(IfGenerateStatement, |p| {
+            p.label();
+            p.reject_postponed();
+            p.if_generate_if();
+            while p.next_is(Keyword(Kw::Elsif)) {
+                p.if_generate_elsif();
+            }
+            if p.next_is(Keyword(Kw::Else)) {
+                p.if_generate_else();
+            }
+            p.generate_epilogue();
+        })
     }
 
-    pub fn if_generate_statement_preamble(&mut self) {
-        self.start_node(IfGenerateStatementPreamble);
-        self.opt_label();
-        self.expect_kw(Kw::If);
-        self.opt_label();
-        self.expression();
-        self.expect_kw(Kw::Generate);
-        self.end_node();
+    pub(crate) fn generate_statement_body(&mut self) {
+        self.node(GenerateStatementBody, |p| {
+            if is_start_of_declarative_part(p.peek_token()) || p.next_is(Keyword(Kw::Begin)) {
+                p.node(GenerateBodyDeclarations, |p| {
+                    p.block_declarative_part();
+                    p.node(DeclarationStatementSeparator, |p| {
+                        p.expect_kw(Kw::Begin);
+                    });
+                });
+            }
+            p.concurrent_statement_list(choice_options(ConcurrentStatementSyntax::META));
+            if p.next_is(Keyword(Kw::End)) && !p.next_nth_is(Keyword(Kw::Generate), 1) {
+                p.generate_statement_body_epilogue();
+            }
+        });
     }
 
-    pub fn if_generate_statement_epilogue(&mut self) {
-        self.start_node(IfGenerateStatementEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Generate)]);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn generate_statement_body_epilogue(&mut self) {
+        self.node(GenerateBodyEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn generate_statement_body(&mut self) {
-        self.start_node(GenerateStatementBody);
-        self.opt_declarative_part();
-        if self.next_is(Keyword(Kw::Begin)) {
-            self.skip_into_node(DeclarationStatementSeparator);
-        }
-        self.concurrent_statements();
-        if self.next_is(Keyword(Kw::End)) && !self.next_nth_is(Keyword(Kw::Generate), 1) {
-            self.generate_statement_body_epilogue();
-        }
-        self.end_node();
-    }
-
-    pub fn generate_statement_body_epilogue(&mut self) {
-        self.start_node(GenerateStatementBodyEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
-    }
-
-    pub fn parameter_specification(&mut self) {
-        self.start_node(ParameterSpecification);
-        self.identifier();
-        self.expect_kw(Kw::In);
-        self.expression();
-        self.end_node();
+    pub(crate) fn parameter_specification(&mut self) {
+        self.node(ParameterSpecification, |p| {
+            p.identifier();
+            p.expect_kw(Kw::In);
+            p.expression();
+        });
     }
 
     fn instantiation_statement_inner(&mut self) {
-        self.start_node(ComponentInstantiationItems);
         self.opt_generic_map_aspect();
         self.opt_port_map_aspect();
-        self.end_node();
     }
 
-    pub fn process_statement(&mut self) {
-        self.start_node(ProcessStatement);
-        self.process_statement_preamble();
-        self.declarations();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.sequential_statements();
-        self.process_statement_epilogue();
-        self.end_node();
+    pub(crate) fn process_statement(&mut self) -> CompletedMarker {
+        self.node(ProcessStatement, |p| {
+            p.opt_label();
+            p.process_preamble();
+            p.process_declarative_part();
+            p.node(DeclarationStatementSeparator, |p| {
+                p.expect_kw(Kw::Begin);
+            });
+            p.process_statement_part();
+            p.process_epilogue();
+        })
     }
 
-    pub fn process_statement_preamble(&mut self) {
-        self.start_node(ProcessStatementPreamble);
-        self.opt_label();
-        self.opt_token(Keyword(Kw::Postponed));
-        self.expect_token(Keyword(Kw::Process));
-        if self.next_is(LeftPar) {
-            self.process_sensitivity_list();
-        }
-        self.opt_token(Keyword(Kw::Is));
-        self.end_node();
+    pub(crate) fn process_declarative_part(&mut self) {
+        self.declarations(ProcessDeclarativePart, ProcessDeclarativeItemSyntax::META);
     }
 
-    pub fn process_statement_epilogue(&mut self) {
-        self.start_node(ProcessStatementEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Postponed));
-        self.expect_token(Keyword(Kw::Process));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn process_statement_part(&mut self) {
+        self.sequential_statements(ProcessStatementPart, SequentialStatementSyntax::META);
     }
 
-    pub fn process_sensitivity_list(&mut self) {
-        self.start_node(ParenthesizedProcessSensitivityList);
-        self.expect_token(LeftPar);
-        if self.next_is(RightPar) {
-            // This is illegal, but considered only at the analysis stage
-            self.skip();
-            self.end_node();
-            return;
-        }
-        if self.next_is(Keyword(Kw::All)) {
-            self.skip_into_node(AllSensitivityList);
-        } else {
-            self.name_list();
-        }
-        self.expect_token(RightPar);
-        self.end_node();
+    pub(crate) fn process_preamble(&mut self) {
+        self.node(ProcessPreamble, |p| {
+            p.opt_token(Keyword(Kw::Postponed));
+            p.expect_token(Keyword(Kw::Process));
+            if p.next_is(LeftPar) {
+                p.process_sensitivity_list();
+            }
+            p.opt_token(Keyword(Kw::Is));
+        });
     }
 
-    pub fn sensitivity_list(&mut self) {
-        self.separated_list(Parser::name, Comma);
+    pub(crate) fn process_epilogue(&mut self) {
+        self.node(ProcessEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Postponed));
+            p.expect_token(Keyword(Kw::Process));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub(crate) fn process_sensitivity_list(&mut self) {
+        self.node(ParenthesizedProcessSensitivityList, |p| {
+            p.expect_token(LeftPar);
+            if p.next_is(Keyword(Kw::All)) {
+                p.skip_into_node(AllSensitivityList);
+            } else {
+                p.sensitivity_list();
+            }
+            p.expect_token(RightPar);
+        });
+    }
+
+    pub(crate) fn sensitivity_list(&mut self) {
+        self.separated_list(SensitivityList, Parser::name, Comma);
     }
 }
 
@@ -556,6 +619,17 @@ end block;",
     }
 
     #[test]
+    fn process_statement_with_empty_sensitivity_list() {
+        assert_recovery_snapshot!(
+            "\
+process()
+begin
+end process;",
+            Parser::concurrent_statement
+        );
+    }
+
+    #[test]
     fn process_statement() {
         insta::assert_snapshot!(stmt_to_test_text(
             "\
@@ -616,16 +690,6 @@ end process;",
     }
 
     #[test]
-    fn process_empty_sensitivity() {
-        insta::assert_snapshot!(stmt_to_test_text(
-            "\
-process () is
-begin
-end process;",
-        ))
-    }
-
-    #[test]
     fn process_statement_full() {
         insta::assert_snapshot!(stmt_to_test_text(
             "\
@@ -665,10 +729,24 @@ end process main;",
     }
 
     #[test]
+    fn aggregate_signal_asignment() {
+        insta::assert_snapshot!(stmt_to_test_text("(foo) <= bar;"));
+        insta::assert_snapshot!(stmt_to_test_text("(foo, bar) <= baz;",));
+    }
+
+    #[test]
     fn concurrent_signal_assignment_external_name() {
         insta::assert_snapshot!(stmt_to_test_text(
             "<< signal dut.foo : std_logic >> <= bar(2 to 3);",
         ));
+    }
+
+    #[test]
+    fn concurrent_conditional_signal_assignment() {
+        // The first `waveform when condition` must be wrapped in a
+        // `WhenWaveform` inside `ConditionalWaveforms`, like the
+        // sequential form.
+        insta::assert_snapshot!(stmt_to_test_text("foo <= a when sel else b;",));
     }
 
     #[test]
@@ -882,6 +960,16 @@ end generate;",
     }
 
     #[test]
+    fn empty_case_generate() {
+        assert_recovery_snapshot!(
+            "\
+gen: case expr(0) + 2 generate
+end generate;",
+            Parser::case_generate_statement
+        );
+    }
+
+    #[test]
     fn case_generate() {
         insta::assert_snapshot!(stmt_to_test_text(
             "\
@@ -905,5 +993,80 @@ gen1: case expr(0) + 2 generate
     foo(clk);
 end generate gen1;",
         ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    #[ignore = "currently produces spurious error messages since declarations and statements are not clearly separated"]
+    fn process_missing_begin() {
+        assert_recovery_snapshot!(
+            "\
+process (clk)
+  variable count : integer := 0;
+  count := count + 1;
+end process;",
+            Parser::process_statement
+        );
+    }
+
+    #[test]
+    fn process_missing_end() {
+        assert_recovery_snapshot!(
+            "\
+process (clk)
+begin
+  q <= d;",
+            Parser::process_statement
+        );
+    }
+
+    #[test]
+    fn for_generate_missing_end() {
+        assert_recovery_snapshot!(
+            "\
+gen: for i in 0 to 7 generate
+  buf(i) <= data(i);",
+            Parser::for_generate_statement
+        );
+    }
+
+    #[test]
+    fn instantiation_missing_semicolon() {
+        assert_recovery_snapshot!(
+            "\
+u_cpu: entity work.cpu
+  port map (
+    clk => clk
+  )",
+            Parser::component_instantiation_statement
+        );
+    }
+
+    // concurrent statement loop. Could loop endlessly
+    #[test]
+    fn architecture_misplaced_use() {
+        assert_recovery_snapshot!(
+            "\
+architecture a of e is
+  begin
+    use work.all;
+  end architecture;",
+            Parser::architecture
+        );
+    }
+
+    #[test]
+    fn reproducer() {
+        assert_recovery_snapshot!(
+            "
+    architecture a of e is
+    begin
+        lbl : postponed for i in r generate
+        end generate;
+    end architecture;
+    ",
+            Parser::architecture
+        );
     }
 }

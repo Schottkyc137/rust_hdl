@@ -4,6 +4,7 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::CompletedMarker;
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
 use crate::tokens::Keyword as Kw;
@@ -41,33 +42,34 @@ fn is_start_of_attribute_name(parser: &mut Parser) -> bool {
 }
 
 impl Parser {
-    pub fn name(&mut self) {
+    pub(crate) fn name(&mut self) -> CompletedMarker {
         // (Based on) LRM §8.1
         // The LRM grammar rules for names were transformed to avoid left recursion.
 
         // In contrast to the LRM, this parsing routine is greedy. Meaning, it will consume trailing parenthesized
         // expressions even if the belong to an outer grammar rule!
-        self.start_node(Name);
+        self.node(Name, |p| {
+            if p.next_is(LtLt) {
+                p.external_name();
+            } else {
+                p.node(NameDesignatorPrefix, |p| {
+                    p.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
+                });
+            }
 
-        if self.next_is(LtLt) {
-            self.external_name();
-        } else {
-            self.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
-        }
+            while p.opt_name_tail() {}
 
-        while self.opt_name_tail() {}
-
-        // Ambiguity: `range <>` is the tail of an index subtype definition.
-        // This wires through name due to the starting `type_mark`.
-        // TODO: consider alternative: broaden language to make "<>" a valid expression.
-        // Creates less ambiguity here.
-        if self.next_is(Keyword(Kw::Range)) && !self.next_nth_is(BOX, 1) {
-            self.range_constraint();
-        }
-        self.end_node();
+            // Ambiguity: `range <>` is the tail of an index subtype definition.
+            // This wires through name due to the starting `type_mark`.
+            // TODO: consider alternative: broaden language to make "<>" a valid expression.
+            // Creates less ambiguity here.
+            if p.next_is(Keyword(Kw::Range)) && !p.next_nth_is(BOX, 1) {
+                p.range_constraint();
+            }
+        })
     }
 
-    pub fn type_mark(&mut self) {
+    pub(crate) fn type_mark(&mut self) -> CompletedMarker {
         self.name()
     }
 
@@ -76,22 +78,25 @@ impl Parser {
     }
 
     pub(crate) fn designator(&mut self) {
-        // TODO: That designator is not fully LRM compliant
-        self.expect_one_of_tokens([Identifier, StringLiteral, CharacterLiteral]);
+        self.expect_one_of_tokens([Identifier, StringLiteral]);
+    }
+
+    pub(crate) fn label(&mut self) {
+        self.node(StmtLabel, |p| {
+            p.expect_tokens([Identifier, Colon]);
+        });
     }
 
     pub(crate) fn opt_label(&mut self) {
         if self.next_is(Identifier) && self.next_nth_is(Colon, 1) {
-            self.start_node(Label);
-            self.skip_n(2);
-            self.end_node();
+            self.node(StmtLabel, |p| {
+                p.skip_n(2);
+            });
         }
     }
 
-    pub(crate) fn name_list(&mut self) {
-        self.start_node(NameList);
-        self.separated_list(Parser::name, Comma);
-        self.end_node();
+    pub(crate) fn name_list(&mut self) -> CompletedMarker {
+        self.separated_list(NameList, Parser::name, Comma)
     }
 
     fn suffix(&mut self) {
@@ -108,34 +113,32 @@ impl Parser {
     fn opt_name_tail(&mut self) -> bool {
         match self.peek_token() {
             Dot => {
-                self.start_node(SelectedName);
-                self.expect_token(Dot);
-                self.suffix();
-                self.end_node();
+                self.node(SelectedName, |p| {
+                    p.expect_token(Dot);
+                    p.suffix();
+                });
                 true
             }
             LeftPar => {
-                self.start_node(ParenthesizedName);
-                self.expect_token(LeftPar);
-                if !self.next_is(RightPar) {
-                    self.association_list();
-                }
-                self.expect_token(RightPar);
-                self.end_node();
+                self.node(ParenthesizedName, |p| {
+                    p.expect_token(LeftPar);
+                    p.association_list();
+                    p.expect_token(RightPar);
+                });
                 true
             }
             _ => {
                 if is_start_of_attribute_name(self) {
-                    self.start_node(AttributeName);
-                    if self.next_is(LeftSquare) {
-                        self.signature();
-                    }
-                    self.expect_token(Tick);
-                    // Either an identifier or a keyword (e.g., `range`, `subtype`).
-                    if matches!(self.peek_token(), Keyword(_) | Identifier) {
-                        self.skip();
-                    }
-                    self.end_node();
+                    self.node(AttributeName, |p| {
+                        if p.next_is(LeftSquare) {
+                            p.signature();
+                        }
+                        p.expect_token(Tick);
+                        // Either an identifier or a keyword (e.g., `range`, `subtype`).
+                        if matches!(p.peek_token(), Keyword(_) | Identifier) {
+                            p.skip();
+                        }
+                    });
                     true
                 } else {
                     false
@@ -144,9 +147,9 @@ impl Parser {
         }
     }
 
-    pub fn external_name(&mut self) {
+    pub(crate) fn external_name(&mut self) {
         // LRM §8.7
-        let checkpoint = self.checkpoint();
+        let unknown = self.start_unknown();
         self.expect_token(LtLt);
 
         let tok = self.expect_one_of_tokens([
@@ -154,85 +157,90 @@ impl Parser {
             Keyword(Kw::Signal),
             Keyword(Kw::Variable),
         ]);
-        match tok {
-            Some(Keyword(Kw::Signal)) => self.start_node_at(checkpoint, ExternalSignalName),
-            Some(Keyword(Kw::Variable)) => self.start_node_at(checkpoint, ExternalVariableName),
-            _ => self.start_node_at(checkpoint, ExternalConstantName),
-        }
+        let marker = unknown.resolve(
+            self,
+            match tok {
+                Some(Keyword(Kw::Signal)) => ExternalSignalName,
+                Some(Keyword(Kw::Variable)) => ExternalVariableName,
+                _ => ExternalConstantName,
+            },
+        );
         self.external_pathname();
         self.expect_token(Colon);
         self.subtype_indication();
 
         self.expect_token(GtGt);
-        self.end_node();
+        marker.complete(self);
     }
 
     fn external_pathname(&mut self) {
         // LRM §8.7
-        match_next_token!(self,
+        // No node is opened on the recovery path, hence the `Option`.
+        let marker = match_next_token!(self,
         CommAt => {
-            self.start_node(PackagePathname);
+            let marker = self.start_node(PackagePathname);
             self.skip();
-            self.identifier();
-            while self.opt_token(Dot) {
-                self.identifier();
-            }
+            self.separated_list(PackagePath, Parser::identifier, Dot);
+            Some(marker)
         },
         Dot => {
-            self.start_node(AbsolutePathname);
+            let marker = self.start_node(AbsolutePathname);
             self.skip();
             self.partial_pathname();
+            Some(marker)
         },
         Circ, Identifier => {
-            self.start_node(RelativePathname);
-            while self.opt_token(Circ) {
-                self.expect_token(Dot);
+            let marker = self.start_node(RelativePathname);
+            while self.next_is(Circ) {
+                self.node(UpLevel, |p| {
+                    p.skip(); // Circ
+                    p.expect_token(Dot);
+                });
             }
             self.partial_pathname();
+            Some(marker)
         });
-        self.end_node();
+        if let Some(marker) = marker {
+            marker.complete(self);
+        }
     }
 
     fn partial_pathname(&mut self) {
         // LRM §8.7
-        // partial_pathname ::= { identifier [ `(` expression `)` ] `.` } identifier ;
-        self.start_node(PartialPathname);
-        self.identifier();
-        loop {
-            if self.next_is(LeftPar) {
-                self.start_node(ParenthesizedExpressionOrAggregate);
-                self.expect_token(LeftPar);
-                self.expression();
-                self.expect_token(RightPar);
-                self.end_node();
-                self.expect_token(Dot);
-            } else if !self.opt_token(Dot) {
-                break;
+        // partial_pathname ::= { pathname_element `.` } object_simple_name ;
+        self.separated_list(PartialPathname, Parser::pathname_element, Dot);
+    }
+
+    fn pathname_element(&mut self) {
+        self.node(PathnameElement, |p| {
+            p.identifier();
+            if p.next_is(LeftPar) {
+                p.node(ParenthesizedExpression, |p| {
+                    p.expect_token(LeftPar);
+                    p.expression();
+                    p.expect_token(RightPar);
+                });
             }
-            self.identifier();
-        }
-        self.end_node();
+        });
     }
 
-    pub fn choices(&mut self) {
-        self.start_node(Choices);
-        self.separated_list(Parser::choice, Bar);
-        self.end_node();
+    pub(crate) fn choices(&mut self) {
+        self.separated_list(Choices, Parser::choice, Bar);
     }
 
-    pub fn choice(&mut self) {
+    pub(crate) fn choice(&mut self) {
         if self.next_is(Keyword(Kw::Others)) {
-            self.start_node(OthersChoice);
-            self.skip();
-            self.end_node();
+            self.node(OthersChoice, |p| {
+                p.skip();
+            });
             return;
         }
         // `expression` now subsumes the old `range` (`to`/`downto` are binary
         // operators); `choice = expression | discrete_range | others` collapses
         // to "either an expression or `others`" at the parser level.
-        self.start_node(ExpressionChoice);
-        self.expression();
-        self.end_node();
+        self.node(ExpressionChoice, |p| {
+            p.expression();
+        });
     }
 }
 
@@ -354,6 +362,6 @@ mod tests {
 
     #[test]
     fn empty_association_list() {
-        insta::assert_snapshot!(name_to_test_text("foo()"));
+        assert_recovery_snapshot!("foo()", Parser::name);
     }
 }

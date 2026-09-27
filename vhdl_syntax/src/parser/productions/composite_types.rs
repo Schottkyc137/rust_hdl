@@ -10,68 +10,74 @@ use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
-    pub fn array_type_definition(&mut self) {
-        let checkpoint = self.checkpoint();
+    pub(crate) fn array_type_definition(&mut self) {
+        let unknown = self.start_unknown();
         self.expect_kw(Kw::Array);
         let box_found = self.lookahead_skip_n(1, [BOX]).is_ok();
+        let array_definition = if box_found {
+            unknown.resolve(self, UnboundedArrayDefinition)
+        } else {
+            unknown.resolve(self, ConstrainedArrayDefinition)
+        };
 
         if box_found {
-            self.start_node_at(checkpoint, UnboundedArrayDefinition);
             self.expect_token(LeftPar);
-            self.start_node(IndexSubtypeDefinitionList);
-            self.separated_list(Parser::index_subtype_definition, Comma);
-            self.end_node();
+            self.separated_list(
+                IndexSubtypeDefinitionList,
+                Parser::index_subtype_definition,
+                Comma,
+            );
             self.expect_token(RightPar);
         } else {
-            self.start_node_at(checkpoint, ConstrainedArrayDefinition);
             self.index_constraint();
         }
         self.expect_kw(Kw::Of);
         self.subtype_indication();
-        self.end_node();
+        array_definition.complete(self);
     }
 
-    pub fn record_type_definition(&mut self) {
-        self.start_node(RecordTypeDefinition);
-        self.start_node(RecordTypeDefinitionPreamble);
-        self.expect_kw(Kw::Record);
-        self.end_node();
+    pub(crate) fn record_type_definition(&mut self) {
+        self.node(RecordTypeDefinition, |p| {
+            p.node(RecordTypeDefinitionPreamble, |p| {
+                p.expect_kw(Kw::Record);
+            });
 
-        self.start_node(RecordElementDeclarations);
-        while !self.next_is(Keyword(Kw::End)) {
-            self.element_declaration();
-        }
-        self.end_node();
+            p.node(RecordElementDeclarations, |p| {
+                p.element_declaration();
+                while p.next_is(Identifier) {
+                    p.element_declaration();
+                }
+            });
 
-        self.start_node(RecordTypeDefinitionEpilogue);
-        self.expect_tokens([Keyword(Kw::End), Keyword(Kw::Record)]);
-        self.opt_identifier();
-        self.end_node();
-        self.end_node();
+            p.node(RecordTypeDefinitionEpilogue, |p| {
+                p.expect_tokens([Keyword(Kw::End), Keyword(Kw::Record)]);
+                p.opt_identifier();
+            });
+        });
     }
 
-    pub fn element_declaration(&mut self) {
-        self.start_node(ElementDeclaration);
-        self.identifier_list();
-        self.expect_token(Colon);
-        self.subtype_indication();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn element_declaration(&mut self) {
+        self.node(ElementDeclaration, |p| {
+            p.identifier_list();
+            p.expect_token(Colon);
+            p.subtype_indication();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn index_subtype_definition(&mut self) {
-        self.start_node(IndexSubtypeDefinition);
-        self.type_mark();
-        self.expect_tokens([Keyword(Kw::Range), BOX]);
-        self.end_node();
+    pub(crate) fn index_subtype_definition(&mut self) {
+        self.node(IndexSubtypeDefinition, |p| {
+            p.type_mark();
+            p.expect_tokens([Keyword(Kw::Range), BOX]);
+        });
     }
 
-    pub fn index_constraint(&mut self) {
-        self.start_node(IndexConstraint);
-        self.expect_token(LeftPar);
-        self.separated_list(Parser::expression, Comma);
-        self.expect_token(RightPar);
-        self.end_node();
+    pub(crate) fn index_constraint(&mut self) {
+        self.node(IndexConstraint, |p| {
+            p.expect_token(LeftPar);
+            p.separated_list(ExpressionList, Parser::expression, Comma);
+            p.expect_token(RightPar);
+        });
     }
 }
 
@@ -110,11 +116,6 @@ mod tests {
     fn record_type_declaration() {
         insta::assert_snapshot!(to_test_text(
             Parser::type_declaration,
-            "type rec_t is record end record;",
-        ));
-
-        insta::assert_snapshot!(to_test_text(
-            Parser::type_declaration,
             "type rec_t is record state: enum_t; end record;",
         ));
 
@@ -146,5 +147,41 @@ mod tests {
             Parser::type_declaration,
             "type foo is array (arr_t'range) of boolean;"
         ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn record_missing_end_record() {
+        assert_recovery_snapshot!(
+            "\
+type pixel_t is record
+  r : integer;
+  g : integer;
+  b : integer;",
+            Parser::type_declaration
+        );
+    }
+
+    #[test]
+    #[ignore = "currently produces many spurious errors, likely due to name after `integer` parsing as subtype_indication."]
+    fn record_element_missing_semicolon() {
+        assert_recovery_snapshot!(
+            "\
+type pixel_t is record
+  r : integer
+  g : integer;
+  b : integer;
+end record;",
+            Parser::type_declaration
+        );
+    }
+
+    #[test]
+    fn array_missing_of() {
+        assert_recovery_snapshot!(
+            "type mem_t is array (0 to 255) integer;",
+            Parser::type_declaration
+        );
     }
 }

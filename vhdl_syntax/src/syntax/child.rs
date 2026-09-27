@@ -4,11 +4,13 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::{syntax::NodeKind, tokens::TokenKind};
+
 /// A child that is either a Token or a Node.
 ///
 /// This enum is generic to accommodate for the different kinds of childs
 /// (for example, the internal `GreenChild` or the public `SyntaxElement`)
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Child<N, T> {
     Node(N),
     Token(T),
@@ -50,3 +52,5 @@ where
         }
     }
 }
+
+pub type ChildKind = Child<NodeKind, TokenKind>;

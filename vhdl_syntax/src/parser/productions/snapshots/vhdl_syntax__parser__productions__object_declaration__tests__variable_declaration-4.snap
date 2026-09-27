@@ -12,5 +12,6 @@ VariableDeclaration
   Colon
   SubtypeIndication
     Name
-      Identifier 'natural'
+      NameDesignatorPrefix
+        Identifier 'natural'
   SemiColon

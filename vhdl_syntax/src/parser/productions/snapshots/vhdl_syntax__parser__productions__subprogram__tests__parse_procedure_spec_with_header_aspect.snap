@@ -3,35 +3,39 @@ source: vhdl_syntax/src/parser/productions/subprogram.rs
 expression: "to_test_text(Parser::subprogram_declaration,\n\"\\\nprocedure my_proc\n    generic (x: natural := 4; y: real := 4)\n    generic map (x => 42);\")"
 ---
 SubprogramDeclaration
-  Keyword(Procedure)
   ProcedureSpecification
+    Keyword(Procedure)
     Identifier 'my_proc'
     SubprogramHeader
       SubprogramHeaderGenericClause
         Keyword(Generic)
         LeftPar
         InterfaceList
-          InterfaceConstantDeclaration
+          InterfaceObjectDeclaration
             IdentifierList
               Identifier 'x'
             Colon
             SubtypeIndication
               Name
-                Identifier 'natural'
-            ColonEq
-            LiteralExpression
-              AbstractLiteral '4'
+                NameDesignatorPrefix
+                  Identifier 'natural'
+            InitialValue
+              ColonEq
+              LiteralExpression
+                AbstractLiteral '4'
           SemiColon
-          InterfaceConstantDeclaration
+          InterfaceObjectDeclaration
             IdentifierList
               Identifier 'y'
             Colon
             SubtypeIndication
               Name
-                Identifier 'real'
-            ColonEq
-            LiteralExpression
-              AbstractLiteral '4'
+                NameDesignatorPrefix
+                  Identifier 'real'
+            InitialValue
+              ColonEq
+              LiteralExpression
+                AbstractLiteral '4'
         RightPar
       GenericMapAspect
         Keyword(Generic)
@@ -39,10 +43,11 @@ SubprogramDeclaration
         LeftPar
         AssociationList
           AssociationElement
-            FormalPart
+            Formal
               Name
-                Identifier 'x'
-            RightArrow
+                NameDesignatorPrefix
+                  Identifier 'x'
+              RightArrow
             ActualPart
               ActualPartExpression
                 LiteralExpression

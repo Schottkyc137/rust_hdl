@@ -1,12 +1,21 @@
 [package]
 name = "vhdl-dump-ast"
 version = "0.1.0"
+authors = ["Lukas Scheller"]
+readme = "README.md"
+description = "Command line utility to dump VHDL syntax trees as JSON or YAML"
+categories = ["command-line-utilities", "development-tools"]
+keywords = ["vhdl", "ast", "cst", "syntax-tree", "dump"]
+documentation = "https://docs.rs/vhdl-dump-ast"
+homepage = "https://github.com/VHDL-LS/rust_hdl/tree/master/vhdl-dump-ast"
 edition = "2024"
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = true
 
 [dependencies]
-clap = { version = "4.5.53", features = ["derive"] }
-serde_json = "1.0.148"
-serde_yaml_bw = "2.5.1"
-vhdl_syntax = { version = "0.1.0", path = "../vhdl_syntax", features = [
-    "serde",
-] }
+clap.workspace = true
+serde_json.workspace = true
+serde_yaml_bw.workspace = true
+vhdl_syntax = { workspace = true, features = ["serde"] }

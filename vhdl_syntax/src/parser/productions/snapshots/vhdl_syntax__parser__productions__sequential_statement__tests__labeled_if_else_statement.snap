@@ -4,47 +4,50 @@ expression: "to_test_text(Parser::if_statement,\n\"\\\nmylabel: if cond = true t
 ---
 IfStatement
   IfStatementPreamble
-    Label
+    StmtLabel
       Identifier 'mylabel'
       Colon
     Keyword(If)
     BinaryExpression
       NameExpression
         Name
-          Identifier 'cond'
+          NameDesignatorPrefix
+            Identifier 'cond'
       EQ
       NameExpression
         Name
-          Identifier 'true'
+          NameDesignatorPrefix
+            Identifier 'true'
     Keyword(Then)
-  SequentialStatements
+  SequenceOfStatements
     ProcedureCallStatement
-      NameTarget
-        Name
+      Name
+        NameDesignatorPrefix
           Identifier 'foo'
-          ParenthesizedName
-            LeftPar
-            AssociationList
-              AssociationElement
-                ActualPart
-                  ActualPartExpression
-                    LiteralExpression
-                      AbstractLiteral '1'
-              Comma
-              AssociationElement
-                ActualPart
-                  ActualPartExpression
-                    LiteralExpression
-                      AbstractLiteral '2'
-            RightPar
+        ParenthesizedName
+          LeftPar
+          AssociationList
+            AssociationElement
+              ActualPart
+                ActualPartExpression
+                  LiteralExpression
+                    AbstractLiteral '1'
+            Comma
+            AssociationElement
+              ActualPart
+                ActualPartExpression
+                  LiteralExpression
+                    AbstractLiteral '2'
+          RightPar
       SemiColon
   IfStatementElse
     Keyword(Else)
-    SequentialStatements
+    SequenceOfStatements
       SimpleVariableAssignment
         NameTarget
           Name
-            Identifier 'x'
+            NameDesignatorPrefix
+              Identifier 'x'
         ColonEq
         LiteralExpression
           AbstractLiteral '1'

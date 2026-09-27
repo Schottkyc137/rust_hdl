@@ -5,7 +5,6 @@
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
 use vhdl_syntax::parser;
-use vhdl_syntax::syntax::visitor::WalkEvent;
 use vhdl_syntax::syntax::AstNode;
 use vhdl_syntax::syntax::EntityDeclarationSyntax;
 
@@ -24,27 +23,28 @@ end entity bar;
         diagnostics.is_empty(),
         "Did not expect diagnostics for correct VHDL"
     );
-    for entity_declaration in design.walk().filter_map(|event| match event {
-        WalkEvent::Enter(node) => EntityDeclarationSyntax::cast(node),
-        WalkEvent::Leave(_) => None,
-    }) {
+    // Walk the input file and filter entity declarations.
+    for entity_declaration in design
+        .descendants()
+        .filter_map(EntityDeclarationSyntax::cast)
+    {
         if let Some(first_ident) = entity_declaration
             .entity_declaration_preamble()
-            .and_then(|preamble| preamble.name_token())
+            .and_then(|preamble| preamble.identifier_token())
         {
             if let Some(second_ident) = entity_declaration
                 .entity_declaration_epilogue()
-                .and_then(|epilogue| epilogue.identifier_token())
+                .and_then(|epilogue| epilogue.simple_name())
             {
-                // print, if the identifiers mismatch.
+                // print, if the identifiers mismatch (ignoring text casing).
                 // Note that the text position is the number of chars.
-                if first_ident.text() != second_ident.text() {
+                if first_ident.text().neq_ignore_case(second_ident.text()) {
                     println!(
                         "Identifier mismatch. First: {}@{}, second: {}@{}",
                         first_ident.text(),
-                        first_ident.text_pos(),
+                        first_ident.text_offset(),
                         second_ident.text(),
-                        second_ident.text_pos()
+                        second_ident.text_offset()
                     );
                 }
             }

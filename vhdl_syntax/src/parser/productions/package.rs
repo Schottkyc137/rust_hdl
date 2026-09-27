@@ -1,68 +1,91 @@
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
+use crate::syntax::{AstNode, PackageBodyDeclarativeItemSyntax, PackageDeclarativeItemSyntax};
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
 
 impl Parser {
-    pub fn package(&mut self) {
-        self.start_node(Package);
-        self.package_preamble();
-        self.package_header();
-        self.declarations();
-        self.package_epilogue();
-        self.end_node();
+    pub(crate) fn package(&mut self) {
+        self.node(PackageDeclaration, |p| {
+            p.package_preamble();
+            p.package_header();
+            p.package_declarative_part();
+            p.package_epilogue();
+        });
     }
 
-    pub fn package_preamble(&mut self) {
-        self.start_node(PackagePreamble);
-        self.expect_kw(Kw::Package);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+    pub(crate) fn package_declarative_part(&mut self) {
+        self.declarations(PackageDeclarativePart, PackageDeclarativeItemSyntax::META);
     }
 
-    pub fn package_epilogue(&mut self) {
-        self.start_node(PackageEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Package));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn package_preamble(&mut self) {
+        self.node(PackagePreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
     }
 
-    pub fn package_header(&mut self) {
-        self.start_node(PackageHeader);
-        self.opt_generic_clause();
-        self.opt_generic_map_aspect();
-        self.opt_token(SemiColon);
-        self.end_node();
+    pub(crate) fn package_epilogue(&mut self) {
+        self.node(PackageEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Package));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn package_body(&mut self) {
-        self.start_node(PackageBody);
-        self.package_body_preamble();
-        self.declarations();
-        self.package_body_epilogue();
-        self.end_node();
+    pub(crate) fn package_header(&mut self) {
+        if !self.next_is(Keyword(Kw::Generic)) {
+            return;
+        }
+        self.node(PackageHeader, |p| {
+            p.generic_clause();
+            if p.next_is(Keyword(Kw::Generic)) {
+                p.node(GenericMap, |p| {
+                    p.opt_generic_map_aspect();
+                    p.expect_token(SemiColon);
+                });
+            }
+        });
     }
 
-    pub fn package_body_preamble(&mut self) {
-        self.start_node(PackageBodyPreamble);
-        self.expect_kw(Kw::Package);
-        self.expect_kw(Kw::Body);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
+    pub(crate) fn package_body(&mut self) {
+        self.node(PackageBody, |p| {
+            p.package_body_preamble();
+            p.package_body_declarative_part();
+            p.package_body_epilogue();
+        });
     }
 
-    pub fn package_body_epilogue(&mut self) {
-        self.start_node(PackageBodyEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Package));
-        self.opt_token(Keyword(Kw::Body));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn package_body_declarative_part(&mut self) {
+        self.declarations(
+            PackageBodyDeclarativePart,
+            PackageBodyDeclarativeItemSyntax::META,
+        );
+    }
+
+    pub(crate) fn package_body_preamble(&mut self) {
+        self.node(PackageBodyPreamble, |p| {
+            p.expect_kw(Kw::Package);
+            p.expect_kw(Kw::Body);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
+    }
+
+    pub(crate) fn package_body_epilogue(&mut self) {
+        self.node(PackageBodyEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            if p.next_is(Keyword(Kw::Package)) {
+                p.node(EndPackageBody, |p| {
+                    p.skip(); // Kw::Package
+                    p.expect_kw(Kw::Body);
+                });
+            }
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
     }
 }
 
@@ -107,6 +130,22 @@ end package;"
     }
 
     #[test]
+    fn test_package_declaration_generic_map_aspect() {
+        insta::assert_snapshot!(to_test_text(
+            Parser::package,
+            "\
+package pkg_name is
+  generic (
+    type foo
+  );
+  generic map (
+    foo => bar
+  );
+end package;"
+        ));
+    }
+
+    #[test]
     fn test_package_body_declaration() {
         insta::assert_snapshot!(to_test_text(
             Parser::package_body,
@@ -127,5 +166,49 @@ package body pkg_name is
     end foo;
 end package body;"
         ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn package_missing_is() {
+        assert_recovery_snapshot!(
+            "\
+package math_pkg
+  constant pi : real := 3.14;
+end package;",
+            Parser::package
+        );
+    }
+
+    #[test]
+    fn package_missing_end() {
+        assert_recovery_snapshot!(
+            "\
+package math_pkg is
+  constant pi : real := 3.14;",
+            Parser::package
+        );
+    }
+
+    #[test]
+    fn package_body_missing_body_keyword() {
+        assert_recovery_snapshot!(
+            "\
+package math_pkg is
+  constant pi : real := 3.14;
+end package body;",
+            Parser::package_body
+        );
+    }
+
+    #[test]
+    fn package_body_end_package_without_body_keyword() {
+        assert_recovery_snapshot!(
+            "\
+package body math_pkg is
+end package;",
+            Parser::package_body
+        );
     }
 }

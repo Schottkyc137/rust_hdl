@@ -7,14 +7,18 @@ Name
     LtLt
     Keyword(Signal)
     RelativePathname
-      Circ
-      Dot
-      PartialPathname
-        Identifier 'dut'
+      UpLevel
+        Circ
         Dot
-        Identifier 'gen'
+      PartialPathname
+        PathnameElement
+          Identifier 'dut'
+        Dot
+        PathnameElement
+          Identifier 'gen'
     Colon
     SubtypeIndication
       Name
-        Identifier 'std_logic'
+        NameDesignatorPrefix
+          Identifier 'std_logic'
     GtGt

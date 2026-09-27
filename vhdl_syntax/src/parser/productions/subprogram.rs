@@ -4,60 +4,65 @@
 //
 // Copyright (c)  2025, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::marker::{CompletedMarker, Precede};
 use crate::parser::Parser;
 use crate::syntax::node_kind::NodeKind::*;
-use crate::syntax::NodeKind;
+use crate::syntax::{
+    AstNode, NodeKind, SequentialStatementSyntax, SubprogramDeclarativeItemSyntax,
+};
 use crate::tokens::Keyword as Kw;
 use crate::tokens::TokenKind::*;
 
 impl Parser {
-    pub fn subprogram_declaration(&mut self) {
-        self.start_node(SubprogramDeclaration);
-        self.subprogram_specification();
-        self.expect_token(SemiColon);
-        self.end_node();
+    #[cfg(test)]
+    pub(crate) fn subprogram_declaration(&mut self) {
+        self.node(SubprogramDeclaration, |p| {
+            p.subprogram_specification();
+            p.expect_token(SemiColon);
+        });
     }
 
-    pub fn subprogram_instantiation_declaration(&mut self) {
-        self.start_node(SubprogramInstantiationDeclaration);
-        self.subprogram_instantiation_declaration_preamble();
-        self.opt_generic_map_aspect();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn subprogram_instantiation_declaration(&mut self) -> CompletedMarker {
+        self.node(SubprogramInstantiationDeclaration, |p| {
+            p.subprogram_instantiation_declaration_preamble();
+            p.opt_generic_map_aspect();
+            p.expect_token(SemiColon);
+        })
     }
 
-    pub fn subprogram_instantiation_declaration_preamble(&mut self) {
-        self.start_node(SubprogramInstantiationDeclarationPreamble);
-        self.expect_one_of_tokens([Keyword(Kw::Function), Keyword(Kw::Procedure)]);
-        self.identifier();
-        self.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
-        self.name();
-        if self.next_is(LeftSquare) {
-            self.signature();
-        }
-        self.end_node();
+    pub(crate) fn subprogram_instantiation_declaration_preamble(&mut self) {
+        self.node(SubprogramInstantiationDeclarationPreamble, |p| {
+            p.expect_one_of_tokens([Keyword(Kw::Function), Keyword(Kw::Procedure)]);
+            p.identifier();
+            p.expect_tokens([Keyword(Kw::Is), Keyword(Kw::New)]);
+            p.name();
+            if p.next_is(LeftSquare) {
+                p.signature();
+            }
+        });
     }
 
-    pub fn subprogram_specification(&mut self) {
-        let is_function = if matches!(
+    pub(crate) fn subprogram_specification(&mut self) -> Option<CompletedMarker> {
+        let (marker, is_function) = if matches!(
             self.peek_token(),
             Keyword(Kw::Pure | Kw::Impure | Kw::Function)
         ) {
-            self.start_node(FunctionSpecification);
+            let marker = self.start_node(FunctionSpecification);
             self.opt_tokens([Keyword(Kw::Pure), Keyword(Kw::Impure)]);
             self.expect_token(Keyword(Kw::Function));
-            true
-        } else if self.opt_token(Keyword(Kw::Procedure)) {
-            self.start_node(ProcedureSpecification);
-            false
+            (marker, true)
+        } else if self.next_is(Keyword(Kw::Procedure)) {
+            let marker = self.start_node(ProcedureSpecification);
+            self.expect_token(Keyword(Kw::Procedure));
+            (marker, false)
         } else {
-            self.expect_tokens_err([
+            self.expect_tokens_recover([
                 Keyword(Kw::Pure),
                 Keyword(Kw::Impure),
                 Keyword(Kw::Function),
                 Keyword(Kw::Procedure),
             ]);
-            return;
+            return None;
         };
         self.designator();
         self.subprogram_header();
@@ -66,7 +71,7 @@ impl Parser {
             self.expect_kw(Kw::Return);
             self.type_mark();
         }
-        self.end_node();
+        Some(marker.complete(self))
     }
 
     pub(crate) fn opt_parameter_list(&mut self) {
@@ -75,76 +80,82 @@ impl Parser {
         }
     }
 
-    pub fn parameter_list(&mut self) {
-        self.start_node(NodeKind::ParameterList);
-        self.opt_token(Keyword(Kw::Parameter));
-        self.start_node(ParenthesizedInterfaceList);
-        self.expect_token(LeftPar);
-        self.interface_list();
-        self.expect_token(RightPar);
-        self.end_node();
-        self.end_node();
+    pub(crate) fn parameter_list(&mut self) {
+        self.node(NodeKind::ParameterList, |p| {
+            p.opt_token(Keyword(Kw::Parameter));
+            p.node(ParenthesizedInterfaceList, |p| {
+                p.expect_token(LeftPar);
+                p.interface_list();
+                p.expect_token(RightPar);
+            });
+        });
     }
 
-    pub fn subprogram_header(&mut self) {
-        self.start_node(SubprogramHeader);
-        self.opt_subprogram_header_generic_clause();
-        self.opt_generic_map_aspect();
-        self.end_node();
-    }
-
-    fn opt_subprogram_header_generic_clause(&mut self) {
-        if self.next_is(Keyword(Kw::Generic)) {
-            self.subprogram_header_generic_clause();
+    pub(crate) fn subprogram_header(&mut self) {
+        if !self.next_is(Keyword(Kw::Generic)) {
+            return;
         }
+        self.node(SubprogramHeader, |p| {
+            p.subprogram_header_generic_clause();
+            p.opt_generic_map_aspect();
+        });
     }
 
-    pub fn subprogram_header_generic_clause(&mut self) {
-        self.start_node(SubprogramHeaderGenericClause);
-        self.expect_kw(Kw::Generic);
-        self.expect_token(LeftPar);
-        if !(self.next_is(RightPar)) {
-            self.interface_list();
-        }
-        self.expect_token(RightPar);
-        self.end_node();
+    pub(crate) fn subprogram_header_generic_clause(&mut self) {
+        self.node(SubprogramHeaderGenericClause, |p| {
+            p.expect_kw(Kw::Generic);
+            p.expect_token(LeftPar);
+            p.interface_list();
+            p.expect_token(RightPar);
+        });
     }
 
-    pub fn subprogram_body(&mut self) {
+    #[cfg(test)]
+    pub(crate) fn subprogram_body(&mut self) {
         self.subprogram_declaration_or_body();
     }
 
-    pub(crate) fn subprogram_declaration_or_body(&mut self) {
-        let checkpoint = self.checkpoint();
-        self.subprogram_specification();
-        if self.opt_token(SemiColon) {
-            self.start_node_at(checkpoint, SubprogramDeclaration);
-            self.end_node();
-            return;
-        }
-        self.start_node_at(checkpoint, SubprogramBody);
-        self.start_node_at(checkpoint, SubprogramBodyPreamble);
+    pub(crate) fn subprogram_declaration_or_body(&mut self) -> CompletedMarker {
+        let unknown = self.start_unknown();
+        let specification = self.subprogram_specification();
+        let marker = if self.opt_token(SemiColon) {
+            return unknown.complete(self, SubprogramDeclaration);
+        } else {
+            unknown.resolve(self, SubprogramBody)
+        };
+        let preamble = specification.precede(self, SubprogramBodyPreamble);
         self.expect_kw(Kw::Is);
-        self.end_node();
-        self.declarations();
-        self.start_node(DeclarationStatementSeparator);
-        self.expect_kw(Kw::Begin);
-        self.end_node();
-        self.sequential_statements();
+        preamble.complete(self);
+        self.subprogram_declarative_part();
+        self.node(DeclarationStatementSeparator, |p| {
+            p.expect_kw(Kw::Begin);
+        });
+        self.subprogram_statement_part();
         self.subprogram_body_epilogue();
-        self.end_node();
+        marker.complete(self)
     }
 
-    pub fn subprogram_body_epilogue(&mut self) {
-        self.start_node(SubprogramBodyEpilogue);
-        self.expect_kw(Kw::End);
-        self.subprogram_kind();
-        self.opt_designator();
-        self.expect_token(SemiColon);
-        self.end_node();
+    pub(crate) fn subprogram_declarative_part(&mut self) {
+        self.declarations(
+            SubprogramDeclarativePart,
+            SubprogramDeclarativeItemSyntax::META,
+        );
     }
 
-    pub fn subprogram_kind(&mut self) {
+    pub(crate) fn subprogram_statement_part(&mut self) {
+        self.sequential_statements(SubprogramStatementPart, SequentialStatementSyntax::META);
+    }
+
+    pub(crate) fn subprogram_body_epilogue(&mut self) {
+        self.node(SubprogramBodyEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.subprogram_kind();
+            p.opt_designator();
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub(crate) fn subprogram_kind(&mut self) {
         self.opt_tokens([Keyword(Kw::Function), Keyword(Kw::Procedure)]);
     }
 }
@@ -154,7 +165,7 @@ mod tests {
     use crate::parser::{test_utils::to_test_text, Parser};
 
     #[test]
-    pub fn parses_procedure_declaration() {
+    pub(crate) fn parses_procedure_declaration() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "procedure foo;"
@@ -162,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_function_specification() {
+    pub(crate) fn parses_function_specification() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "function foo return lib.foo.natural;"
@@ -170,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_function_specification_operator() {
+    pub(crate) fn parses_function_specification_operator() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "function \"+\" return lib.foo.natural;"
@@ -178,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_impure_function_specification() {
+    pub(crate) fn parses_impure_function_specification() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "impure function foo return lib.foo.natural;"
@@ -186,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_pure_function_specification() {
+    pub(crate) fn parses_pure_function_specification() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "pure function foo return lib.foo.natural;"
@@ -194,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_procedure_specification_with_parameters() {
+    pub(crate) fn parses_procedure_specification_with_parameters() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "procedure foo(foo : natural);"
@@ -202,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_function_specification_with_parameters() {
+    pub(crate) fn parses_function_specification_with_parameters() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "function foo(foo : natural) return lib.foo.natural;"
@@ -210,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_function_specification_with_parameters_and_keyword() {
+    pub(crate) fn parses_function_specification_with_parameters_and_keyword() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "function foo parameter (foo : natural) return lib.foo.natural;"
@@ -218,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_function_specification_with_parameters_keyword_and_header() {
+    pub(crate) fn parses_function_specification_with_parameters_keyword_and_header() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "function foo generic (abc_def: natural) parameter (foo : natural) return lib.foo.natural;"
@@ -226,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parses_subprogram_body() {
+    pub(crate) fn parses_subprogram_body() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_body,
             "\
@@ -239,7 +250,7 @@ end function;"
     }
 
     #[test]
-    pub fn parses_subprogram_declaration() {
+    pub(crate) fn parses_subprogram_declaration() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_body,
             "\
@@ -250,7 +261,7 @@ end function foo;"
     }
 
     #[test]
-    pub fn parses_subprogram_body_end_operator_symbol() {
+    pub(crate) fn parses_subprogram_body_end_operator_symbol() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_body,
             "\
@@ -261,7 +272,7 @@ end function \"+\";"
     }
 
     #[test]
-    pub fn parse_subprogram_header_no_aspect() {
+    pub(crate) fn parse_subprogram_header_no_aspect() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_header,
             "generic (x: natural := 1; y: real)"
@@ -269,7 +280,7 @@ end function \"+\";"
     }
 
     #[test]
-    pub fn parse_subprogram_header_with_aspect() {
+    pub(crate) fn parse_subprogram_header_with_aspect() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_header,
             "generic (x: natural := 1; y: real) generic map (x => 2, y => 0.4)"
@@ -277,7 +288,7 @@ end function \"+\";"
     }
 
     #[test]
-    pub fn parse_procedure_spec_with_header_no_aspect() {
+    pub(crate) fn parse_procedure_spec_with_header_no_aspect() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "\
@@ -287,7 +298,7 @@ procedure my_proc
     }
 
     #[test]
-    pub fn parse_procedure_spec_with_header_aspect() {
+    pub(crate) fn parse_procedure_spec_with_header_aspect() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_declaration,
             "\
@@ -298,7 +309,7 @@ procedure my_proc
     }
 
     #[test]
-    pub fn parse_function_with_header() {
+    pub(crate) fn parse_function_with_header() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_body,
             "\
@@ -311,7 +322,7 @@ end function;"
     }
 
     #[test]
-    pub fn swap_function() {
+    pub(crate) fn swap_function() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_body,
             "\
@@ -326,7 +337,7 @@ end procedure swap;"
     }
 
     #[test]
-    pub fn subprogram_instantiation() {
+    pub(crate) fn subprogram_instantiation() {
         insta::assert_snapshot!(to_test_text(
             Parser::subprogram_instantiation_declaration,
             "procedure my_proc is new proc;"
@@ -335,5 +346,28 @@ end procedure swap;"
             Parser::subprogram_instantiation_declaration,
             "function my_proc is new proc;"
         ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn function_missing_return_type() {
+        assert_recovery_snapshot!(
+            "function f(a : integer) return ;",
+            Parser::subprogram_declaration
+        );
+    }
+
+    #[test]
+    fn function_missing_return_clause() {
+        assert_recovery_snapshot!("function f(a : integer);", Parser::subprogram_declaration);
+    }
+
+    #[test]
+    fn function_unclosed_parameter_list() {
+        assert_recovery_snapshot!(
+            "function f(a : integer return integer;",
+            Parser::subprogram_declaration
+        );
     }
 }

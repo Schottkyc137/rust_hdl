@@ -1,0 +1,2 @@
+entity e is
+end;

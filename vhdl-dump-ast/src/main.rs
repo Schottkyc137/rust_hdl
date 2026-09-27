@@ -2,9 +2,9 @@ use std::{error::Error, fs, path::PathBuf, process::exit};
 
 use clap::{Parser, ValueEnum};
 use vhdl_syntax::{
-    parser::{self},
+    parser::{self, error::display_errors},
     serde::{SerdeFlags, ToSerializable},
-    syntax::{AstNode, node::SyntaxNode},
+    syntax::node::SyntaxNode,
 };
 
 #[derive(Parser, Debug)]
@@ -26,8 +26,8 @@ struct Args {
     trivia: bool,
 
     /// Specify the encoding to use for comments
-    #[arg(short, long, default_value = "None")]
-    comment_encoding: Option<String>,
+    #[arg(short, long, default_value = "utf-8")]
+    comment_encoding: String,
 }
 
 #[derive(Debug, Clone, Copy, Default, ValueEnum)]
@@ -55,33 +55,36 @@ fn serialize(
     })
 }
 
-const DEFAULT_COMMENT_ENCODING: &str = "utf-8";
+const EXIT_IO_ERROR: i32 = 1;
+const EXIT_SYNTAX_ERROR: i32 = 2;
+const EXIT_SERIALIZATION_ERROR: i32 = 3;
 
 fn main() {
     let args = Args::parse();
-    // TODO: encoding
-    let vhdl = match fs::read_to_string(&args.file) {
+    let vhdl = match fs::read(&args.file) {
         Ok(contents) => contents,
         Err(e) => {
-            println!("Cannot read file {}: {}", args.file.display(), e);
-            exit(e.raw_os_error().unwrap_or(1))
+            eprintln!("Cannot read file {}: {}", args.file.display(), e);
+            exit(EXIT_IO_ERROR)
         }
     };
-    // TODO: Do not ignore errors
-    let (node, _) = parser::parse(vhdl);
+    let (node, errors) = parser::parse(vhdl);
+    if !errors.is_empty() {
+        eprintln!("{}", display_errors(&errors));
+        exit(EXIT_SYNTAX_ERROR);
+    }
     let text = match serialize(
-        &node.raw(),
+        &node,
         args.format,
         !args.no_pretty,
         args.trivia,
-        args.comment_encoding
-            .unwrap_or(DEFAULT_COMMENT_ENCODING.to_string()),
+        args.comment_encoding,
     ) {
         Ok(text) => text,
         Err(e) => {
-            println!("Cannot serialize AST: {e}");
-            exit(2);
+            eprintln!("Cannot serialize AST: {e}");
+            exit(EXIT_SERIALIZATION_ERROR);
         }
     };
-    println!("{}", text)
+    println!("{}", text);
 }

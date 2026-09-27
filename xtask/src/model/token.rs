@@ -4,15 +4,23 @@
 //
 // Copyright (c) 2025, Lukas Scheller lukasscheller@icloud.com
 
-// NOTE: TokenKind and Keyword are duplicated in vhdl_syntax/src/tokens/token_kind.rs.
-// Making xtask depend on vhdl_syntax would create a chicken-and-egg issue (generated files
-// may be absent or broken). Keep the two definitions in sync manually.
+// `TokenKind` and `Keyword` are the source of truth for the enums of the same name in
+// `vhdl_syntax/src/tokens/generated.rs`, which `TokenKindGenerator` emits from them.
 
 use convert_case::{Case, Casing};
 use std::str::FromStr;
+use strum::IntoEnumIterator;
+
+pub fn str_to_token_kind(s: &str) -> Result<TokenKind, strum::ParseError> {
+    if let Some(kind) = TokenKind::iter().find(|kind| kind.canonical_text().as_deref() == Some(s)) {
+        return Ok(kind);
+    }
+    TokenKind::from_str(&s.to_case(Case::UpperCamel))
+        .or_else(|_| Keyword::from_str(&s.to_case(Case::UpperCamel)).map(TokenKind::Keyword))
+}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(PartialEq, Eq, Copy, Clone, Debug, strum::Display, strum::EnumString)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, strum::Display, strum::EnumString, strum::EnumIter)]
 pub enum TokenKind {
     /// A keyword, such as `entity`, `architecture` or `abs`.
     #[strum(disabled)]
@@ -67,26 +75,95 @@ pub enum TokenKind {
     CharacterLiteral,
     ToolDirective,
 
-    // Erroneous input
-    /// String, extended identifier or based integer without final quotation char
-    Unterminated,
-
     /// Unknown input
     ///
     /// Produced, for example, when there is an unknown char or illegal bit string
     Unknown,
 
+    /// Special End of File token.
+    /// Has no source representation but may carry trivia
     Eof,
 }
 
 impl TokenKind {
-    pub fn from_str_expect(s: &str) -> TokenKind {
-        TokenKind::from_str(s).unwrap_or_else(|_| panic!("Token kind {s} not valid"))
+    /// The default name of this kind, i.e., the name used for accessors when the grammar does
+    /// not label the token. `to_string()` cannot be used directly: the `Keyword` variant is
+    /// disabled in strum and panics when formatted.
+    pub fn default_name(&self) -> String {
+        match self {
+            TokenKind::Keyword(kw) => kw.to_string(),
+            other => other.to_string(),
+        }
+    }
+
+    /// The text every token of this kind is spelled with, or `None` if the text depends on the
+    /// input (identifiers, literals, ...). Keywords are spelled in lowercase.
+    pub fn canonical_text(&self) -> Option<String> {
+        use TokenKind::*;
+        let text = match self {
+            Keyword(kw) => return Some(kw.canonical_text()),
+            Plus => "+",
+            Minus => "-",
+            EQ => "=",
+            NE => "/=",
+            LT => "<",
+            LTE => "<=",
+            GT => ">",
+            GTE => ">=",
+            QueEQ => "?=",
+            QueNE => "?/=",
+            QueLT => "?<",
+            QueLTE => "?<=",
+            QueGT => "?>",
+            QueGTE => "?>=",
+            Que => "?",
+            QueQue => "??",
+            Times => "*",
+            Pow => "**",
+            Div => "/",
+            Tick => "'",
+            LeftPar => "(",
+            RightPar => ")",
+            LeftSquare => "[",
+            RightSquare => "]",
+            SemiColon => ";",
+            Colon => ":",
+            Bar => "|",
+            Dot => ".",
+            BOX => "<>",
+            LtLt => "<<",
+            GtGt => ">>",
+            Circ => "^",
+            CommAt => "@",
+            Concat => "&",
+            Comma => ",",
+            ColonEq => ":=",
+            RightArrow => "=>",
+            Eof => "",
+            Identifier | AbstractLiteral | StringLiteral | BitStringLiteral | CharacterLiteral
+            | ToolDirective | Unknown => return None,
+        };
+        Some(text.to_string())
+    }
+
+    /// Documentation for the variant, rendered onto the generated enum.
+    pub fn doc(&self) -> Option<String> {
+        match self {
+            TokenKind::Keyword(_) => Some("A keyword, such as `entity`, `architecture` or `abs`.".to_string()),
+            TokenKind::Unknown => Some(
+                "Unknown input\n\nProduced, for example, when there is an unknown char or illegal bit string"
+                    .to_string(),
+            ),
+            TokenKind::Eof => Some(
+                "Special End of File token.\nHas no source representation but may carry trivia".to_string(),
+            ),
+            other => other.canonical_text().map(|text| format!("`{text}`")),
+        }
     }
 }
 
 /// All available keywords in the latest (VHDL 2019) edition of VHDL
-#[derive(PartialEq, Eq, Clone, Copy, Debug, strum::Display, strum::EnumString)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, strum::Display, strum::EnumString, strum::EnumIter)]
 pub enum Keyword {
     Abs,
     Access,
@@ -207,39 +284,8 @@ pub enum Keyword {
 }
 
 impl Keyword {
-    pub fn from_str_expect(s: &str) -> Keyword {
-        Keyword::from_str(s).unwrap_or_else(|_| panic!("Keyword {s} not valid"))
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Token {
-    pub kind: TokenKind,
-    /// The name of the token; defines the function-name
-    pub name: String,
-    /// the occurrence of this token, i.e., whether this is the
-    /// 1st, second, third, e.t.c. token in the parent node.
-    pub nth: usize,
-    /// whether this token can occur repeatedly
-    pub repeated: bool,
-    /// whether this token is optional in the grammar
-    pub optional: bool,
-}
-
-impl From<TokenKind> for Token {
-    fn from(kind: TokenKind) -> Self {
-        Token {
-            name: kind.to_string(),
-            kind,
-            repeated: false,
-            nth: 0,
-            optional: false,
-        }
-    }
-}
-
-impl Token {
-    pub fn getter_name(&self) -> String {
-        format!("{}_token", self.name.to_case(Case::Snake))
+    /// The canonical (lowercase) text of this keyword.
+    pub fn canonical_text(&self) -> String {
+        self.to_string().to_lowercase()
     }
 }

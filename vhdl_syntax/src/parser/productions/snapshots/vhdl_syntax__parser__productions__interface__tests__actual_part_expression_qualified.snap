@@ -6,19 +6,21 @@ ActualPart
   ActualPartExpression
     QualifiedExpression
       Name
-        Identifier 'T'
+        NameDesignatorPrefix
+          Identifier 'T'
       Tick
       ParenthesizedExpressionOrAggregate
         LeftPar
-        ElementAssociation
-          LiteralExpression
-            AbstractLiteral '1'
-        Comma
-        ElementAssociation
-          LiteralExpression
-            AbstractLiteral '2'
-        Comma
-        ElementAssociation
-          LiteralExpression
-            AbstractLiteral '3'
+        ElementAssociationList
+          ElementAssociation
+            LiteralExpression
+              AbstractLiteral '1'
+          Comma
+          ElementAssociation
+            LiteralExpression
+              AbstractLiteral '2'
+          Comma
+          ElementAssociation
+            LiteralExpression
+              AbstractLiteral '3'
         RightPar

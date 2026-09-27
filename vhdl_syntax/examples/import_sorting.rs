@@ -1,11 +1,14 @@
-//! Alphabetically sorts and deduplicates `use` clauses inside a design unit's context clause using
-//! the [`Rewriter`](vhdl_syntax::syntax::rewrite) API.
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // Copyright (c) 2026, Lukas Scheller lukasscheller@icloud.com
+
+//! Alphabetically sorts and deduplicates `use` clauses inside a design unit's context clause using
+//! the [`Rewriter`](vhdl_syntax::syntax::rewrite) API.
+
 use std::collections::HashMap;
+use vhdl_syntax::fmt::write::FormatToExt;
 use vhdl_syntax::parser;
 use vhdl_syntax::syntax::node::{SyntaxElement, SyntaxNode};
 use vhdl_syntax::syntax::rewrite::RewriteAction;
@@ -48,24 +51,26 @@ end foo;
     let mut plan: HashMap<usize, Option<SyntaxNode>> = HashMap::new();
     let mut replacements = sorted.into_iter().map(|u| u.raw());
     for orig in &originals {
-        plan.insert(orig.raw().offset(), replacements.next());
+        plan.insert(orig.offset(), replacements.next());
     }
 
     // 4) Single rewrite pass: every visited UseClauseContextItem is either swapped to
     //    its sorted replacement (`Change`) or dropped entirely (`Remove`).
-    let new_file = file.raw().rewrite(|el| match el {
-        SyntaxElement::Node(n) => match plan.get(&n.offset()) {
-            Some(Some(replacement)) => {
-                RewriteAction::Change(SyntaxElement::Node(replacement.clone()))
-            }
-            Some(None) => RewriteAction::Remove,
-            None => RewriteAction::Leave,
-        },
-        SyntaxElement::Token(_) => RewriteAction::Leave,
-    });
+    let new_file = file
+        .rewrite(|el| match el {
+            SyntaxElement::Node(n) => match plan.get(&n.offset()) {
+                Some(Some(replacement)) => {
+                    RewriteAction::Change(SyntaxElement::Node(replacement.clone()))
+                }
+                Some(None) => RewriteAction::Remove,
+                None => RewriteAction::Leave,
+            },
+            SyntaxElement::Token(_) => RewriteAction::Leave,
+        })
+        .expect("the design file still has content");
 
     assert_eq!(
-        format!("{}", new_file),
+        format!("{}", new_file.display()),
         "\
 library ieee;
 use ieee.math_real.all;
@@ -81,5 +86,5 @@ end foo;
 /// Alphabetical sort key — just the displayed text without surrounding whitespace.
 /// Good enough for this example; a real tool would compare the parsed name segments.
 fn sort_key(item: &UseClauseContextItemSyntax) -> String {
-    item.raw().to_string().trim().to_lowercase()
+    item.display().to_string().trim().to_lowercase()
 }

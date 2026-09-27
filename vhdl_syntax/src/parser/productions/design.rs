@@ -6,106 +6,118 @@
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
 
+use crate::parser::error::SyntaxErrKind;
+use crate::parser::util::StallGuard;
 use crate::parser::Parser;
+use crate::syntax::child::Child;
 use crate::syntax::node_kind::NodeKind;
+use crate::syntax::NodeKind::BindingUseClause;
 use crate::tokens::token_kind::Keyword as Kw;
 use crate::tokens::token_kind::TokenKind::*;
+use crate::tokens::TokenKind;
 
 impl Parser {
-    pub fn design_file(&mut self) {
-        self.start_node(NodeKind::DesignFile);
-        while self.peek_token() != Eof {
+    pub(crate) fn design_file(&mut self) {
+        let marker = self.start_node(NodeKind::DesignFile);
+        if self.next_is(Eof) {
+            self.push_err(SyntaxErrKind::Expected(Child::<_, Box<[TokenKind]>>::Node(
+                Box::new([NodeKind::DesignUnit]),
+            )));
+            self.skip();
+            marker.complete(self);
+            return;
+        }
+        let mut guard = StallGuard::new();
+        while guard.should_continue(self) && self.peek_token() != Eof {
             self.design_unit();
         }
         assert!(self.next_is(Eof), "No EoF token in design file");
         self.skip();
-        self.end_node();
+        marker.complete(self);
     }
 
-    pub fn design_unit(&mut self) {
-        self.start_node(NodeKind::DesignUnit);
+    pub(crate) fn design_unit(&mut self) {
+        self.node(NodeKind::DesignUnit, |p| {
+            p.context_clause();
+            match_next_token!(p,
+                Keyword(Kw::Architecture) => p.architecture(),
+                Keyword(Kw::Package) => {
+                    if p.next_nth_is(Keyword(Kw::Body), 1) {
+                        p.node(NodeKind::SecondaryUnitPackageBody, |p| {
+                            p.package_body();
+                        });
+                    } else if p.next_nth_is(Keyword(Kw::New), 3) {
+                        p.node(NodeKind::PackageInstantiationDeclarationPrimaryUnit, |p| {
+                            p.package_instantiation();
+                        });
+                    } else {
+                        p.node(NodeKind::PrimaryUnitPackageDeclaration, |p| {
+                            p.package();
+                        });
+                    }
+                },
+                Keyword(Kw::Entity) => p.entity_declaration(),
+                Keyword(Kw::Configuration) => p.configuration_declaration(),
+                Keyword(Kw::Context) => p.context_declaration(),
+            );
+        });
+    }
 
-        self.context_clause();
-        match self.peek_token() {
-            Keyword(Kw::Architecture) => self.architecture(),
-            Keyword(Kw::Package) => {
-                if self.next_nth_is(Keyword(Kw::Body), 1) {
-                    self.start_node(NodeKind::SecondaryUnitPackageBody);
-                    self.package_body();
-                    self.end_node();
-                } else if self.next_nth_is(Keyword(Kw::New), 3) {
-                    self.package_instantiation_declaration();
-                } else {
-                    self.package_declaration();
-                }
+    pub(crate) fn context_declaration(&mut self) {
+        self.node(NodeKind::ContextDeclaration, |p| {
+            p.context_declaration_preamble();
+            p.context_clause();
+            p.context_declaration_epilogue();
+        });
+    }
+
+    pub(crate) fn context_declaration_preamble(&mut self) {
+        self.node(NodeKind::ContextDeclarationPreamble, |p| {
+            p.expect_kw(Kw::Context);
+            p.identifier();
+            p.expect_kw(Kw::Is);
+        });
+    }
+
+    pub(crate) fn context_declaration_epilogue(&mut self) {
+        self.node(NodeKind::ContextDeclarationEpilogue, |p| {
+            p.expect_kw(Kw::End);
+            p.opt_token(Keyword(Kw::Context));
+            p.opt_identifier();
+            p.expect_token(SemiColon);
+        });
+    }
+
+    pub(crate) fn binding_indication(&mut self) {
+        self.node(NodeKind::BindingIndication, |p| {
+            if p.next_is(Keyword(Kw::Use)) {
+                p.node(BindingUseClause, |p| {
+                    p.skip(); // Use
+                    p.entity_aspect();
+                });
             }
-            Keyword(Kw::Entity) => self.entity_declaration(),
-            Keyword(Kw::Configuration) => self.configuration_declaration(),
-            Keyword(Kw::Context) => self.context_declaration(),
-            _ => self.expect_tokens_err([
-                Keyword(Kw::Architecture),
-                Keyword(Kw::Package),
-                Keyword(Kw::Entity),
-                Keyword(Kw::Configuration),
-                Keyword(Kw::Context),
-            ]),
-        }
-        self.end_node();
+            if p.next_is(Keyword(Kw::Generic)) {
+                p.generic_map_aspect();
+            }
+            if p.next_is(Keyword(Kw::Port)) {
+                p.port_map_aspect();
+            }
+        });
     }
 
-    pub fn context_declaration(&mut self) {
-        self.start_node(NodeKind::ContextDeclaration);
-        self.context_declaration_preamble();
-        self.context_clause();
-        self.context_declaration_epilogue();
-        self.end_node();
-    }
-
-    pub fn context_declaration_preamble(&mut self) {
-        self.start_node(NodeKind::ContextDeclarationPreamble);
-        self.expect_kw(Kw::Context);
-        self.identifier();
-        self.expect_kw(Kw::Is);
-        self.end_node();
-    }
-
-    pub fn context_declaration_epilogue(&mut self) {
-        self.start_node(NodeKind::ContextDeclarationEpilogue);
-        self.expect_kw(Kw::End);
-        self.opt_token(Keyword(Kw::Context));
-        self.opt_identifier();
-        self.expect_token(SemiColon);
-        self.end_node();
-    }
-
-    pub fn binding_indication(&mut self) {
-        self.start_node(NodeKind::BindingIndication);
-        if self.next_is(Keyword(Kw::Use)) {
-            self.skip();
-            self.entity_aspect();
-        }
-        if self.next_is(Keyword(Kw::Generic)) {
-            self.generic_map_aspect();
-        }
-        if self.next_is(Keyword(Kw::Port)) {
-            self.port_map_aspect();
-        }
-        self.end_node();
-    }
-
-    pub fn entity_aspect(&mut self) {
+    pub(crate) fn entity_aspect(&mut self) {
         if self.next_is(Keyword(Kw::Open)) {
             self.skip_into_node(NodeKind::EntityOpenAspect);
         } else if self.next_is(Keyword(Kw::Entity)) {
-            self.start_node(NodeKind::EntityEntityAspect);
-            self.skip();
-            self.name();
-            self.end_node();
+            self.node(NodeKind::EntityEntityAspect, |p| {
+                p.skip();
+                p.name();
+            });
         } else if self.next_is(Keyword(Kw::Configuration)) {
-            self.start_node(NodeKind::EntityConfigurationAspect);
-            self.skip();
-            self.name();
-            self.end_node();
+            self.node(NodeKind::EntityConfigurationAspect, |p| {
+                p.skip();
+                p.name();
+            });
         }
     }
 }
@@ -115,8 +127,8 @@ mod tests {
     use crate::parser::{test_utils::to_test_text, Parser};
 
     #[test]
-    fn parse_empty() {
-        insta::assert_snapshot!(to_test_text(Parser::design_file, ""));
+    fn empty_file() {
+        assert_recovery_snapshot!("", Parser::design_file);
     }
 
     #[test]
@@ -225,5 +237,51 @@ use lib.foo;
 entity myent is
 end entity;"
         ));
+    }
+
+    #[test]
+    fn parse_package_primary_units() {
+        // A top-level package declaration / instantiation must be wrapped in the
+        // design-unit variants (`PrimaryUnitPackageDeclaration` /
+        // `PackageInstantiationDeclarationPrimaryUnit`), not the declaration
+        // variants, so they conform to `DesignUnit`'s `library_unit` choice.
+        insta::assert_snapshot!(to_test_text(
+            Parser::design_file,
+            "\
+package pkg is
+end package;
+
+package body pkg is
+end package body;
+
+package inst is new lib.gen generic map (g => 1);"
+        ));
+    }
+
+    // MARK: Error recovery
+
+    #[test]
+    fn library_clause_missing_semicolon() {
+        assert_recovery_snapshot!("library ieee", Parser::design_file);
+    }
+
+    #[test]
+    fn use_clause_missing_name() {
+        assert_recovery_snapshot!("use ;", Parser::design_file);
+    }
+
+    #[test]
+    fn context_declaration_missing_end() {
+        assert_recovery_snapshot!(
+            "\
+context my_ctx is
+  library ieee;",
+            Parser::design_file
+        );
+    }
+
+    #[test]
+    fn design_file_top_level_body_keyword() {
+        assert_recovery_snapshot!("body", Parser::design_file);
     }
 }

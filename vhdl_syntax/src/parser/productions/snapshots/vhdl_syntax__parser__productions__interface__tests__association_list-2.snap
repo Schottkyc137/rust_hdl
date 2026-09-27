@@ -4,19 +4,21 @@ expression: "to_test_text(Parser::association_list, \"p1 => 1, std_ulogic(p2)=> 
 ---
 AssociationList
   AssociationElement
-    FormalPart
+    Formal
       Name
-        Identifier 'p1'
-    RightArrow
+        NameDesignatorPrefix
+          Identifier 'p1'
+      RightArrow
     ActualPart
       ActualPartExpression
         LiteralExpression
           AbstractLiteral '1'
   Comma
   AssociationElement
-    FormalPart
+    Formal
       Name
-        Identifier 'std_ulogic'
+        NameDesignatorPrefix
+          Identifier 'std_ulogic'
         ParenthesizedName
           LeftPar
           AssociationList
@@ -25,11 +27,13 @@ AssociationList
                 ActualPartExpression
                   NameExpression
                     Name
-                      Identifier 'p2'
+                      NameDesignatorPrefix
+                        Identifier 'p2'
           RightPar
-    RightArrow
+      RightArrow
     ActualPart
       ActualPartExpression
         NameExpression
           Name
-            Identifier 'sl_sig'
+            NameDesignatorPrefix
+              Identifier 'sl_sig'

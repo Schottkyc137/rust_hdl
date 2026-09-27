@@ -9,7 +9,8 @@ InterfacePackageDeclaration
     Keyword(Is)
   Keyword(New)
   Name
-    Identifier 'lib'
+    NameDesignatorPrefix
+      Identifier 'lib'
     SelectedName
       Dot
       Identifier 'pkg'
@@ -20,13 +21,15 @@ InterfacePackageDeclaration
     InterfacePackageGenericMapAspectAssociations
       AssociationList
         AssociationElement
-          FormalPart
+          Formal
             Name
-              Identifier 'foo'
-          RightArrow
+              NameDesignatorPrefix
+                Identifier 'foo'
+            RightArrow
           ActualPart
             ActualPartExpression
               NameExpression
                 Name
-                  Identifier 'bar'
+                  NameDesignatorPrefix
+                    Identifier 'bar'
     RightPar

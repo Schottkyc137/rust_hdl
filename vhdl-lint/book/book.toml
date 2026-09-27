@@ -1,0 +1,8 @@
+[book]
+title = "VHDL-Lint"
+authors = ["Lukas Scheller"]
+language = "en"
+
+[output.html]
+site-url = "/rust_hdl/vhdl-lint/"
+git-repository-url = "https://github.com/VHDL-LS/rust_hdl/tree/master/vhdl-lint"

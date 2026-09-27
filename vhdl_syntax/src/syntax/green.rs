@@ -1,14 +1,16 @@
 //! Private API for the underlying Green Tree
-use crate::latin_1::Latin1Str;
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // Copyright (c)  2024, Lukas Scheller lukasscheller@icloud.com
-use crate::syntax::child::Child;
+use crate::latin_1::Latin1Str;
+use crate::non_empty::NonEmpty;
+use crate::syntax::child::{Child, ChildKind};
 use crate::syntax::node_kind::NodeKind;
 use crate::tokens::{Token, TokenKind, Trivia};
 use std::io::{self, Write};
+use std::slice;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,49 +51,36 @@ pub(crate) struct GreenNode(Arc<GreenNodeData>);
 
 pub(crate) type GreenChild = Child<GreenNode, GreenToken>;
 
+impl GreenChild {
+    pub fn kind(&self) -> ChildKind {
+        match self {
+            Child::Node(node) => Child::Node(node.kind()),
+            Child::Token(token) => Child::Token(token.kind()),
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub(crate) struct GreenNodeData {
     /// The kind of this node
     kind: NodeKind,
     /// The sub-nodes or token of this node
-    children: Vec<GreenChild>,
+    children: NonEmpty<GreenChild>,
     byte_len: usize,
 }
 
 impl GreenNodeData {
-    pub(crate) fn push(&mut self, child: GreenChild) {
-        self.byte_len += child.byte_len();
-        self.children.push(child);
-    }
-
-    #[cfg(test)]
-    pub(crate) fn push_token(&mut self, token: Token) {
-        self.push(Child::Token(GreenToken::new(token)))
-    }
-
-    #[cfg(test)]
-    pub fn push_tokens(&mut self, tokens: impl IntoIterator<Item = Token>) {
-        for token in tokens {
-            self.push_token(token);
-        }
-    }
-
-    pub(crate) fn push_children(&mut self, children: impl IntoIterator<Item = GreenChild>) {
-        for child in children {
-            self.push(child);
-        }
-    }
-
-    pub(crate) fn new(kind: NodeKind) -> GreenNodeData {
-        GreenNodeData {
+    pub(crate) fn new(
+        kind: NodeKind,
+        children: impl IntoIterator<Item = GreenChild>,
+    ) -> Option<GreenNodeData> {
+        let children = NonEmpty::from_iter(children)?;
+        let byte_len = children.iter().map(GreenChild::byte_len).sum();
+        Some(GreenNodeData {
             kind,
-            children: vec![],
-            byte_len: 0,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.children.is_empty()
+            children,
+            byte_len,
+        })
     }
 
     pub fn byte_len(&self) -> usize {
@@ -104,7 +93,28 @@ impl GreenNode {
         GreenNode(Arc::new(data))
     }
 
-    pub fn children(&self) -> impl Iterator<Item = &GreenChild> {
+    /// Builds a node directly from its children, panicking when no child is given.
+    #[cfg(test)]
+    pub(crate) fn from_children(
+        kind: NodeKind,
+        children: impl IntoIterator<Item = GreenChild>,
+    ) -> GreenNode {
+        GreenNode::new(GreenNodeData::new(kind, children).expect("Cannot build empty nodes"))
+    }
+
+    /// Builds a node consisting solely of tokens, panicking when no token is given.
+    #[cfg(test)]
+    pub(crate) fn from_tokens(
+        kind: NodeKind,
+        tokens: impl IntoIterator<Item = Token>,
+    ) -> GreenNode {
+        GreenNode::from_children(
+            kind,
+            tokens.into_iter().map(GreenToken::new).map(Child::Token),
+        )
+    }
+
+    pub fn children(&self) -> slice::Iter<'_, GreenChild> {
         self.0.children.iter()
     }
 
@@ -197,30 +207,42 @@ mod tests {
     }
 
     #[test]
-    fn push_keeps_byte_len_in_sync() {
-        let mut data = GreenNodeData::new(NodeKind::EntityDeclaration);
-        assert_eq!(data.byte_len(), 0);
-        data.push_token(Token::simple(
-            TokenKind::Keyword(Keyword::Entity),
-            b"entity",
-        ));
-        assert_eq!(data.byte_len(), 6);
-        data.push_token(Token::simple(TokenKind::Identifier, b"foo"));
-        assert_eq!(data.byte_len(), 9);
+    fn byte_len_is_the_sum_of_all_children() {
+        let node = GreenNode::from_tokens(
+            NodeKind::EntityDeclaration,
+            [Token::simple(
+                TokenKind::Keyword(Keyword::Entity),
+                b"entity",
+            )],
+        );
+        assert_eq!(node.byte_len(), 6);
+
+        let node = GreenNode::from_tokens(
+            NodeKind::EntityDeclaration,
+            [
+                Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity"),
+                Token::simple(TokenKind::Identifier, b"foo"),
+            ],
+        );
+        assert_eq!(node.byte_len(), 9);
+    }
+
+    #[test]
+    fn empty_nodes_cannot_be_built() {
+        assert_eq!(GreenNodeData::new(NodeKind::EntityDeclaration, []), None);
     }
 
     #[test]
     fn nested_byte_len_consistent() {
-        let mut inner = GreenNodeData::new(NodeKind::EntityDeclarationPreamble);
-        inner.push_tokens([
-            Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity"),
-            Token::simple(TokenKind::Identifier, b"foo"),
-        ]);
-        let inner = GreenNode::new(inner);
+        let inner = GreenNode::from_tokens(
+            NodeKind::EntityDeclarationPreamble,
+            [
+                Token::simple(TokenKind::Keyword(Keyword::Entity), b"entity"),
+                Token::simple(TokenKind::Identifier, b"foo"),
+            ],
+        );
 
-        let mut outer = GreenNodeData::new(NodeKind::EntityDeclaration);
-        outer.push(Child::Node(inner));
-        let outer = GreenNode::new(outer);
+        let outer = GreenNode::from_children(NodeKind::EntityDeclaration, [Child::Node(inner)]);
 
         assert_byte_len_consistent(&outer);
         assert_eq!(outer.byte_len(), 9);

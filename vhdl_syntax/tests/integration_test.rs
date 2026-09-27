@@ -1,7 +1,11 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
 use similar::{ChangeTag, TextDiff};
-use vhdl_syntax::{self, parser, syntax::AstNode};
+use vhdl_syntax::{
+    self, parser,
+    parser::error::display_errors,
+    syntax::{node::SyntaxElement, validate::error::Validation},
+};
 
 // PSL is not supported yet by vhdl_syntax
 const EXCLUDED_FILES: [&str; 1] =
@@ -22,13 +26,12 @@ fn check_file(path: impl Into<std::path::PathBuf>) {
     let (file, diagnostics) = parser::parse(buf.as_slice());
     assert!(
         diagnostics.is_empty(),
-        "Found diagnostics for file {}: {:?}",
+        "Found diagnostics for file {}:\n{}",
         path.display(),
-        diagnostics
+        display_errors(&diagnostics)
     );
     let mut expected_buf = Vec::new();
-    file.raw()
-        .write_to(&mut expected_buf)
+    file.write_to(&mut expected_buf)
         .expect("Cannot write to vec");
     if buf != expected_buf {
         let diff = TextDiff::from_lines(&buf, &expected_buf);
@@ -46,29 +49,57 @@ fn check_file(path: impl Into<std::path::PathBuf>) {
         }
         panic!()
     }
+    if let Err(err) = file.validate() {
+        println!("Parser <-> AST validation failed: {err}");
+        for item in err.items() {
+            match item {
+                Validation::Missing(missing) => println!(
+                    "  missing {:?} in {:?}",
+                    missing.kind(),
+                    missing.parent().kind()
+                ),
+                Validation::Extraneous(SyntaxElement::Node(node)) => {
+                    println!("  extraneous node {:?}", node.kind())
+                }
+                Validation::Extraneous(SyntaxElement::Token(token)) => {
+                    println!("  extraneous token {:?}", token.kind())
+                }
+            }
+        }
+        panic!();
+    }
+}
+
+// TODO: This is likely IO-bound, so should be parallelized to speed up tests.
+fn visit_dirs(dir: &std::path::Path) {
+    for entry in std::fs::read_dir(dir).expect("Failed to read directory") {
+        let entry = entry.expect("Failed to read directory entry");
+        let path = entry.path();
+        if path.is_dir() {
+            visit_dirs(&path);
+        } else if matches!(
+            path.extension().and_then(|s| s.to_str()),
+            Some("vhd" | "vhdl")
+        ) {
+            check_file(path);
+        }
+    }
+}
+
+/// Path to `dir` relative to the workspace root.
+fn workspace_dir(dir: &str) -> PathBuf {
+    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path = path.parent().unwrap().to_path_buf();
+    path.push(dir);
+    path
 }
 
 #[test]
 fn parse_and_re_emit_example_project_files() {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path = path.parent().unwrap().to_path_buf();
-    path.push("example_project");
+    visit_dirs(&workspace_dir("example_project"));
+}
 
-    // TODO: This is likely IO-bound, so should be parallelized to speed up tests.
-    fn visit_dirs(dir: &std::path::Path) {
-        for entry in std::fs::read_dir(dir).expect("Failed to read directory") {
-            let entry = entry.expect("Failed to read directory entry");
-            let path = entry.path();
-            if path.is_dir() {
-                visit_dirs(&path);
-            } else if matches!(
-                path.extension().and_then(|s| s.to_str()),
-                Some("vhd" | "vhdl")
-            ) {
-                check_file(path);
-            }
-        }
-    }
-
-    visit_dirs(&path);
+#[test]
+fn parse_and_re_emit_vhdl_libraries() {
+    visit_dirs(&workspace_dir("vhdl_libraries"));
 }

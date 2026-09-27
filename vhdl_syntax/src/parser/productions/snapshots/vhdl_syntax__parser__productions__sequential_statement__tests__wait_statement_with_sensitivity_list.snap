@@ -6,10 +6,12 @@ WaitStatement
   Keyword(Wait)
   SensitivityClause
     Keyword(On)
-    NameList
+    SensitivityList
       Name
-        Identifier 'foo'
+        NameDesignatorPrefix
+          Identifier 'foo'
       Comma
       Name
-        Identifier 'bar'
+        NameDesignatorPrefix
+          Identifier 'bar'
   SemiColon

@@ -9,8 +9,10 @@ ConstantDeclaration
   Colon
   SubtypeIndication
     Name
-      Identifier 'natural'
-  ColonEq
-  LiteralExpression
-    AbstractLiteral '0'
+      NameDesignatorPrefix
+        Identifier 'natural'
+  InitialValue
+    ColonEq
+    LiteralExpression
+      AbstractLiteral '0'
   SemiColon
