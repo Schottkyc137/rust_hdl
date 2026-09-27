@@ -2,6 +2,8 @@
 
 VHDL-Lint is a modern linter for VHDL that takes inspiration from popular linters like [ruff](https://docs.astral.sh/ruff/), [clippy](https://doc.rust-lang.org/clippy/) and [ESLint](https://eslint.org).
 
+Every rule is documented in the [vhdl-lint book](https://vhdl-ls.github.io/rust_hdl/vhdl-lint/rules/).
+
 ## Usage
 
 VHDL-Lint can be used as a command-line tool and as a Rust library.
@@ -34,7 +36,8 @@ Rule selection:
       --ignore <RULE>  Comma-separated list of rules to disable
 
 Miscellaneous:
-  -e, --exit-zero  Exit with status code "0", even upon detecting lint violations
+  -e, --exit-zero       Exit with status code "0", even upon detecting lint violations
+      --explain <CODE>  Print the documentation of a rule and exit
 ```
 
 #### Sample output
@@ -62,7 +65,6 @@ The feature set is minimal. Currently, this crate offers only marginal improveme
 
 ### Limitations
 
-- Rules only have an error code, but no user-facing documentation.
 - There are no machine-readable output formats, e.g., for CI.
 
 ## CLI Usage
