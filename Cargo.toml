@@ -15,7 +15,7 @@ members = [
     "vhdl-dump-ast",
     "vhdl-lint",
     "vhdl_lint_macros",
-    "vhdl-lint-docs",
+    "vhdl-lint-docs", "vhdl-analysis",
 ]
 
 # By default, do not include members that are only needed at build-time

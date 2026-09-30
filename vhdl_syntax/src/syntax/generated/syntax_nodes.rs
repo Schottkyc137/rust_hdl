@@ -5836,7 +5836,7 @@ impl Deref for DelayMechanismSyntax {
         }
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DesignFileSyntax(pub(crate) SyntaxNode);
 impl AstNode for DesignFileSyntax {
     const META: &'static Layout = &Layout::Sequence(Sequence {
